@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+build/
+
+# Environment variables and secrets
+.env
+.env*.local
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor and OS files
+.DS_Store
+.vscode/
+.idea/
+
+# Vercel
+.vercel
+
+# Claude Code local settings
+.claude/settings.local.json
