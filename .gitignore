@@ -5,6 +5,7 @@ node_modules/
 .next/
 out/
 build/
+*.tsbuildinfo
 
 # Environment variables and secrets
 .env
