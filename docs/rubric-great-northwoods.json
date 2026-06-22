@@ -1,0 +1,371 @@
+{
+  "name": "Great Northwoods 290-point",
+  "description": "Rubric adapted from the Great Northwoods Sales judges' criteria for use in Relii. Faithful 290-point structure across six categories. Each item is worth 10 points and carries sub-criteria guidance so the scorer can make and explain itemized deductions. Items tagged voice-only are skipped for text sessions and the total is pro-rated. Each item also lists the scenario types it belongs to.",
+  "meta": {
+    "source": "Great Northwoods Judges' Criteria (OS_Resources/Relii/Great-Northwoods-Judges-Criteria rubric.pdf), mapped to Relii scenario types per Tom Banta, June 14, 2026.",
+    "status": "Confirmed by Tom. Great Northwoods is the rubric. It is mapped into two scenario types via the per-item 'meetings' tags.",
+    "total_points": 290,
+    "scoring_note": "For a text session, omit voice-only items and pro-rate: text max equals the scenario's voice plus video max minus its voice-only points.",
+    "format_note": "Relii role plays are a webcam call where the student is on camera and the AI persona is voice-only. Physical in-person actions (handshake, business card exchange) are not applicable and are not scored.",
+    "scenario_types": {
+      "discovery": {
+        "name": "Discovery-Close",
+        "meeting": "Alex (procurement director)",
+        "objective": "Secure the follow-up meeting with Jordan.",
+        "items_count": 23,
+        "voice_video_max": 230,
+        "text_max": 180
+      },
+      "presentation": {
+        "name": "Presentation-Close",
+        "meeting": "Jordan (plant manager)",
+        "objective": "Secure a business agreement (the risk-free trial order).",
+        "items_count": 27,
+        "voice_video_max": 270,
+        "text_max": 220
+      }
+    }
+  },
+  "items": [
+    {
+      "id": "intro-professional-opening",
+      "category": "Introduction / Approach",
+      "label": "Professional opening",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Professional greeting and stating first and last name clearly, politeness. Penalize failure to state first and last name. Handshake, fist bump, and business card exchange are not applicable to the remote AI format and are not scored; allocate the points across greeting, self-identification, and politeness.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    },
+    {
+      "id": "intro-build-rapport",
+      "category": "Introduction / Approach",
+      "label": "Effectively builds rapport",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Connects with the prospect and finds an area of commonality, builds credibility. Eye contact is assessed only in voice plus video sessions; in text, score the rapport-building content.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    },
+    {
+      "id": "intro-meeting-prep",
+      "category": "Introduction / Approach",
+      "label": "Displays organized meeting prep",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "States the purpose of the meeting, reviews or presents an agenda, asks the customer for feedback on the agenda or topics.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    },
+    {
+      "id": "facts-purchasing-process",
+      "category": "Confirming & Uncovering Relevant Facts",
+      "label": "Uncovers the purchasing process",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Uncovers length of the purchasing process and any constraints: approval process, budget, timing.",
+      "meetings": [
+        "discovery"
+      ]
+    },
+    {
+      "id": "facts-current-practices",
+      "category": "Confirming & Uncovering Relevant Facts",
+      "label": "Determines relevant facts about current practices",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Confirms current target markets or customers served, solicits feedback on current or past products and services purchased, identifies current suppliers of similar products, identifies order frequency.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    },
+    {
+      "id": "facts-purchase-criteria",
+      "category": "Confirming & Uncovering Relevant Facts",
+      "label": "Uncovers criteria for purchasing new products",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Surfaces the decision criteria the customer uses when buying new products or services.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    },
+    {
+      "id": "needs-uncover-needs",
+      "category": "Identifying Needs & Opportunities",
+      "label": "Effectively uncovers the needs of the buyer",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Asks engaging questions relevant to the customer's concerns, uncovers elements of the customer's strategy, and uncovers industry and market pressures facing the customer.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    },
+    {
+      "id": "needs-cost-of-not-changing",
+      "category": "Identifying Needs & Opportunities",
+      "label": "Increases awareness of opportunities and the total cost or impact of not changing",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Helps the customer discover the loss (the total cost or impact) of not changing, understand the gains of changing, and begin thinking through possible solutions.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    },
+    {
+      "id": "needs-spark-interest",
+      "category": "Identifying Needs & Opportunities",
+      "label": "Sparks interest in hearing more about the product or service",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Communicates how the product or service can address the problem or opportunity in an impactful way.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    },
+    {
+      "id": "needs-summarize-transition",
+      "category": "Identifying Needs & Opportunities",
+      "label": "Summarizes needs and transitions to the presentation",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Refers to the agenda, summarizes findings and progress, and asks the customer for feedback before moving into the presentation.",
+      "meetings": [
+        "discovery"
+      ]
+    },
+    {
+      "id": "pres-organized",
+      "category": "Product / Service Presentation",
+      "label": "Organized presentation that is easy to follow",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "All information is relevant to a problem, opportunity, or the purchasing process; the presentation flows, adjusts to customer interest, and is not overly scripted.",
+      "meetings": [
+        "presentation"
+      ]
+    },
+    {
+      "id": "pres-data-story",
+      "category": "Product / Service Presentation",
+      "label": "Uses objective data to tell a story",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Data and numbers are not just reported; specific examples show how the story is relevant to the customer.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    },
+    {
+      "id": "pres-benefits",
+      "category": "Product / Service Presentation",
+      "label": "Presents benefits tied to the problem, solution, or opportunity",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Relates benefits clearly to the customer's problem, solution, or realized opportunity.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    },
+    {
+      "id": "pres-engage-product",
+      "category": "Product / Service Presentation",
+      "label": "Effectively engages buyers with the product",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Demonstrates product knowledge, shares interesting facts relevant to the customer, and presents creative ideas for using the product or service.",
+      "meetings": [
+        "presentation"
+      ]
+    },
+    {
+      "id": "pres-reason-to-buy",
+      "category": "Product / Service Presentation",
+      "label": "Summarizes and persuasively presents a reason to buy",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Pulls the case together into a persuasive reason to buy.",
+      "meetings": [
+        "presentation"
+      ]
+    },
+    {
+      "id": "pres-soft-close",
+      "category": "Product / Service Presentation",
+      "label": "Gauges interest in purchasing (soft close)",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Uses open-ended questions to gauge purchase interest.",
+      "meetings": [
+        "presentation"
+      ]
+    },
+    {
+      "id": "close-ask-feedback",
+      "category": "Soliciting Feedback & Closing",
+      "label": "Asks for buyer feedback and solicits objections",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Invites feedback and surfaces objections rather than avoiding them.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    },
+    {
+      "id": "close-open-question-first",
+      "category": "Soliciting Feedback & Closing",
+      "label": "Asks an open-ended question before answering an objection",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "When an objection arises, asks an open-ended question to understand it before answering.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    },
+    {
+      "id": "close-answer-objection",
+      "category": "Soliciting Feedback & Closing",
+      "label": "Effectively answers the objection",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Answers the objection with relevant facts or product information.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    },
+    {
+      "id": "close-confirm-resolved",
+      "category": "Soliciting Feedback & Closing",
+      "label": "Confirms the objection is no longer a concern",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Asks a question to confirm the objection is resolved.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    },
+    {
+      "id": "close-ask-for-business",
+      "category": "Soliciting Feedback & Closing",
+      "label": "Directly asks for the business and suggests an order size",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Directly asks for the business and proposes an order size.",
+      "meetings": [
+        "presentation"
+      ]
+    },
+    {
+      "id": "close-price-knowledge",
+      "category": "Soliciting Feedback & Closing",
+      "label": "Knowledgeable of price and discounting",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Shows command of price and discounting when completing or presenting the order.",
+      "meetings": [
+        "presentation"
+      ]
+    },
+    {
+      "id": "close-complete-transaction",
+      "category": "Soliciting Feedback & Closing",
+      "label": "Prepared to complete the transaction",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Provides clear next steps regardless of the customer's answer and gains commitment for follow-up.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    },
+    {
+      "id": "style-visual-aids",
+      "category": "Sales Style",
+      "label": "Uses engaging professional visual or physical aids",
+      "points": 10,
+      "applies_to": "voice-only",
+      "guidance": "Uses professional visual or physical aids. Requires the webcam (voice plus video); not scored in text.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    },
+    {
+      "id": "style-engage-questions",
+      "category": "Sales Style",
+      "label": "Engages buyers with the presentation by asking questions",
+      "points": 10,
+      "applies_to": "both",
+      "guidance": "Keeps the buyer engaged by asking questions throughout.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    },
+    {
+      "id": "style-verbal-skills",
+      "category": "Sales Style",
+      "label": "Effective verbal communication skills",
+      "points": 10,
+      "applies_to": "voice-only",
+      "guidance": "Appropriate business grammar and language, minimal slang, minimal filler words, no distracting verbal tics, not reliant on a script. Requires speech; not scored in text.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    },
+    {
+      "id": "style-nonverbal",
+      "category": "Sales Style",
+      "label": "Appropriate non-verbal communication",
+      "points": 10,
+      "applies_to": "voice-only",
+      "guidance": "No distracting behaviors or tics, not slouching, appropriate eye contact, no repetitive checking of phone or watch. Requires the webcam; not scored in text.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    },
+    {
+      "id": "style-professional-image",
+      "category": "Sales Style",
+      "label": "Professional dress and image",
+      "points": 10,
+      "applies_to": "voice-only",
+      "guidance": "Professional dress and image that does not distract from the presentation. Requires the webcam; not scored in text.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    },
+    {
+      "id": "style-attitude-confidence",
+      "category": "Sales Style",
+      "label": "Attitude and confidence",
+      "points": 10,
+      "applies_to": "voice-only",
+      "guidance": "Enthusiasm shown through smiling, body language, voice tone and pace; confident in tone and behavior. Requires voice plus video; not scored in text.",
+      "meetings": [
+        "discovery",
+        "presentation"
+      ]
+    }
+  ]
+}
