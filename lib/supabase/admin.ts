@@ -7,8 +7,10 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 export function createAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // Strip any stray whitespace or line breaks that can sneak in when these are
+  // pasted into a hosting dashboard.
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.replace(/\s/g, "");
 
   if (!url || !serviceKey) {
     throw new Error(

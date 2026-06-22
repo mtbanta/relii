@@ -24,7 +24,10 @@ export async function chatComplete(options: {
   responseFormat?: unknown;
   seed?: number;
 }): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  // Strip any whitespace or line breaks. Long keys often pick up a stray line
+  // break when pasted into a hosting dashboard, and an Authorization header
+  // cannot contain newlines, so we clean it before use.
+  const apiKey = process.env.OPENAI_API_KEY?.replace(/\s/g, "");
   if (!apiKey) {
     throw new Error("Missing OPENAI_API_KEY in the environment.");
   }
