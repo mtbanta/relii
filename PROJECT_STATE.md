@@ -4,8 +4,8 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ## Current Stage
 
-Stage 2: Data model. Complete.
-Next up: Stage 3 (text role-play demo).
+Stage 3: Text role-play demo with content-only scoring. Complete and live at https://relii.vercel.app.
+Next up: Stage 4 (real-time voice). Note: a content-only slice of Stage 6 (scoring) was pulled forward and is done; the rest of scoring (voice and delivery items, the OpenAI vs Claude bake-off, professor finalization) is still ahead.
 
 ## Completed
 
@@ -33,13 +33,24 @@ Next up: Stage 3 (text role-play demo).
   - Verified in the database that a student cannot read another student's sessions (a different student saw 0 rows, the owner saw 2). Test data was rolled back, so nothing persisted.
   - SQL saved in supabase/stage-2-data-model.sql (Stage 1's schema.sql untouched). Plain-English description in docs/data-model.md, ready to share with Tom.
   - Not built yet (Stage 7 lifecycle, schema supports both): enforcing the cap of 3 practice sessions per student per assignment, and deleting a student's practices for an assignment when they submit.
+- Stage 3: text role-play demo with content-only scoring. Built and deployed live.
+  - Seeded the data (no schema change): the Great Northwoods 290-point rubric and the Alex "Discovery-Close" scenario, copied verbatim from docs/persona-alex-procurement.md and docs/rubric-great-northwoods.json. The seed SQL is generated from those files by supabase/build-stage-3-seed.mjs into supabase/stage-3-seed.sql (safe to re-run; it skips rows that already exist).
+  - A logged-in student picks the Alex scenario, holds a typed conversation with an AI persona that stays in character, ends the session, and sees an itemized content score alongside the transcript.
+  - The conversation is a server-side OpenAI call (model gpt-4o by default, changeable via the OPENAI_MODEL env var). The OpenAI key and the Supabase service-role key are server-only env vars, never sent to the browser.
+  - Sessions are written only by the server using the service-role key (decision A). The transcript is saved each turn; the student reads their own session back through Row Level Security.
+  - Content-only scoring: when the session ends, the server scores the transcript against the 18 Discovery content items (180 points) in one low-temperature, structured (JSON) pass, with a short evidence comment per item, and saves the itemized score plus the total. Voice and delivery items are not scored in text mode.
+  - To keep re-scoring consistent (the requirement was "within a few points"), each item is awarded one of five anchor values (0, 3, 6, 8, 10) with a fixed random seed. Verified: re-scoring the same transcript stayed within a 3-point spread. Trade-off: scores are coarser, so finer calibration is left for the full scoring stage.
+  - New code: lib/openai.ts, lib/persona.ts, lib/scoring.ts, lib/types.ts, lib/supabase/admin.ts; the API routes app/api/session/start, app/api/chat, and app/api/session/end; the screens app/student/session/[id] (conversation) and app/student/session/[id]/results (score plus transcript); and the Practice button on the student home.
+  - Live on Vercel. The two server-only secrets (OPENAI_API_KEY, SUPABASE_SERVICE_ROLE_KEY) are set in Vercel's Production environment. A fix was added so a key pasted with a stray line break (a common dashboard paste artifact) no longer breaks the request: the code strips whitespace from both keys before use.
 
 ## Open Issues
 
-- None.
+- Scoring calibration: the content scorer uses coarse anchor values (0, 3, 6, 8, 10) and leans a little generous on partial attempts. That was the right call for a consistent demo; revisit the calibration and granularity in the full scoring stage, alongside the OpenAI vs Claude bake-off.
+- Still deferred to Stage 7 (lifecycle): the cap of 3 practice sessions per student per assignment, and deleting a student's practices for an assignment when they submit.
 
 ## Next Steps
 
-- Document and then load the actual content into the new tables: the Alex persona details, the first scenario(s), and the Great Northwoods 290-point rubric. The data model sketch is done (docs/data-model.md); these are now both planning docs and rows to insert.
-- Begin Stage 3: text role-play demo. Use a scenario and its persona to run a text conversation and save the transcript into a session row. This is the first feature that needs the server-side service-role key (server only, never in the browser).
+- Stage 4: real-time voice. Replace the typed conversation with the OpenAI Realtime API for spoken role-play, keeping the same persona and session model.
+- Stage 5: video capture. Record the student's webcam with the browser's MediaRecorder and store the file in Supabase storage (the sessions.video_path column is ready and waiting).
+- Stage 6: the full scoring engine. Add the voice and delivery items, run the OpenAI vs Claude scorer bake-off, and add professor finalization. The content-only scorer built in Stage 3 is the starting point.
 - Deferred to Stage 7 (practice and assignment session lifecycle): enforce the cap of 3 practice sessions per student per assignment; delete a student's practices for an assignment when they submit; and let instructors delete a student, which should also clean up that student's sessions and videos.
