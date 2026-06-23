@@ -63,7 +63,10 @@ export default async function StudentHome() {
               <p className="mt-3 text-sm leading-relaxed text-gray-700">
                 {scenario.scenario_context}
               </p>
-              <PracticeButton scenarioId={scenario.id} />
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <PracticeButton scenarioId={scenario.id} mode="voice" />
+                <PracticeButton scenarioId={scenario.id} mode="text" />
+              </div>
             </li>
           ))}
         </ul>

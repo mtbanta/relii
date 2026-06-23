@@ -4,6 +4,7 @@
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Conversation } from "@/components/conversation";
+import { VoiceConversation } from "@/components/voice-conversation";
 import type { TranscriptTurn } from "@/lib/types";
 
 export default async function SessionPage({
@@ -38,6 +39,21 @@ export default async function SessionPage({
     .select("title, persona_name")
     .eq("id", session.scenario_id)
     .single();
+
+  // Voice sessions (stored as voice_video) get the spoken call screen; text
+  // sessions get the typed conversation screen. Both end on the same results
+  // screen with the same content score.
+  if (session.mode === "voice_video") {
+    return (
+      <main className="mx-auto max-w-2xl p-4">
+        <VoiceConversation
+          sessionId={session.id}
+          personaName={scenario?.persona_name ?? "the customer"}
+          scenarioTitle={scenario?.title ?? "Practice session"}
+        />
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-2xl p-4">

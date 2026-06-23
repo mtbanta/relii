@@ -21,7 +21,7 @@ export default async function ResultsPage({
 
   const { data: session } = await supabase
     .from("sessions")
-    .select("id, status, scenario_id, transcript, score, score_total")
+    .select("id, status, mode, scenario_id, transcript, score, score_total")
     .eq("id", id)
     .single();
 
@@ -34,6 +34,7 @@ export default async function ResultsPage({
 
   const score = session.score as SessionScore;
   const transcript = (session.transcript ?? []) as TranscriptTurn[];
+  const isVoice = session.mode === "voice_video";
 
   // Load the scenario + rubric so we can show each item's human-friendly label
   // and category next to its score.
@@ -70,7 +71,9 @@ export default async function ResultsPage({
       </header>
 
       <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-5">
-        <p className="text-sm text-gray-600">Content score (text role-play)</p>
+        <p className="text-sm text-gray-600">
+          Content score ({isVoice ? "voice" : "text"} role-play)
+        </p>
         <p className="text-3xl font-semibold">
           {score.total}
           <span className="text-lg font-normal text-gray-500">
@@ -79,8 +82,8 @@ export default async function ResultsPage({
           </span>
         </p>
         <p className="mt-1 text-xs text-gray-500">
-          Scored by AI on the discovery content items. Delivery items (voice and
-          video) are not part of a text session.
+          Scored by AI on the discovery content items. Delivery items (tone,
+          pace, and other spoken-only points) are added in a later stage.
         </p>
       </div>
 

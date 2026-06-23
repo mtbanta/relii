@@ -4,16 +4,28 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 // Starts a new practice session for a scenario, then opens the conversation.
-export function PracticeButton({ scenarioId }: { scenarioId: string }) {
+// mode "text" types with the persona; mode "voice" holds a spoken call.
+export function PracticeButton({
+  scenarioId,
+  mode = "text",
+}: {
+  scenarioId: string;
+  mode?: "text" | "voice";
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // The two modes use different start routes but both return a session id and
+  // open the same session screen (which picks the right interface by mode).
+  const startUrl = mode === "voice" ? "/api/voice/start" : "/api/session/start";
+  const label = mode === "voice" ? "Practice (voice)" : "Practice (text)";
 
   async function start() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/session/start", {
+      const res = await fetch(startUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scenarioId }),
@@ -29,16 +41,17 @@ export function PracticeButton({ scenarioId }: { scenarioId: string }) {
     }
   }
 
+  const className =
+    mode === "voice"
+      ? "rounded-md border border-black px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
+      : "rounded-md bg-black px-4 py-2 text-sm text-white disabled:opacity-50";
+
   return (
-    <div className="mt-4">
-      <button
-        onClick={start}
-        disabled={loading}
-        className="rounded-md bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
-      >
-        {loading ? "Starting..." : "Practice"}
+    <>
+      <button onClick={start} disabled={loading} className={className}>
+        {loading ? "Starting..." : label}
       </button>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-    </div>
+      {error && <p className="mt-2 w-full text-sm text-red-600">{error}</p>}
+    </>
   );
 }
