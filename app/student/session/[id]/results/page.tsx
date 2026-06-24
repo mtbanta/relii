@@ -4,14 +4,19 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
 import type { RubricItem, SessionScore, TranscriptTurn } from "@/lib/types";
 
 export default async function ResultsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ videoError?: string }>;
 }) {
   const { id } = await params;
+  const { videoError } = await searchParams;
 
   const supabase = await createClient();
   const {
@@ -21,7 +26,7 @@ export default async function ResultsPage({
 
   const { data: session } = await supabase
     .from("sessions")
-    .select("id, status, mode, scenario_id, transcript, score, score_total")
+    .select("id, status, mode, scenario_id, transcript, score, score_total, video_path")
     .eq("id", id)
     .single();
 
@@ -35,6 +40,19 @@ export default async function ResultsPage({
   const score = session.score as SessionScore;
   const transcript = (session.transcript ?? []) as TranscriptTurn[];
   const isVoice = session.mode === "voice_video";
+
+  // If this session has a recording, mint a short-lived signed link to it. We can
+  // safely use the admin client here because we have already confirmed (via the
+  // RLS read above) that this user is allowed to see this session. The link
+  // expires after an hour; reload the page to get a fresh one.
+  let videoUrl: string | null = null;
+  if (session.video_path) {
+    const admin = createAdminClient();
+    const { data: signed } = await admin.storage
+      .from(SESSION_VIDEOS_BUCKET)
+      .createSignedUrl(session.video_path, 60 * 60);
+    videoUrl = signed?.signedUrl ?? null;
+  }
 
   // Load the scenario + rubric so we can show each item's human-friendly label
   // and category next to its score.
@@ -86,6 +104,30 @@ export default async function ResultsPage({
           pace, and other spoken-only points) are added in a later stage.
         </p>
       </div>
+
+      {/* The student's own recording (voice sessions only). */}
+      {isVoice && (
+        <section className="mb-6">
+          <h2 className="mb-3 text-lg font-medium">Your recording</h2>
+          {videoUrl ? (
+            <video
+              src={videoUrl}
+              controls
+              playsInline
+              className="w-full max-w-2xl rounded-lg border border-gray-200 bg-black"
+            />
+          ) : videoError === "1" ? (
+            <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+              Your recording could not be saved this time, but your score below
+              was saved. You can run another practice if you want a recording.
+            </p>
+          ) : (
+            <p className="text-sm text-gray-500">
+              No recording was saved for this session (the camera was off).
+            </p>
+          )}
+        </section>
+      )}
 
       <div className="grid gap-8 md:grid-cols-2">
         {/* Itemized score */}
