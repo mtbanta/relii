@@ -38,17 +38,30 @@ const ALEX_GAIN = 1.0; // Alex's incoming voice
 const VIDEO_BITS_PER_SECOND = 1_000_000; // ~1 Mbps webcam video
 const AUDIO_BITS_PER_SECOND = 96_000; // ~96 kbps for the mixed voices
 
+// Webcam capture settings. We cap the resolution and frame rate so the video
+// encoder has less work to do, which keeps recording from competing with the
+// live voice call for the processor (the cause of the occasional choppiness in
+// early testing). 720p at 24fps is still clear enough for later delivery review.
+const VIDEO_CONSTRAINTS: MediaTrackConstraints = {
+  width: { ideal: 1280 },
+  height: { ideal: 720 },
+  frameRate: { ideal: 24 },
+};
+
 // Where the browser sends its connection request. The token (not the real key)
 // authorizes it, and OpenAI returns the matching audio "answer".
 const OPENAI_CALLS_URL = "https://api.openai.com/v1/realtime/calls";
 
-// Pick a video format the browser supports, preferring webm. Returns "" if the
-// browser will choose its own default.
+// Pick a video format the browser supports, preferring webm. We try VP8 before
+// VP9 on purpose: VP8 is lighter to encode, so it leaves more processor headroom
+// for the live call (VP9 makes slightly smaller files but costs more CPU, and
+// our bitrate cap already bounds the file size). Returns "" if the browser will
+// choose its own default.
 function pickRecordingMimeType(): string {
   if (typeof MediaRecorder === "undefined") return "";
   const candidates = [
-    "video/webm;codecs=vp9,opus",
     "video/webm;codecs=vp8,opus",
+    "video/webm;codecs=vp9,opus",
     "video/webm",
   ];
   for (const type of candidates) {
@@ -417,9 +430,10 @@ export function VoiceConversation({
 
     try {
       // 1. Ask for the camera and microphone in ONE prompt. If the camera is
-      //    off, ask for the microphone only (today's behavior).
+      //    off, ask for the microphone only (today's behavior). The capped video
+      //    settings keep the encoder light so it does not compete with the call.
       const localStream = await navigator.mediaDevices.getUserMedia(
-        cameraOn ? { video: true, audio: true } : { audio: true },
+        cameraOn ? { video: VIDEO_CONSTRAINTS, audio: true } : { audio: true },
       );
       localStreamRef.current = localStream;
       recordingEnabledRef.current = cameraOn && localStream.getVideoTracks().length > 0;
