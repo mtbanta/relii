@@ -4,8 +4,9 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ## Current Stage
 
-Stage 5: video capture. Complete and live at https://relii.vercel.app.
-Next up: Stage 6 (the full scoring engine). Note: a content-only slice of Stage 6 was pulled forward in Stage 3 and is done; the rest of scoring (voice and delivery items, the OpenAI vs Claude bake-off, professor finalization) is still ahead.
+Stage 7: session and assignment lifecycle, being built BEFORE Stage 6 (a deliberate reorder, because Tom's pending feedback bears on scoring). The first chunk is done and live at https://relii.vercel.app: an instructor can permanently delete a student. The rest of Stage 7 is still pending (see Next Steps). Stage 6 (the full scoring engine) now follows Stage 7.
+
+Note: a content-only slice of Stage 6 was pulled forward in Stage 3 and is done; the rest of scoring (voice and delivery items, the OpenAI vs Claude bake-off, professor finalization) is still ahead.
 
 ## Completed
 
@@ -68,6 +69,15 @@ Next up: Stage 6 (the full scoring engine). Note: a content-only slice of Stage 
   - Storage limits: the Supabase project upload limit and the session-videos bucket limit were raised to 200 MB (Pro plan) after the default 50 MB rejected a test clip. At about 8 MB per minute, real-length calls stay well under 200 MB.
   - Deferred to Stage 8 (instructor dashboard): letting instructors watch the recordings attached to graded submissions. The storage access rule for that is added then, mirroring how instructors already read submission rows.
   - New code: lib/storage.ts (bucket name and path helper); the API routes app/api/voice/video/upload-url (mints the signed link) and app/api/voice/video/save (records video_path server-side). components/voice-conversation.tsx gained the camera toggle, the live self-view, the mixed-audio recorder, and an upload-then-score ending. The results screen gained the recording player. SQL saved in supabase/stage-5-storage.sql.
+- Stage 7 (lifecycle), first chunk: an instructor can permanently delete a student. Built and deployed live (all four owner checks passed on https://relii.vercel.app).
+  - Sequencing: Stage 7 is being built BEFORE Stage 6, a deliberate reorder (Tom's pending feedback bears on scoring). Only this one chunk of Stage 7 is done; the rest is still pending (see Next Steps).
+  - On the instructor page, a Students roster lists every registered student, each with a Delete action behind a two-step confirmation that names the student and spells out exactly what is removed (account, sessions, videos, invite-list entry). It cannot be undone.
+  - The delete runs SERVER-SIDE ONLY with the service-role key (never the browser), in app/api/instructor/delete-student/route.ts. Order of operations is videos first, then rows: it removes the student's files from the private session-videos bucket (a database cascade does NOT touch Storage, so this is explicit), then deletes the student's auth (login) user, then deletes their invite-list (allowed_emails) entry by email so the address cannot re-register.
+  - What cascades vs what is deleted by hand: deleting the auth user automatically removes the profile (profiles.id references auth.users on delete cascade) and all their sessions, transcripts and scores (sessions.student_id references auth.users on delete cascade). Deleted by hand: the Storage video files (not in any database cascade) and the allowed_emails row (keyed by email, with no link to the auth user).
+  - Guarded twice: the route independently confirms the caller is an instructor (read from the database, not trusted from the browser) and refuses unless the target's role is exactly student. That blocks deleting yourself or another instructor; an explicit self-delete check is a backstop. Confirmed live: the instructor account shows no Delete option.
+  - No schema change. The roster is read server-side with the service-role key (the instructor page runs on the server, so the key never reaches the browser), so the existing "read own profile" rule did not need to change.
+  - Verified by the owner on the live site: a throwaway student's profile, login, sessions, video files, and allowed_emails entry were all removed with nothing orphaned, and a different student's data and videos were completely untouched.
+  - New code: app/api/instructor/delete-student/route.ts (the server-side delete), components/delete-student-button.tsx (the confirm panel), and the Students roster added to app/instructor/page.tsx. No new dependencies, no schema change.
 
 ## Open Issues
 
@@ -79,5 +89,9 @@ Next up: Stage 6 (the full scoring engine). Note: a content-only slice of Stage 
 
 ## Next Steps
 
-- Stage 6: the full scoring engine. Add the voice and delivery items, run the OpenAI vs Claude scorer bake-off, and add professor finalization. The content-only scorer built in Stage 3 is the starting point.
-- Deferred to Stage 7 (practice and assignment session lifecycle): enforce the cap of 3 practice sessions per student per assignment; delete a student's practices for an assignment when they submit; and let instructors delete a student, which should also clean up that student's sessions and videos.
+- Finish Stage 7 (session and assignment lifecycle). Done so far: instructor deletes a student (above). Still pending:
+  - the cap of 3 practice sessions per student per assignment (FIFO),
+  - auto-delete of a student's practices for an assignment when they submit,
+  - the assignment submission flow,
+  - the camera-required-and-locked rule for graded submissions (sits on top of the Stage 5 capture and storage, using the session's kind and mode).
+- Stage 6: the full scoring engine, AFTER Stage 7 (deliberate reorder, because Tom's pending feedback bears on scoring). Add the voice and delivery items, run the OpenAI vs Claude scorer bake-off, and add professor finalization. The content-only scorer built in Stage 3 is the starting point.
