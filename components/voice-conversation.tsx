@@ -98,14 +98,19 @@ export function VoiceConversation({
   sessionId,
   personaName,
   scenarioTitle,
+  isSubmission = false,
 }: {
   sessionId: string;
   personaName: string;
   scenarioTitle: string;
+  // A graded submission ends with an explicit submit-and-score confirmation
+  // step (its one official attempt), instead of practice's quick pop-up.
+  isSubmission?: boolean;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
+  const [confirming, setConfirming] = useState(false);
 
   // Camera on/off, chosen before the call. Defaults on, because voice plus video
   // is the graded format, so practice should resemble it.
@@ -552,14 +557,24 @@ export function VoiceConversation({
 
   // --- Ending -----------------------------------------------------------------
 
-  async function endCall() {
+  // Clicking the header button. Practice confirms with a quick pop-up; a graded
+  // submission opens an explicit inline confirmation step instead.
+  function requestEndCall() {
     if (status === "ending" || status === "ended") return;
-
+    if (isSubmission) {
+      setConfirming(true);
+      return;
+    }
     const ok = window.confirm(
       "End this session and see your score? You will not be able to add more.",
     );
-    if (!ok) return;
+    if (ok) void endCall();
+  }
 
+  async function endCall() {
+    if (status === "ending" || status === "ended") return;
+
+    setConfirming(false);
     setError("");
     setStatus("ending");
 
@@ -625,16 +640,47 @@ export function VoiceConversation({
       <header className="mb-4 flex items-center justify-between border-b border-gray-200 pb-3">
         <div>
           <h1 className="text-lg font-semibold">{scenarioTitle}</h1>
-          <p className="text-sm text-gray-500">Voice call with {personaName}</p>
+          <p className="text-sm text-gray-500">
+            {isSubmission ? "Graded submission with " : "Voice call with "}
+            {personaName}
+          </p>
         </div>
         <button
-          onClick={endCall}
+          onClick={requestEndCall}
           disabled={!canEnd}
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
         >
-          {status === "ending" ? "Finishing..." : "End session"}
+          {status === "ending"
+            ? "Finishing..."
+            : isSubmission
+              ? "Submit assignment"
+              : "End session"}
         </button>
       </header>
+
+      {/* Graded submission: the explicit submit-and-score step. */}
+      {isSubmission && confirming && (
+        <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm">
+          <p className="text-amber-900">
+            Submit this graded assignment for scoring? This ends the call and is
+            your one official attempt; it cannot be redone.
+          </p>
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              onClick={() => setConfirming(false)}
+              className="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50"
+            >
+              Keep talking
+            </button>
+            <button
+              onClick={endCall}
+              className="rounded-md bg-black px-3 py-1.5 text-white"
+            >
+              Submit and score
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* The live self-view, shown while the camera is recording. */}
       {showSelfView && (
@@ -657,10 +703,24 @@ export function VoiceConversation({
       {status === "idle" && (
         <div className="flex flex-1 flex-col items-center justify-center text-center">
           <p className="max-w-md text-gray-600">
-            You are about to start a spoken practice call with {personaName}. Your
-            browser will ask to use your camera and microphone. {personaName} will
-            speak first, then you reply by talking. Speak naturally, and click{" "}
-            <span className="font-medium">End session</span> when you are done.
+            You are about to start{" "}
+            {isSubmission
+              ? "your graded voice submission"
+              : "a spoken practice call"}{" "}
+            with {personaName}. Your browser will ask to use your camera and
+            microphone. {personaName} will speak first, then you reply by
+            talking. Speak naturally, and click{" "}
+            <span className="font-medium">
+              {isSubmission ? "Submit assignment" : "End session"}
+            </span>{" "}
+            when you are done.
+            {isSubmission && (
+              <>
+                {" "}
+                This is a single, one-time attempt: if you leave before
+                submitting, it cannot be resumed.
+              </>
+            )}
           </p>
 
           <label className="mt-5 flex items-center gap-2 text-sm text-gray-700">
@@ -670,7 +730,7 @@ export function VoiceConversation({
               onChange={(e) => setCameraOn(e.target.checked)}
               className="h-4 w-4"
             />
-            Record my camera during this practice
+            Record my camera during this {isSubmission ? "submission" : "practice"}
           </label>
           <p className="mt-1 max-w-md text-xs text-gray-400">
             {cameraOn

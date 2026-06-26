@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { chatComplete } from "@/lib/openai";
 import { buildSystemMessage, transcriptToMessages } from "@/lib/persona";
+import { isSubmissionLocked } from "@/lib/submission";
 import type { TranscriptTurn } from "@/lib/types";
 
 export async function POST(request: Request) {
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
   // 3. Load the session and confirm it belongs to this student and is still open.
   const { data: session, error: sessionError } = await admin
     .from("sessions")
-    .select("id, student_id, scenario_id, status, mode, transcript")
+    .select("id, student_id, scenario_id, status, kind, mode, created_at, transcript")
     .eq("id", sessionId)
     .single();
   if (sessionError || !session) {
@@ -55,6 +56,16 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "This session has already ended." },
       { status: 409 },
+    );
+  }
+  // A graded submission whose attempt window has elapsed is locked.
+  if (isSubmissionLocked(session)) {
+    return NextResponse.json(
+      {
+        error:
+          "This submission was interrupted and is locked. Please contact your instructor.",
+      },
+      { status: 423 },
     );
   }
 

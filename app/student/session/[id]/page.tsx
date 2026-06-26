@@ -1,10 +1,19 @@
 // The live conversation screen for one session. A Server Component: it confirms
 // the visitor owns this session (via Row Level Security), then hands the
 // transcript to the client Conversation component.
+//
+// Practice sessions render the live screen directly. A graded SUBMISSION is a
+// single, one-shot attempt: the server only treats it as live while it is still
+// inside its resume window (lenient on an accidental refresh, locked after); a
+// front-line browser-marker gate then distinguishes a refresh from a deliberate
+// "leave and come back". Either way it cannot be resumed once left.
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Conversation } from "@/components/conversation";
 import { VoiceConversation } from "@/components/voice-conversation";
+import { SubmissionLiveGate } from "@/components/submission-live-gate";
+import { LockedSubmission } from "@/components/locked-submission";
+import { isSubmissionLocked } from "@/lib/submission";
 import type { TranscriptTurn } from "@/lib/types";
 
 export default async function SessionPage({
@@ -23,7 +32,7 @@ export default async function SessionPage({
   // RLS ensures a student can only read their own sessions.
   const { data: session } = await supabase
     .from("sessions")
-    .select("id, status, mode, scenario_id, transcript")
+    .select("id, status, mode, kind, scenario_id, assignment_id, created_at, transcript")
     .eq("id", id)
     .single();
 
@@ -40,29 +49,59 @@ export default async function SessionPage({
     .eq("id", session.scenario_id)
     .single();
 
-  // Voice sessions (stored as voice_video) get the spoken call screen; text
-  // sessions get the typed conversation screen. Both end on the same results
-  // screen with the same content score.
-  if (session.mode === "voice_video") {
+  const isSubmission = session.kind === "submission";
+
+  // The assignment title, used only on the locked screen for a submission.
+  let assignmentTitle: string | undefined;
+  if (isSubmission && session.assignment_id) {
+    const { data: assignment } = await supabase
+      .from("assignments")
+      .select("title")
+      .eq("id", session.assignment_id)
+      .single();
+    assignmentTitle = assignment?.title ?? undefined;
+  }
+
+  // A graded submission whose single-attempt window has elapsed is locked
+  // server-side: no resume, no restart.
+  if (isSubmission && isSubmissionLocked(session)) {
     return (
       <main className="mx-auto max-w-2xl p-4">
-        <VoiceConversation
-          sessionId={session.id}
-          personaName={scenario?.persona_name ?? "the customer"}
-          scenarioTitle={scenario?.title ?? "Practice session"}
-        />
+        <LockedSubmission assignmentTitle={assignmentTitle} />
       </main>
     );
   }
 
-  return (
-    <main className="mx-auto max-w-2xl p-4">
+  // The live screen for this mode. Voice sessions (stored as voice_video) get the
+  // spoken call screen; text sessions get the typed screen. Both end on the same
+  // results screen with the same content score.
+  const liveScreen =
+    session.mode === "voice_video" ? (
+      <VoiceConversation
+        sessionId={session.id}
+        personaName={scenario?.persona_name ?? "the customer"}
+        scenarioTitle={scenario?.title ?? "Practice session"}
+        isSubmission={isSubmission}
+      />
+    ) : (
       <Conversation
         sessionId={session.id}
         personaName={scenario?.persona_name ?? "the customer"}
         scenarioTitle={scenario?.title ?? "Practice session"}
         initialTranscript={(session.transcript ?? []) as TranscriptTurn[]}
+        isSubmission={isSubmission}
       />
+    );
+
+  return (
+    <main className="mx-auto max-w-2xl p-4">
+      {isSubmission ? (
+        <SubmissionLiveGate sessionId={session.id} assignmentTitle={assignmentTitle}>
+          {liveScreen}
+        </SubmissionLiveGate>
+      ) : (
+        liveScreen
+      )}
     </main>
   );
 }

@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { scoreTranscriptContent } from "@/lib/scoring";
+import { isSubmissionLocked } from "@/lib/submission";
 import type { RubricItem, TranscriptTurn } from "@/lib/types";
 
 export async function POST(request: Request) {
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
   // 3. Load the session; confirm ownership.
   const { data: session, error: sessionError } = await admin
     .from("sessions")
-    .select("id, student_id, scenario_id, status, transcript")
+    .select("id, student_id, scenario_id, status, kind, created_at, transcript")
     .eq("id", sessionId)
     .single();
   if (sessionError || !session) {
@@ -48,6 +49,17 @@ export async function POST(request: Request) {
   // Already scored? Treat as success so the client can just show the results.
   if (session.status === "scored") {
     return NextResponse.json({ ok: true });
+  }
+  // A graded submission whose attempt window has elapsed is locked: do not score
+  // an interrupted attempt. Only an instructor can grant a retake.
+  if (isSubmissionLocked(session)) {
+    return NextResponse.json(
+      {
+        error:
+          "This submission was interrupted and is locked. Please contact your instructor.",
+      },
+      { status: 423 },
+    );
   }
 
   // 4. Mark completed (the conversation is over).
@@ -89,14 +101,21 @@ export async function POST(request: Request) {
     );
   }
 
+  const now = new Date().toISOString();
+  const update: Record<string, unknown> = {
+    score,
+    score_total: score.total,
+    status: "scored",
+    scored_at: now,
+  };
+  // For a graded submission, record the official submission moment too.
+  if (session.kind === "submission") {
+    update.submitted_at = now;
+  }
+
   const { error: saveError } = await admin
     .from("sessions")
-    .update({
-      score,
-      score_total: score.total,
-      status: "scored",
-      scored_at: new Date().toISOString(),
-    })
+    .update(update)
     .eq("id", session.id);
   if (saveError) {
     console.error("Score save failed:", saveError);

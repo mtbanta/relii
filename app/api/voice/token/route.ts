@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildSystemMessage } from "@/lib/persona";
 import { mintRealtimeClientSecret } from "@/lib/realtime";
+import { isSubmissionLocked } from "@/lib/submission";
 
 export async function POST(request: Request) {
   // 1. Must be a logged-in user.
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
   // 3. Load the session; confirm it belongs to this student and is still open.
   const { data: session, error: sessionError } = await admin
     .from("sessions")
-    .select("id, student_id, scenario_id, status")
+    .select("id, student_id, scenario_id, status, kind, created_at")
     .eq("id", sessionId)
     .single();
   if (sessionError || !session) {
@@ -53,6 +54,16 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "This session has already ended." },
       { status: 409 },
+    );
+  }
+  // A graded submission whose attempt window has elapsed is locked: no reconnect.
+  if (isSubmissionLocked(session)) {
+    return NextResponse.json(
+      {
+        error:
+          "This submission was interrupted and is locked. Please contact your instructor.",
+      },
+      { status: 423 },
     );
   }
 

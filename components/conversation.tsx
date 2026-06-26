@@ -11,17 +11,22 @@ export function Conversation({
   personaName,
   scenarioTitle,
   initialTranscript,
+  isSubmission = false,
 }: {
   sessionId: string;
   personaName: string;
   scenarioTitle: string;
   initialTranscript: TranscriptTurn[];
+  // A graded submission ends with an explicit submit-and-score confirmation
+  // step (its one official attempt), instead of practice's quick pop-up.
+  isSubmission?: boolean;
 }) {
   const router = useRouter();
   const [turns, setTurns] = useState<TranscriptTurn[]>(initialTranscript);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [ending, setEnding] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -70,13 +75,24 @@ export function Conversation({
     }
   }
 
-  async function endSession() {
+  // Clicking the header button. Practice confirms with a quick pop-up; a graded
+  // submission opens an explicit inline confirmation step instead.
+  function requestEnd() {
     if (sending || ending) return;
+    if (isSubmission) {
+      setConfirming(true);
+      return;
+    }
     const ok = window.confirm(
       "End this session and see your score? You will not be able to add more messages.",
     );
-    if (!ok) return;
+    if (ok) void doEnd();
+  }
 
+  // Finalize and score. Shared by both paths.
+  async function doEnd() {
+    if (sending || ending) return;
+    setConfirming(false);
     setError("");
     setEnding(true);
     try {
@@ -99,14 +115,21 @@ export function Conversation({
       <header className="mb-4 flex items-center justify-between border-b border-gray-200 pb-3">
         <div>
           <h1 className="text-lg font-semibold">{scenarioTitle}</h1>
-          <p className="text-sm text-gray-500">Speaking with {personaName}</p>
+          <p className="text-sm text-gray-500">
+            {isSubmission ? "Graded submission with " : "Speaking with "}
+            {personaName}
+          </p>
         </div>
         <button
-          onClick={endSession}
+          onClick={requestEnd}
           disabled={ending || sending}
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
         >
-          {ending ? "Scoring..." : "End session"}
+          {ending
+            ? "Scoring..."
+            : isSubmission
+              ? "Submit assignment"
+              : "End session"}
         </button>
       </header>
 
@@ -141,6 +164,32 @@ export function Conversation({
       </div>
 
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+
+      {/* Graded submission: the explicit submit-and-score step. */}
+      {isSubmission && confirming && (
+        <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm">
+          <p className="text-amber-900">
+            Submit this graded assignment for scoring? This is your one official
+            attempt and cannot be redone.
+          </p>
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              onClick={() => setConfirming(false)}
+              disabled={ending}
+              className="rounded-md border border-gray-300 px-3 py-1.5 disabled:opacity-50"
+            >
+              Keep talking
+            </button>
+            <button
+              onClick={doEnd}
+              disabled={ending}
+              className="rounded-md bg-black px-3 py-1.5 text-white disabled:opacity-50"
+            >
+              {ending ? "Scoring..." : "Submit and score"}
+            </button>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={send} className="mt-3 flex gap-2 border-t border-gray-200 pt-3">
         <input

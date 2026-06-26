@@ -9,6 +9,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SESSION_VIDEOS_BUCKET, sessionVideoPath } from "@/lib/storage";
+import { isSubmissionLocked } from "@/lib/submission";
 
 export async function POST(request: Request) {
   // 1. Must be a logged-in user.
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
   // 3. Load the session; confirm it is this student's open voice session.
   const { data: session, error: sessionError } = await admin
     .from("sessions")
-    .select("id, student_id, mode, status")
+    .select("id, student_id, mode, status, kind, created_at")
     .eq("id", sessionId)
     .single();
   if (sessionError || !session) {
@@ -56,6 +57,16 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "This session has already ended." },
       { status: 409 },
+    );
+  }
+  // A graded submission whose attempt window has elapsed is locked.
+  if (isSubmissionLocked(session)) {
+    return NextResponse.json(
+      {
+        error:
+          "This submission was interrupted and is locked. Please contact your instructor.",
+      },
+      { status: 423 },
     );
   }
 
