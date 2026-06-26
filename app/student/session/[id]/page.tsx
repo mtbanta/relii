@@ -96,7 +96,11 @@ export default async function SessionPage({
   return (
     <main className="mx-auto max-w-2xl p-4">
       {isSubmission ? (
-        <SubmissionLiveGate sessionId={session.id} assignmentTitle={assignmentTitle}>
+        <SubmissionLiveGate
+          sessionId={session.id}
+          assignmentTitle={assignmentTitle}
+          lockOnReload={session.mode === "voice_video"}
+        >
           {liveScreen}
         </SubmissionLiveGate>
       ) : (

@@ -20,10 +20,16 @@ import { LockedSubmission } from "@/components/locked-submission";
 export function SubmissionLiveGate({
   sessionId,
   assignmentTitle,
+  lockOnReload = false,
   children,
 }: {
   sessionId: string;
   assignmentTitle?: string;
+  // Voice+video submissions set this. A page reload physically ends the live
+  // call and the in-progress recording, so a reloaded voice attempt must not
+  // continue: clearing the marker on unload makes the reload fall through to the
+  // locked screen. Text submissions leave this false and resume on reload.
+  lockOnReload?: boolean;
   children: React.ReactNode;
 }) {
   // "pending" until we have checked the marker on the client (avoids a flash of
@@ -41,7 +47,7 @@ export function SubmissionLiveGate({
 
     // Clear the marker when the student leaves this live screen by navigating
     // within the app (this cleanup does not run on a full reload or tab close,
-    // so an accidental refresh stays live).
+    // so an accidental refresh stays live for text).
     return () => {
       try {
         window.sessionStorage.removeItem(key);
@@ -50,6 +56,37 @@ export function SubmissionLiveGate({
       }
     };
   }, [sessionId]);
+
+  // While the live screen is showing, warn before a reload or tab close (a
+  // graded attempt should not be left by accident), and for voice+video clear
+  // the marker when the page actually unloads so a confirmed reload lands in the
+  // locked screen instead of silently restarting a now-gapped attempt.
+  useEffect(() => {
+    if (allowed !== true) return;
+
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+
+    let onPageHide: (() => void) | undefined;
+    if (lockOnReload) {
+      onPageHide = () => {
+        try {
+          window.sessionStorage.removeItem(liveMarkerKey(sessionId));
+        } catch {
+          /* ignore */
+        }
+      };
+      window.addEventListener("pagehide", onPageHide);
+    }
+
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      if (onPageHide) window.removeEventListener("pagehide", onPageHide);
+    };
+  }, [allowed, lockOnReload, sessionId]);
 
   if (allowed === null) {
     return <div className="py-16 text-center text-sm text-gray-400">Loading...</div>;
