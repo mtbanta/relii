@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   // 3. Load the session; confirm ownership.
   const { data: session, error: sessionError } = await admin
     .from("sessions")
-    .select("id, student_id, scenario_id, status, kind, created_at, transcript")
+    .select("id, student_id, scenario_id, assignment_id, status, kind, created_at, transcript")
     .eq("id", sessionId)
     .single();
   if (sessionError || !session) {

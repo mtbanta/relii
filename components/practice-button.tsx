@@ -3,13 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-// Starts a new practice session for a scenario, then opens the conversation.
-// mode "text" types with the persona; mode "voice" holds a spoken call.
+// Starts a new practice session for an assignment, then opens the conversation.
+// The student picks the mode each time, independent of what the assignment
+// requires for its graded submission: mode "text" types with the persona; mode
+// "voice" holds a spoken call with the webcam (practice keeps its camera toggle).
 export function PracticeButton({
-  scenarioId,
+  assignmentId,
   mode = "text",
 }: {
-  scenarioId: string;
+  assignmentId: string;
   mode?: "text" | "voice";
 }) {
   const router = useRouter();
@@ -19,7 +21,8 @@ export function PracticeButton({
   // The two modes use different start routes but both return a session id and
   // open the same session screen (which picks the right interface by mode).
   const startUrl = mode === "voice" ? "/api/voice/start" : "/api/session/start";
-  const label = mode === "voice" ? "Practice (voice)" : "Practice (text)";
+  const label =
+    mode === "voice" ? "Practice (voice + video)" : "Practice (text)";
 
   async function start() {
     setLoading(true);
@@ -28,7 +31,7 @@ export function PracticeButton({
       const res = await fetch(startUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenarioId }),
+        body: JSON.stringify({ assignmentId }),
       });
       const data = await res.json();
       if (!res.ok) {

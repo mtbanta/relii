@@ -1,8 +1,10 @@
 // POST /api/session/start
-// Body: { scenarioId }
-// Creates a new in-progress text practice session for the logged-in student,
-// has the persona (Alex) open the meeting, saves that opening line, and returns
-// the new session id. Writing the session uses the server-only service role.
+// Body: { assignmentId }
+// Creates a new in-progress TEXT practice session for the logged-in student,
+// tied to the given assignment (practice is always practice FOR an assignment).
+// It uses that assignment's scenario, has the persona open the meeting, saves
+// that opening line as the first turn, and returns the new session id. Writing
+// the session uses the server-only service role.
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -20,31 +22,47 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   }
 
-  // 2. Which scenario?
-  let scenarioId: string | undefined;
+  // 2. Which assignment is being practiced?
+  let assignmentId: string | undefined;
   try {
     const body = await request.json();
-    scenarioId = body?.scenarioId;
+    assignmentId = body?.assignmentId;
   } catch {
     // fall through to the validation below
   }
-  if (!scenarioId || typeof scenarioId !== "string") {
-    return NextResponse.json({ error: "Missing scenarioId." }, { status: 400 });
+  if (!assignmentId || typeof assignmentId !== "string") {
+    return NextResponse.json(
+      { error: "Missing assignmentId." },
+      { status: 400 },
+    );
   }
 
   const admin = createAdminClient();
 
-  // 3. Load the scenario's persona so the AI can open the meeting in character.
+  // 3. Load the assignment to find which scenario it practices.
+  const { data: assignment, error: assignmentError } = await admin
+    .from("assignments")
+    .select("id, scenario_id")
+    .eq("id", assignmentId)
+    .single();
+  if (assignmentError || !assignment) {
+    return NextResponse.json(
+      { error: "Assignment not found." },
+      { status: 404 },
+    );
+  }
+
+  // 4. Load that scenario's persona so the AI can open the meeting in character.
   const { data: scenario, error: scenarioError } = await admin
     .from("scenarios")
     .select("id, persona_system_prompt, scenario_context")
-    .eq("id", scenarioId)
+    .eq("id", assignment.scenario_id)
     .single();
   if (scenarioError || !scenario) {
     return NextResponse.json({ error: "Scenario not found." }, { status: 404 });
   }
 
-  // 4. Ask the persona for a short opening greeting.
+  // 5. Ask the persona for a short opening greeting.
   let opening: string;
   try {
     opening = await chatComplete({
@@ -68,7 +86,8 @@ export async function POST(request: Request) {
     );
   }
 
-  // 5. Create the session with the opening line as the first transcript turn.
+  // 6. Create the practice session, linked to the assignment, with the opening
+  //    line as the first transcript turn.
   const firstTurn: TranscriptTurn = {
     role: "persona",
     text: opening.trim(),
@@ -80,6 +99,7 @@ export async function POST(request: Request) {
     .insert({
       student_id: user.id,
       scenario_id: scenario.id,
+      assignment_id: assignment.id,
       kind: "practice",
       mode: "text",
       status: "in_progress",
