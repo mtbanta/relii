@@ -52,6 +52,13 @@ const VIDEO_CONSTRAINTS: MediaTrackConstraints = {
 // authorizes it, and OpenAI returns the matching audio "answer".
 const OPENAI_CALLS_URL = "https://api.openai.com/v1/realtime/calls";
 
+// Shown when a graded voice+video submission cannot get the camera (permission
+// denied or blocked, no camera, or the camera is in use by another app). The
+// camera is required for a graded assignment, so the attempt cannot proceed
+// until it is enabled.
+const CAMERA_REQUIRED_MESSAGE =
+  "Your camera is required for a graded assignment, and it stays on for the whole submission. Please allow camera and microphone access in your browser, then start again. In most browsers, click the camera or lock icon in the address bar, choose Allow, and reload this page.";
+
 // Pick a video format the browser supports, preferring webm. We try VP8 before
 // VP9 on purpose: VP8 is lighter to encode, so it leaves more processor headroom
 // for the live call (VP9 makes slightly smaller files but costs more CPU, and
@@ -115,6 +122,15 @@ export function VoiceConversation({
   // Camera on/off, chosen before the call. Defaults on, because voice plus video
   // is the graded format, so practice should resemble it.
   const [cameraOn, setCameraOn] = useState(true);
+
+  // For a graded voice+video submission the camera is REQUIRED and LOCKED ON:
+  // the student cannot turn it off, and cannot proceed without it. (Practice
+  // keeps the normal on/off toggle.) This component only renders for voice_video,
+  // so isSubmission here always means a graded voice+video submission. We read an
+  // EFFECTIVE camera value so the rest of the call logic stays unchanged: forced
+  // on for a submission, the student's choice for practice.
+  const cameraLocked = isSubmission;
+  const effectiveCameraOn = cameraLocked || cameraOn;
 
   // The transcript is the source of truth in a ref (so event handlers always see
   // the latest), with a counter to trigger re-renders when it changes.
@@ -438,10 +454,13 @@ export function VoiceConversation({
       //    off, ask for the microphone only (today's behavior). The capped video
       //    settings keep the encoder light so it does not compete with the call.
       const localStream = await navigator.mediaDevices.getUserMedia(
-        cameraOn ? { video: VIDEO_CONSTRAINTS, audio: true } : { audio: true },
+        effectiveCameraOn
+          ? { video: VIDEO_CONSTRAINTS, audio: true }
+          : { audio: true },
       );
       localStreamRef.current = localStream;
-      recordingEnabledRef.current = cameraOn && localStream.getVideoTracks().length > 0;
+      recordingEnabledRef.current =
+        effectiveCameraOn && localStream.getVideoTracks().length > 0;
 
       // Show the self-view right away (muted, so there is no feedback).
       if (selfViewRef.current) {
@@ -547,11 +566,28 @@ export function VoiceConversation({
       console.error("startCall failed:", err);
       cleanup();
       setStatus("idle");
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Could not start the voice session. Please allow camera and microphone access and try again.",
-      );
+      // A graded submission cannot proceed without the camera. If asking for the
+      // camera/mic failed (denied, blocked, missing, or in use), show the clear
+      // "camera required" guidance instead of the raw browser error.
+      const mediaAccessError =
+        err instanceof DOMException &&
+        [
+          "NotAllowedError",
+          "NotFoundError",
+          "NotReadableError",
+          "OverconstrainedError",
+          "SecurityError",
+          "AbortError",
+        ].includes(err.name);
+      if (cameraLocked && mediaAccessError) {
+        setError(CAMERA_REQUIRED_MESSAGE);
+      } else {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Could not start the voice session. Please allow camera and microphone access and try again.",
+        );
+      }
     }
   }
 
@@ -723,20 +759,35 @@ export function VoiceConversation({
             )}
           </p>
 
-          <label className="mt-5 flex items-center gap-2 text-sm text-gray-700">
-            <input
-              type="checkbox"
-              checked={cameraOn}
-              onChange={(e) => setCameraOn(e.target.checked)}
-              className="h-4 w-4"
-            />
-            Record my camera during this {isSubmission ? "submission" : "practice"}
-          </label>
-          <p className="mt-1 max-w-md text-xs text-gray-400">
-            {cameraOn
-              ? "Your webcam will record (video plus your voice and Alex's voice). Tip: wear headphones to avoid echo in the recording."
-              : "Camera off: nothing will be recorded for this practice."}
-          </p>
+          {cameraLocked ? (
+            // Graded submission: the camera is required and locked on. No toggle.
+            <div className="mt-5 max-w-md rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-center">
+              <p className="text-sm text-gray-700">
+                Your camera will stay on for this graded submission.
+              </p>
+              <p className="mt-1 text-xs text-gray-400">
+                Camera stays on for graded assignments. It can be turned off in
+                practice. Tip: wear headphones to avoid echo in the recording.
+              </p>
+            </div>
+          ) : (
+            <>
+              <label className="mt-5 flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={cameraOn}
+                  onChange={(e) => setCameraOn(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                Record my camera during this practice
+              </label>
+              <p className="mt-1 max-w-md text-xs text-gray-400">
+                {cameraOn
+                  ? "Your webcam will record (video plus your voice and Alex's voice). Tip: wear headphones to avoid echo in the recording."
+                  : "Camera off: nothing will be recorded for this practice."}
+              </p>
+            </>
+          )}
 
           <button
             onClick={startCall}
