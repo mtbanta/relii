@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { scoreTranscriptContent } from "@/lib/scoring";
 import { isSubmissionLocked } from "@/lib/submission";
+import { prunePractices } from "@/lib/practice";
 import type { RubricItem, TranscriptTurn } from "@/lib/types";
 
 export async function POST(request: Request) {
@@ -123,6 +124,19 @@ export async function POST(request: Request) {
       { error: "Could not save the score." },
       { status: 500 },
     );
+  }
+
+  // For an assignment-linked practice, enforce the retention cap now that this
+  // one is finished and scored: keep only the newest few practices for this
+  // student and assignment, removing older rows and their recordings. This is
+  // best-effort cleanup: the score above is already saved, so a prune failure is
+  // logged and never returned to the student.
+  if (session.kind === "practice" && session.assignment_id) {
+    try {
+      await prunePractices(admin, user.id, session.assignment_id);
+    } catch (err) {
+      console.error("Pruning old practices failed:", err);
+    }
   }
 
   return NextResponse.json({ ok: true });
