@@ -6,6 +6,7 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
+import { ResultsActions } from "@/components/results-actions";
 import type { RubricItem, SessionScore, TranscriptTurn } from "@/lib/types";
 
 export default async function ResultsPage({
@@ -26,7 +27,7 @@ export default async function ResultsPage({
 
   const { data: session } = await supabase
     .from("sessions")
-    .select("id, status, mode, scenario_id, transcript, score, score_total, video_path")
+    .select("id, kind, status, mode, scenario_id, transcript, score, score_total, video_path")
     .eq("id", id)
     .single();
 
@@ -82,7 +83,7 @@ export default async function ResultsPage({
         </div>
         <Link
           href="/student"
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 print:hidden"
         >
           Back to home
         </Link>
@@ -105,9 +106,19 @@ export default async function ResultsPage({
         </p>
       </div>
 
-      {/* The student's own recording (voice sessions only). */}
+      {/* Save-a-copy controls: download the recording and print/save the score
+          and transcript. Read-only; hidden when printing. We pass the same
+          signed link the player uses, so no extra access is granted. */}
+      <ResultsActions
+        downloadUrl={videoUrl}
+        isVoice={isVoice}
+        filePrefix={session.kind === "submission" ? "relii-submission" : "relii-practice"}
+      />
+
+      {/* The student's own recording (voice sessions only). Hidden when printing
+          so the saved PDF is a clean score-and-transcript sheet. */}
       {isVoice && (
-        <section className="mb-6">
+        <section className="mb-6 print:hidden">
           <h2 className="mb-3 text-lg font-medium">Your recording</h2>
           {videoUrl ? (
             <video
@@ -129,7 +140,7 @@ export default async function ResultsPage({
         </section>
       )}
 
-      <div className="grid gap-8 md:grid-cols-2">
+      <div className="grid gap-8 md:grid-cols-2 print:grid-cols-1 print:gap-6">
         {/* Itemized score */}
         <section>
           <h2 className="mb-3 text-lg font-medium">Itemized score</h2>
