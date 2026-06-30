@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { scoreTranscriptContent } from "@/lib/scoring";
 import { isSubmissionLocked } from "@/lib/submission";
-import { prunePractices } from "@/lib/practice";
+import { prunePractices, deletePracticesForAssignment } from "@/lib/practice";
 import type { RubricItem, TranscriptTurn } from "@/lib/types";
 
 export async function POST(request: Request) {
@@ -136,6 +136,21 @@ export async function POST(request: Request) {
       await prunePractices(admin, user.id, session.assignment_id);
     } catch (err) {
       console.error("Pruning old practices failed:", err);
+    }
+  }
+
+  // For a graded submission, permanently clear this student's practices for this
+  // assignment (rows and recordings), now that the official attempt is scored and
+  // saved. Best-effort cleanup, exactly like the prune above: the score is already
+  // saved, so a cleanup hiccup is logged and never blocks or undoes the submission
+  // or costs the student their result. Scoped to (this student, this assignment,
+  // kind = practice), so it can never touch the submission itself, another
+  // assignment, or another student.
+  if (session.kind === "submission" && session.assignment_id) {
+    try {
+      await deletePracticesForAssignment(admin, user.id, session.assignment_id);
+    } catch (err) {
+      console.error("Clearing practices on submission failed:", err);
     }
   }
 

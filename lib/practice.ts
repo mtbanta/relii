@@ -102,3 +102,55 @@ export async function prunePractices(
     console.error("Deleting old practice rows failed:", ids, deleteError);
   }
 }
+
+// When a student submits a graded assignment, ALL of that student's practices
+// for that assignment are permanently cleared: every row AND its recording. This
+// keeps a finished assignment clean, so old practice runs do not linger after the
+// one official attempt. It is the same rows-plus-Storage cleanup as the retention
+// cap above (prunePractices), but it keeps NONE: it removes every practice for the
+// assignment rather than keeping the newest few.
+//
+// Scope is locked to (this student, this assignment, kind = practice), so it can
+// NEVER touch the submission itself (kind = submission), another assignment, or
+// another student. A null video_path practice (text, camera off, or a Stage 5
+// failed upload) simply has no file to remove, and its row still deletes cleanly.
+//
+// Best-effort, exactly like prunePractices: the caller runs this only AFTER the
+// submission's score is safely saved, so any failure here is logged and never
+// costs the student their graded result. Leftover practices can be re-cleared.
+export async function deletePracticesForAssignment(
+  admin: AdminClient,
+  studentId: string,
+  assignmentId: string,
+): Promise<void> {
+  const { data: practices, error } = await admin
+    .from("sessions")
+    .select("id, video_path")
+    .eq("student_id", studentId)
+    .eq("assignment_id", assignmentId)
+    .eq("kind", "practice");
+
+  if (error) {
+    console.error("Listing practices to clear on submission failed:", error);
+    return;
+  }
+  if (!practices || practices.length === 0) return; // nothing to clear
+
+  // Remove each recording first (Storage is not part of any database cascade),
+  // then delete the rows in one statement.
+  for (const p of practices) {
+    await removePracticeVideo(admin, p.video_path);
+  }
+  const ids = practices.map((p) => p.id);
+  const { error: deleteError } = await admin
+    .from("sessions")
+    .delete()
+    .in("id", ids);
+  if (deleteError) {
+    console.error(
+      "Clearing practice rows on submission failed:",
+      ids,
+      deleteError,
+    );
+  }
+}
