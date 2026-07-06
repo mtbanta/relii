@@ -13,6 +13,8 @@ import { DeleteStudentButton } from "@/components/delete-student-button";
 import { CreateAssignmentForm } from "@/components/create-assignment-form";
 import { AssignmentSelector } from "@/components/assignment-selector";
 import { SubmissionResetButton } from "@/components/submission-reset-button";
+import { ResetHistory } from "@/components/reset-history";
+import type { ResetHistoryRow } from "@/components/reset-history";
 import { isSubmissionLocked } from "@/lib/submission";
 import type { SessionScore } from "@/lib/types";
 
@@ -156,6 +158,22 @@ export default async function InstructorHome({
       .eq("kind", "submission")
       .returns<SubmissionRow[]>();
     submissions = data ?? [];
+  }
+
+  // The reset history for the selected assignment, newest first. Read
+  // instructor-only with the admin client, server-side (the same pattern the
+  // rest of the dashboard uses). Scoped to this assignment.
+  let resets: ResetHistoryRow[] = [];
+  if (selected) {
+    const { data } = await admin
+      .from("submission_resets")
+      .select(
+        "id, student_email, reset_type, prior_score_total, prior_score_max, created_at, instructor_email",
+      )
+      .eq("assignment_id", selected.id)
+      .order("created_at", { ascending: false })
+      .returns<ResetHistoryRow[]>();
+    resets = data ?? [];
   }
 
   // Build the table rows, one per student, sorted by email.
@@ -393,6 +411,11 @@ export default async function InstructorHome({
                 </table>
               </div>
             )}
+
+            {/* Per-assignment reset history: a small "Resets: N" line that
+                expands to a short, newest-first list. Read instructor-only,
+                server-side. */}
+            <ResetHistory resets={resets} />
           </>
         )}
       </section>

@@ -1,0 +1,85 @@
+// The per-assignment reset history on the instructor dashboard. A small
+// "Resets: N" line that expands (native HTML <details>, so it needs no
+// JavaScript) into a short, newest-first list of the resets for the currently
+// selected assignment. The rows are read instructor-only on the server (see the
+// dashboard page); nothing sensitive reaches the browser it should not.
+//
+// Each entry shows: the student (email), the type (an interrupted recovery vs a
+// graded retake with the score wiped), the prior score for a graded retake only,
+// when it happened, and who did it (instructor email). Deliberately simple: no
+// filtering, search, pagination, or export.
+
+// One reset as read for this list (a snapshot row from submission_resets).
+export type ResetHistoryRow = {
+  id: string;
+  student_email: string;
+  reset_type: string;
+  prior_score_total: number | null;
+  prior_score_max: number | null;
+  created_at: string;
+  instructor_email: string;
+};
+
+// A readable date and time. We read it in UTC (like the rest of the dashboard's
+// dates) so the value is stable and never shifts with the viewer's timezone.
+function formatResetTime(value: string): string {
+  return (
+    new Date(value).toLocaleString("en-US", {
+      timeZone: "UTC",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }) + " UTC"
+  );
+}
+
+export function ResetHistory({ resets }: { resets: ResetHistoryRow[] }) {
+  if (resets.length === 0) {
+    // Quiet, so a clean assignment does not shout an empty section.
+    return (
+      <p className="mt-3 text-xs text-gray-400">No resets for this assignment.</p>
+    );
+  }
+
+  return (
+    <details className="mt-3 rounded-lg border border-gray-200 p-3">
+      <summary className="cursor-pointer text-sm text-gray-600">
+        Resets: {resets.length}
+      </summary>
+      <ul className="mt-2 space-y-2 text-xs">
+        {resets.map((r) => {
+          const isRetake = r.reset_type === "retake";
+          const typeLabel = isRetake
+            ? "Graded retake (score wiped)"
+            : "Interrupted recovered";
+          // A prior score is shown for a graded retake only; an interrupted
+          // recovery never had one.
+          const hadScore =
+            r.prior_score_total != null && r.prior_score_max != null;
+          return (
+            <li
+              key={r.id}
+              className="border-b border-gray-100 pb-2 last:border-0 last:pb-0"
+            >
+              <p className="text-gray-700">
+                <span className="font-medium">{r.student_email}</span>
+                {" · "}
+                {typeLabel}
+                {isRetake && hadScore
+                  ? ` (was ${r.prior_score_total} / ${r.prior_score_max})`
+                  : ""}
+              </p>
+              <p className="text-gray-400">
+                {formatResetTime(r.created_at)}
+                {" · by "}
+                {r.instructor_email}
+              </p>
+            </li>
+          );
+        })}
+      </ul>
+    </details>
+  );
+}
