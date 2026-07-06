@@ -305,12 +305,40 @@ export default async function InstructorHome({
                             )}
                           </td>
                           <td className="p-3">
-                            <Link
-                              href={`/instructor/submission/${r.id}`}
-                              className="text-blue-700 hover:underline"
-                            >
-                              View
-                            </Link>
+                            <div className="flex flex-col gap-1">
+                              <Link
+                                href={`/instructor/submission/${r.id}`}
+                                className="text-blue-700 hover:underline"
+                              >
+                                View
+                              </Link>
+                              {/* Compact download links (scored submissions
+                                  only). Each hits an instructor-gated route. */}
+                              {isScored && (
+                                <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+                                  {r.video_path && (
+                                    <a
+                                      href={`/api/instructor/submission/${r.id}/video`}
+                                      className="hover:underline"
+                                    >
+                                      Video
+                                    </a>
+                                  )}
+                                  <a
+                                    href={`/api/instructor/submission/${r.id}/transcript`}
+                                    className="hover:underline"
+                                  >
+                                    Transcript
+                                  </a>
+                                  <a
+                                    href={`/api/instructor/submission/${r.id}/csv`}
+                                    className="hover:underline"
+                                  >
+                                    CSV
+                                  </a>
+                                </div>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );

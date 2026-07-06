@@ -164,6 +164,44 @@ export default async function InstructorSubmissionPage({
         </div>
       </div>
 
+      {/* Downloads. Each link hits an instructor-gated server route that reads
+          the submission with the admin client and streams the file back. The
+          video link redirects to a short-lived signed download link; the
+          transcript and CSV are built server-side. */}
+      <section className="mb-6 rounded-lg border border-gray-200 p-4">
+        <p className="mb-3 text-sm font-medium">Downloads</p>
+        <div className="flex flex-wrap items-center gap-3">
+          {session.video_path ? (
+            <a
+              href={`/api/instructor/submission/${session.id}/video`}
+              className="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
+            >
+              Download video
+            </a>
+          ) : (
+            <span className="text-sm text-gray-500">
+              {isVoice
+                ? "No recording to download."
+                : "No recording (text submission)."}
+            </span>
+          )}
+
+          <a
+            href={`/api/instructor/submission/${session.id}/transcript`}
+            className="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
+          >
+            Download transcript
+          </a>
+
+          <a
+            href={`/api/instructor/submission/${session.id}/csv`}
+            className="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
+          >
+            Download scores (CSV)
+          </a>
+        </div>
+      </section>
+
       {/* The recording (voice+video submissions only). */}
       {isVoice && (
         <section className="mb-6">
