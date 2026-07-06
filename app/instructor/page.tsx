@@ -12,6 +12,8 @@ import { AddEmailForm } from "@/components/add-email-form";
 import { DeleteStudentButton } from "@/components/delete-student-button";
 import { CreateAssignmentForm } from "@/components/create-assignment-form";
 import { AssignmentSelector } from "@/components/assignment-selector";
+import { SubmissionResetButton } from "@/components/submission-reset-button";
+import { isSubmissionLocked } from "@/lib/submission";
 import type { SessionScore } from "@/lib/types";
 
 // Friendly mode label for the assignments management list.
@@ -54,7 +56,8 @@ type SelectorAssignment = {
   scenarios: { title: string; persona_name: string } | null;
 };
 
-// One submission row for the selected assignment.
+// One submission row for the selected assignment. created_at is needed to
+// recompute the lock state server-side (see isSubmissionLocked).
 type SubmissionRow = {
   id: string;
   student_id: string;
@@ -62,6 +65,7 @@ type SubmissionRow = {
   status: string;
   score: SessionScore | null;
   video_path: string | null;
+  created_at: string;
 };
 
 export default async function InstructorHome({
@@ -147,7 +151,7 @@ export default async function InstructorHome({
   if (selected) {
     const { data } = await admin
       .from("sessions")
-      .select("id, student_id, mode, status, score, video_path")
+      .select("id, student_id, mode, status, score, video_path, created_at")
       .eq("assignment_id", selected.id)
       .eq("kind", "submission")
       .returns<SubmissionRow[]>();
@@ -279,6 +283,20 @@ export default async function InstructorHome({
                   <tbody>
                     {rows.map((r) => {
                       const isScored = r.score != null;
+                      // Recompute the lock state on the SERVER (never trust the
+                      // browser). A graded submission that is still in_progress
+                      // is either "In progress" (still inside the 60-minute live
+                      // window, the student may still be in it, no reset) or
+                      // "Interrupted" (past the window, now resettable).
+                      const locked = isSubmissionLocked({
+                        kind: "submission",
+                        status: r.status,
+                        created_at: r.created_at,
+                      });
+                      const isInterrupted =
+                        r.status === "in_progress" && locked;
+                      const isInProgress =
+                        r.status === "in_progress" && !locked;
                       return (
                         <tr
                           key={r.id}
@@ -293,15 +311,20 @@ export default async function InstructorHome({
                               : "-"}
                           </td>
                           <td className="p-3">
-                            {/* Status is a STATIC placeholder until professor
-                                finalization (built after Stage 6). Every scored
-                                submission shows "To review"; there is no real
-                                reviewed/awaiting column yet. An interrupted
-                                (not-yet-scored) submission is shown as such. */}
+                            {/* "To review" is a STATIC placeholder until
+                                professor finalization (built after Stage 6);
+                                there is no real reviewed/awaiting column yet. The
+                                in_progress states, though, are REAL and recomputed
+                                on the server: "In progress" (inside the live
+                                window) vs "Interrupted" (past it, resettable). */}
                             {isScored ? (
                               <span className="text-amber-700">To review</span>
-                            ) : (
+                            ) : isInterrupted ? (
                               <span className="text-gray-400">Interrupted</span>
+                            ) : isInProgress ? (
+                              <span className="text-blue-600">In progress</span>
+                            ) : (
+                              <span className="text-gray-400">{r.status}</span>
                             )}
                           </td>
                           <td className="p-3">
@@ -337,6 +360,29 @@ export default async function InstructorHome({
                                     CSV
                                   </a>
                                 </div>
+                              )}
+                              {/* Reset / allow-retake control. A scored
+                                  submission gets the stronger "Allow retake"
+                                  (deletes a real grade); a locked interrupted
+                                  attempt gets the simple "Reset". An in_progress
+                                  attempt still inside the window gets neither. */}
+                              {isScored && (
+                                <SubmissionResetButton
+                                  sessionId={r.id}
+                                  studentEmail={r.email}
+                                  assignmentTitle={selected.title}
+                                  type="retake"
+                                  priorScoreTotal={r.score!.total}
+                                  priorScoreMax={r.score!.max_total}
+                                />
+                              )}
+                              {isInterrupted && (
+                                <SubmissionResetButton
+                                  sessionId={r.id}
+                                  studentEmail={r.email}
+                                  assignmentTitle={selected.title}
+                                  type="interrupted"
+                                />
                               )}
                             </div>
                           </td>
