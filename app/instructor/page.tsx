@@ -103,17 +103,40 @@ export default async function InstructorHome({
   // database security rule needs to change.
   const admin = createAdminClient();
 
-  // The roster of REGISTERED students (role = student). This is also the
-  // "enrolled" count for the Submissions tile and the id -> email map the
-  // submissions table uses to show each student.
-  const { data: students } = await admin
+  // Every REGISTERED user (both roles), for the roster. We read all profiles
+  // once and derive the pieces the dashboard needs from it, so there is a single
+  // source of truth. The students slice is still the "enrolled" count for the
+  // Submissions tile and the id -> email map the submissions table uses.
+  const { data: allProfiles } = await admin
     .from("profiles")
-    .select("id, email")
-    .eq("role", "student")
+    .select("id, email, role")
     .order("email", { ascending: true });
 
-  const studentEmailById = new Map((students ?? []).map((s) => [s.id, s.email]));
-  const enrolledCount = students?.length ?? 0;
+  const profilesAll = allProfiles ?? [];
+  const students = profilesAll.filter((p) => p.role === "student");
+  const registeredInstructors = profilesAll.filter(
+    (p) => p.role === "instructor",
+  );
+
+  const studentEmailById = new Map(students.map((s) => [s.id, s.email]));
+  const enrolledCount = students.length;
+
+  // The full invite list. A person's status is derived by matching emails
+  // (case-insensitive, the same way the signup trigger does): an invite whose
+  // email has no matching profile row is a PENDING invite; one that does match a
+  // profile is already registered (and appears in the registered lists above).
+  // Read server-side with the admin client, so no security rule changes.
+  const { data: invites } = await admin
+    .from("allowed_emails")
+    .select("email, role")
+    .order("email", { ascending: true });
+
+  const registeredEmails = new Set(
+    profilesAll.map((p) => p.email.toLowerCase()),
+  );
+  const pendingInvites = (invites ?? []).filter(
+    (i) => !registeredEmails.has(i.email.toLowerCase()),
+  );
 
   // The scenarios this instructor can assign (the create-assignment dropdown).
   const { data: scenarios } = await supabase
@@ -469,13 +492,21 @@ export default async function InstructorHome({
       </section>
 
       <section className="mt-8">
-        <h2 className="mb-1 font-medium">Students</h2>
-        <p className="mb-3 text-sm text-gray-500">
-          Deleting a student permanently removes their account, sessions, and
-          recorded videos, and frees their email from the invite list.
+        <h2 className="mb-1 font-medium">Roster</h2>
+        <p className="mb-4 text-sm text-gray-500">
+          Everyone with access to Relii, grouped by status. Registered users have
+          signed up; pending invites are on the invite list but have not
+          registered yet. Deleting a student permanently removes their account,
+          sessions, and recorded videos, and frees their email from the invite
+          list.
         </p>
 
-        {students && students.length > 0 ? (
+        {/* Registered students: the existing Delete action, unchanged. */}
+        <h3 className="mb-2 text-sm font-medium text-gray-700">
+          Registered students{" "}
+          <span className="font-normal text-gray-400">({students.length})</span>
+        </h3>
+        {students.length > 0 ? (
           <ul className="space-y-2">
             {students.map((s) => (
               <li key={s.id} className="rounded-lg border border-gray-200 p-3">
@@ -485,8 +516,63 @@ export default async function InstructorHome({
           </ul>
         ) : (
           <p className="text-sm text-gray-500">
-            No students have signed up yet.
+            No students have registered yet.
           </p>
+        )}
+
+        {/* Registered instructors: display only. There is no delete for an
+            instructor (the delete-student route refuses a non-student), and you
+            cannot delete yourself. Your own account is marked "(you)". */}
+        <h3 className="mb-2 mt-6 text-sm font-medium text-gray-700">
+          Registered instructors{" "}
+          <span className="font-normal text-gray-400">
+            ({registeredInstructors.length})
+          </span>
+        </h3>
+        {registeredInstructors.length > 0 ? (
+          <ul className="space-y-2">
+            {registeredInstructors.map((p) => (
+              <li
+                key={p.id}
+                className="flex items-center gap-2 rounded-lg border border-gray-200 p-3 text-sm"
+              >
+                <span>{p.email}</span>
+                {p.id === user.id && (
+                  <span className="text-xs text-gray-400">(you)</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-gray-500">
+            No instructors have registered yet.
+          </p>
+        )}
+
+        {/* Pending invites: on the invite list but not registered yet. Either
+            role can be pending. The Un-invite action is added in checkpoint 2. */}
+        <h3 className="mb-2 mt-6 text-sm font-medium text-gray-700">
+          Invited, pending{" "}
+          <span className="font-normal text-gray-400">
+            ({pendingInvites.length})
+          </span>
+        </h3>
+        {pendingInvites.length > 0 ? (
+          <ul className="space-y-2">
+            {pendingInvites.map((i) => (
+              <li
+                key={i.email}
+                className="flex items-center gap-2 rounded-lg border border-gray-200 p-3 text-sm"
+              >
+                <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                  {i.role === "instructor" ? "Instructor" : "Student"}
+                </span>
+                <span>{i.email}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-gray-500">No pending invites.</p>
         )}
       </section>
     </main>
