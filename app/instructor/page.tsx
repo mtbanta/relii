@@ -10,6 +10,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { SignOutButton } from "@/components/sign-out-button";
 import { AddEmailForm } from "@/components/add-email-form";
 import { DeleteStudentButton } from "@/components/delete-student-button";
+import { UninviteButton } from "@/components/uninvite-button";
 import { CreateAssignmentForm } from "@/components/create-assignment-form";
 import { AssignmentSelector } from "@/components/assignment-selector";
 import { SubmissionResetButton } from "@/components/submission-reset-button";
@@ -550,7 +551,8 @@ export default async function InstructorHome({
         )}
 
         {/* Pending invites: on the invite list but not registered yet. Either
-            role can be pending. The Un-invite action is added in checkpoint 2. */}
+            role can be pending. Each has an Un-invite action that removes just
+            that one invite-list row (verified pending, server-side). */}
         <h3 className="mb-2 mt-6 text-sm font-medium text-gray-700">
           Invited, pending{" "}
           <span className="font-normal text-gray-400">
@@ -560,14 +562,8 @@ export default async function InstructorHome({
         {pendingInvites.length > 0 ? (
           <ul className="space-y-2">
             {pendingInvites.map((i) => (
-              <li
-                key={i.email}
-                className="flex items-center gap-2 rounded-lg border border-gray-200 p-3 text-sm"
-              >
-                <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-                  {i.role === "instructor" ? "Instructor" : "Student"}
-                </span>
-                <span>{i.email}</span>
+              <li key={i.email} className="rounded-lg border border-gray-200 p-3">
+                <UninviteButton email={i.email} role={i.role} />
               </li>
             ))}
           </ul>
