@@ -12,6 +12,7 @@ import { AddEmailForm } from "@/components/add-email-form";
 import { DeleteStudentButton } from "@/components/delete-student-button";
 import { UninviteButton } from "@/components/uninvite-button";
 import { CreateAssignmentForm } from "@/components/create-assignment-form";
+import { EditAssignmentForm } from "@/components/edit-assignment-form";
 import { AssignmentSelector } from "@/components/assignment-selector";
 import { SubmissionResetButton } from "@/components/submission-reset-button";
 import { ResetHistory } from "@/components/reset-history";
@@ -19,26 +20,9 @@ import type { ResetHistoryRow } from "@/components/reset-history";
 import { isSubmissionLocked } from "@/lib/submission";
 import type { SessionScore } from "@/lib/types";
 
-// Friendly mode label for the assignments management list.
-function modeLabel(mode: string): string {
-  return mode === "voice_video" ? "Voice + video" : "Text";
-}
-
 // Compact mode label for the submissions table (matches the mockup: "V+V").
 function modeShort(mode: string): string {
   return mode === "voice_video" ? "V+V" : "Text";
-}
-
-// Show a stored timestamp as a plain date. We read it in UTC so a date picked as
-// "Aug 14" always shows as "Aug 14" (it is stored as midnight UTC).
-function formatDueDate(value: string | null): string | null {
-  if (!value) return null;
-  return new Date(value).toLocaleDateString("en-US", {
-    timeZone: "UTC",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
 }
 
 // One assignment as read for the management list (this instructor's own).
@@ -459,30 +443,24 @@ export default async function InstructorHome({
         <div className="mt-4">
           {assignments && assignments.length > 0 ? (
             <ul className="space-y-2">
-              {assignments.map((a) => {
-                const due = formatDueDate(a.due_at);
-                return (
-                  <li
-                    key={a.id}
-                    className="rounded-lg border border-gray-200 p-3"
-                  >
-                    <p className="text-sm font-medium">{a.title}</p>
-                    <p className="mt-0.5 text-xs text-gray-500">
-                      {a.scenarios?.title ?? "Scenario"}
-                      {a.scenarios?.persona_name
-                        ? ` (with ${a.scenarios.persona_name})`
-                        : ""}{" "}
-                      &middot; {modeLabel(a.required_mode)}
-                      {due ? ` · due ${due}` : ""}
-                    </p>
-                    {a.instructions && (
-                      <p className="mt-1.5 text-sm text-gray-600">
-                        {a.instructions}
-                      </p>
-                    )}
-                  </li>
-                );
-              })}
+              {assignments.map((a) => (
+                <li
+                  key={a.id}
+                  className="rounded-lg border border-gray-200 p-3"
+                >
+                  <EditAssignmentForm
+                    assignment={{
+                      id: a.id,
+                      title: a.title,
+                      instructions: a.instructions,
+                      due_at: a.due_at,
+                      required_mode: a.required_mode,
+                      scenarioTitle: a.scenarios?.title ?? null,
+                      personaName: a.scenarios?.persona_name ?? null,
+                    }}
+                  />
+                </li>
+              ))}
             </ul>
           ) : (
             <p className="text-sm text-gray-500">
