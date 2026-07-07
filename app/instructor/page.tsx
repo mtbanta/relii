@@ -13,6 +13,7 @@ import { DeleteStudentButton } from "@/components/delete-student-button";
 import { UninviteButton } from "@/components/uninvite-button";
 import { CreateAssignmentForm } from "@/components/create-assignment-form";
 import { EditAssignmentForm } from "@/components/edit-assignment-form";
+import { DeleteAssignmentButton } from "@/components/delete-assignment-button";
 import { AssignmentSelector } from "@/components/assignment-selector";
 import { SubmissionResetButton } from "@/components/submission-reset-button";
 import { ResetHistory } from "@/components/reset-history";
@@ -147,6 +148,34 @@ export default async function InstructorHome({
     .eq("created_by", user.id)
     .order("created_at", { ascending: false })
     .returns<AssignmentRow[]>();
+
+  // How much student work sits under each of those assignments, split into
+  // submissions vs practices. This drives the delete control: 0 sessions means a
+  // clean delete (light confirm), 1+ means the strong type-DELETE confirm that
+  // names the counts. Read with the admin client, because instructors cannot
+  // read practice rows through ordinary browser rules. The delete route
+  // re-counts server-side before acting, so these numbers are only for display.
+  const assignmentCounts = new Map<
+    string,
+    { submissions: number; practices: number }
+  >();
+  const ownAssignmentIds = (assignments ?? []).map((a) => a.id);
+  if (ownAssignmentIds.length > 0) {
+    const { data: countRows } = await admin
+      .from("sessions")
+      .select("assignment_id, kind")
+      .in("assignment_id", ownAssignmentIds);
+    for (const row of countRows ?? []) {
+      if (!row.assignment_id) continue;
+      const current = assignmentCounts.get(row.assignment_id) ?? {
+        submissions: 0,
+        practices: 0,
+      };
+      if (row.kind === "submission") current.submissions += 1;
+      else if (row.kind === "practice") current.practices += 1;
+      assignmentCounts.set(row.assignment_id, current);
+    }
+  }
 
   // Resolve which assignment the dashboard is showing: the one named in the URL
   // if it is valid, otherwise the newest.
@@ -443,24 +472,44 @@ export default async function InstructorHome({
         <div className="mt-4">
           {assignments && assignments.length > 0 ? (
             <ul className="space-y-2">
-              {assignments.map((a) => (
-                <li
-                  key={a.id}
-                  className="rounded-lg border border-gray-200 p-3"
-                >
-                  <EditAssignmentForm
-                    assignment={{
-                      id: a.id,
-                      title: a.title,
-                      instructions: a.instructions,
-                      due_at: a.due_at,
-                      required_mode: a.required_mode,
-                      scenarioTitle: a.scenarios?.title ?? null,
-                      personaName: a.scenarios?.persona_name ?? null,
-                    }}
-                  />
-                </li>
-              ))}
+              {assignments.map((a) => {
+                const counts = assignmentCounts.get(a.id) ?? {
+                  submissions: 0,
+                  practices: 0,
+                };
+                const inUse = counts.submissions + counts.practices > 0;
+                return (
+                  <li
+                    key={a.id}
+                    className="rounded-lg border border-gray-200 p-3"
+                  >
+                    <EditAssignmentForm
+                      assignment={{
+                        id: a.id,
+                        title: a.title,
+                        instructions: a.instructions,
+                        due_at: a.due_at,
+                        required_mode: a.required_mode,
+                        scenarioTitle: a.scenarios?.title ?? null,
+                        personaName: a.scenarios?.persona_name ?? null,
+                      }}
+                    />
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-2">
+                      <span className="text-xs text-gray-400">
+                        {inUse
+                          ? `In use: ${counts.submissions} submission${counts.submissions === 1 ? "" : "s"}, ${counts.practices} practice${counts.practices === 1 ? "" : "s"}`
+                          : "Not in use (no student work)"}
+                      </span>
+                      <DeleteAssignmentButton
+                        assignmentId={a.id}
+                        title={a.title}
+                        submissionsCount={counts.submissions}
+                        practicesCount={counts.practices}
+                      />
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <p className="text-sm text-gray-500">
