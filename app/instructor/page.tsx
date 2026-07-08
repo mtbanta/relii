@@ -340,7 +340,7 @@ export default async function InstructorHome({
                       const isScored = r.score != null;
                       // Recompute the lock state on the SERVER (never trust the
                       // browser). A graded submission that is still in_progress
-                      // is either "In progress" (still inside the 60-minute live
+                      // is either "In progress" (still inside the 30-minute live
                       // window, the student may still be in it, no reset) or
                       // "Interrupted" (past the window, now resettable).
                       const locked = isSubmissionLocked({

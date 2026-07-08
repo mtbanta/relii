@@ -23,7 +23,7 @@
 // The window is deliberately generous so a slow but honest attempt is never
 // locked mid-conversation (the costly mistake). Lower it for a tighter bound on
 // the dev-tools edge case.
-export const SUBMISSION_LIVE_WINDOW_MS = 60 * 60 * 1000; // 60 minutes
+export const SUBMISSION_LIVE_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
 
 // The minimal shape the lock check needs from a session row.
 type SubmissionLockInput = {

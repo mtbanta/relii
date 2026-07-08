@@ -8,7 +8,7 @@
 //
 //   type = "interrupted"  (low stakes): recover a stuck attempt. Requires a
 //     submission that is genuinely locked, i.e. kind = submission, status =
-//     in_progress, AND past the 60-minute live window (isSubmissionLocked).
+//     in_progress, AND past the 30-minute live window (isSubmissionLocked).
 //
 //   type = "retake"       (high stakes): allow a retake of a FINISHED grade.
 //     Requires kind = submission, status = scored. This permanently destroys a
