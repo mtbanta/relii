@@ -24,6 +24,15 @@ export type SessionScore = {
   items: ScoreItem[];
 };
 
+// Which of the two meetings a scenario is, stored on scenarios.meeting_type and
+// matched against each rubric item's "meetings" tags. The database enforces the
+// same two values with a check constraint.
+export type MeetingType = "discovery" | "presentation";
+
+export function isMeetingType(value: unknown): value is MeetingType {
+  return value === "discovery" || value === "presentation";
+}
+
 // A single rubric line as stored in rubrics.items.
 export type RubricItem = {
   id: string;

@@ -1,5 +1,5 @@
 // Builds the messages we send to OpenAI so the AI stays in character as the
-// persona (Alex) for a text role-play.
+// scenario's persona (Alex, Jordan, ...) for a role-play.
 import type { ChatMessage } from "./openai";
 import type { TranscriptTurn } from "./types";
 
@@ -16,7 +16,10 @@ export function buildSystemMessage(
     personaSystemPrompt,
     "",
     "BACKGROUND FOR YOUR CONTEXT ONLY:",
-    "The text below is the briefing the sales representative you are meeting was given before this conversation. It describes their goals and role, not yours. Do not adopt their role; you remain Alex at all times.",
+    // Worded without naming a persona so it is correct for every scenario. It
+    // used to say "you remain Alex at all times", which would have told the
+    // Jordan persona to be Alex.
+    "The text below is the briefing the sales representative you are meeting was given before this conversation. It describes their goals and role, not yours. Do not adopt their role; you remain in character as the persona described above at all times.",
     "",
     scenarioContext,
   ].join("\n");

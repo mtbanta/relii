@@ -370,7 +370,7 @@ where not exists (
 --    Persona prompt and scenario context are copied verbatim from
 --    docs/persona-alex-procurement.md.
 -- ---------------------------------------------------------------------------
-insert into public.scenarios (title, persona_name, persona_system_prompt, scenario_context, rubric_id)
+insert into public.scenarios (title, persona_name, persona_system_prompt, scenario_context, meeting_type, rubric_id)
 select
   $title$Discovery-Close: Alex (procurement director)$title$,
   $pname$Alex$pname$,
@@ -417,6 +417,7 @@ RULES FOR YOU
 - You have about fifteen minutes. If the seller is going long or stalling, you may gently note your time.
 - If the seller is rude or completely off track, respond as a busy professional would, but stay in character.$prompt$,
   $context$You are about to role play a first sales meeting. You play a sales representative from Bunzl, a packaging distributor. The customer is Alex, the procurement director at a mid-sized regional meat and food processing company, and Alex is the gatekeeper to the plant manager, Jordan. You have about fifteen minutes. This is a discovery meeting, not a time to close a sale. Pricing has already been discussed, so your job is not to compete on price. Your job is to uncover the other reasons Alex may be unhappy with the current supplier: the issues beyond unit price and their impact on the full product and service Alex receives. Open professionally, build rapport, set an agenda, uncover how Alex buys and what Alex needs, and reframe the conversation around the cost of not changing. You earn a follow-up meeting with Jordan only if you uncover Alex's real concerns and give a credible reason Jordan should meet with you.$context$,
+  $mtype$discovery$mtype$,
   (select id from public.rubrics
      where name = $name$Great Northwoods 290-point$name$
      order by created_at asc

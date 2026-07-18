@@ -71,6 +71,11 @@ for (const [tag, text] of guards) {
 
 const scenarioTitle = "Discovery-Close: Alex (procurement director)";
 const personaName = "Alex";
+// Added with the meeting_type column (sprint piece 1). Alex is the discovery
+// meeting. This matters only if the database is ever rebuilt from scratch: the
+// live Alex row was backfilled by supabase/piece-1-meeting-type.sql, and the
+// insert below is skipped whenever that row already exists.
+const meetingType = "discovery";
 
 // --- 4. Write the SQL --------------------------------------------------------
 const sql = `-- Relii Stage 3 seed: the Great Northwoods rubric and the Alex Discovery scenario.
@@ -104,12 +109,13 @@ where not exists (
 --    Persona prompt and scenario context are copied verbatim from
 --    docs/persona-alex-procurement.md.
 -- ---------------------------------------------------------------------------
-insert into public.scenarios (title, persona_name, persona_system_prompt, scenario_context, rubric_id)
+insert into public.scenarios (title, persona_name, persona_system_prompt, scenario_context, meeting_type, rubric_id)
 select
   $title$${scenarioTitle}$title$,
   $pname$${personaName}$pname$,
   $prompt$${personaSystemPrompt}$prompt$,
   $context$${scenarioContext}$context$,
+  $mtype$${meetingType}$mtype$,
   (select id from public.rubrics
      where name = $name$${rubricName}$name$
      order by created_at asc

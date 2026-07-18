@@ -106,7 +106,7 @@ export async function POST(request: Request) {
   } catch (err) {
     console.error("OpenAI chat failed:", err);
     return NextResponse.json(
-      { error: "Alex could not respond. Please try again." },
+      { error: "The customer could not respond. Please try again." },
       { status: 502 },
     );
   }

@@ -58,7 +58,7 @@ export function Conversation({
         body: JSON.stringify({ sessionId, message: text }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "Alex could not respond.");
+      if (!res.ok) throw new Error(data?.error ?? "The customer could not respond.");
       const personaTurn: TranscriptTurn = {
         role: "persona",
         text: data.reply,

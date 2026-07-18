@@ -1,29 +1,48 @@
-// Content-only scoring for a text role-play.
+// Content-only scoring for a role-play (text or voice).
 //
-// We score the student's side of the conversation against the Discovery CONTENT
-// rubric: the items that apply to both text and voice ("both") AND belong to the
-// discovery meeting. Voice-only items (tone, eye contact, etc.) and presentation-
-// only items are skipped. For the Great Northwoods rubric that is 18 items worth
-// 180 points.
+// We score the student's side of the conversation against the CONTENT items of
+// the rubric FOR THIS SCENARIO'S MEETING: the items that apply to both text and
+// voice ("both") AND carry this meeting's tag. Voice-only items (tone, eye
+// contact, etc.) and the other meeting's items are skipped. For the Great
+// Northwoods rubric that is 18 items / 180 points for a discovery meeting
+// (Alex) and 22 items / 220 points for a presentation meeting (Jordan).
+//
+// The meeting comes from the scenario's meeting_type column and is REQUIRED
+// here on purpose. There is deliberately no fallback: scoring a presentation
+// against the discovery items would produce a wrong score that still looks
+// perfectly valid, which is far worse than a visible failure.
 //
 // The scoring runs as a single low-temperature, structured (JSON) OpenAI call so
 // that re-scoring the same transcript gives consistent results.
 import { chatComplete } from "./openai";
-import type { RubricItem, ScoreItem, SessionScore, TranscriptTurn } from "./types";
+import type {
+  MeetingType,
+  RubricItem,
+  ScoreItem,
+  SessionScore,
+  TranscriptTurn,
+} from "./types";
 
-// Keep only the content items that belong to the discovery meeting.
-export function contentDiscoveryItems(items: RubricItem[]): RubricItem[] {
+// Keep only the content items that belong to the given meeting.
+export function contentItemsForMeeting(
+  items: RubricItem[],
+  meetingType: MeetingType,
+): RubricItem[] {
   return items.filter(
     (item) =>
       item.applies_to === "both" &&
       Array.isArray(item.meetings) &&
-      item.meetings.includes("discovery"),
+      item.meetings.includes(meetingType),
   );
 }
 
-const SCORING_SYSTEM_MESSAGE = [
+// The grader names the persona so a Jordan transcript is graded as Jordan.
+// NOTE: the name is substituted plainly here (the original wording was "the
+// persona named Alex"), so for an Alex session this message is byte-for-byte
+// what it has always been and his scores cannot drift.
+const buildScoringSystemMessage = (personaName: string) => [
   "You are an impartial, consistent sales-training grader.",
-  "You grade ONLY the student's performance in a role-play sales meeting transcript. The student plays a sales representative; the persona named Alex is the customer. Never grade the customer.",
+  `You grade ONLY the student's performance in a role-play sales meeting transcript. The student plays a sales representative; the persona named ${personaName} is the customer. Never grade the customer.`,
   "",
   "For each rubric item (each is out of 10), award EXACTLY ONE of these five values: 0, 3, 6, 8, or 10. Do not use any other number. Choose the single value whose description best matches the evidence in the transcript and the item's guidance:",
   "- 0: no evidence of the behavior at all.",
@@ -39,12 +58,19 @@ const SCORING_SYSTEM_MESSAGE = [
 // A fixed seed so OpenAI's sampling is reproducible from one scoring to the next.
 const SCORING_SEED = 7;
 
-function formatTranscript(transcript: TranscriptTurn[]): string {
+function formatTranscript(
+  transcript: TranscriptTurn[],
+  personaName: string,
+): string {
   if (transcript.length === 0) return "(The transcript is empty.)";
   return transcript
     .map((turn) => {
+      // The customer label is upper-cased to match "STUDENT (sales rep)", which
+      // also keeps Alex's label exactly "ALEX (customer)" as it has always been.
       const who =
-        turn.role === "student" ? "STUDENT (sales rep)" : "ALEX (customer)";
+        turn.role === "student"
+          ? "STUDENT (sales rep)"
+          : `${personaName.toUpperCase()} (customer)`;
       return `${who}: ${turn.text}`;
     })
     .join("\n");
@@ -53,6 +79,7 @@ function formatTranscript(transcript: TranscriptTurn[]): string {
 function buildUserMessage(
   items: RubricItem[],
   transcript: TranscriptTurn[],
+  personaName: string,
 ): string {
   const itemBlock = items
     .map(
@@ -68,7 +95,7 @@ function buildUserMessage(
     itemBlock,
     "",
     "TRANSCRIPT:",
-    formatTranscript(transcript),
+    formatTranscript(transcript, personaName),
     "",
     `Return JSON with an "items" array containing exactly one entry for each of the ${items.length} rubric items above, each with its id, points_earned (one of 0, 3, 6, 8, or 10), and a short comment.`,
   ].join("\n");
@@ -105,18 +132,29 @@ const RESPONSE_FORMAT = {
 
 type RawScore = { id: string; points_earned: number; comment: string };
 
-// Score one transcript. Returns the itemized SessionScore.
+// Score one transcript against the content items for this scenario's meeting.
+// Returns the itemized SessionScore.
 export async function scoreTranscriptContent(
   transcript: TranscriptTurn[],
   rubricItems: RubricItem[],
+  meetingType: MeetingType,
+  personaName: string,
 ): Promise<SessionScore> {
-  const items = contentDiscoveryItems(rubricItems);
+  const items = contentItemsForMeeting(rubricItems, meetingType);
+  // If the rubric has no content items for this meeting, something is wrong
+  // with the rubric or the scenario's meeting_type. Stop rather than "score"
+  // the student against nothing and save a meaningless 0 out of 0.
+  if (items.length === 0) {
+    throw new Error(
+      `The rubric has no content items for a ${meetingType} meeting.`,
+    );
+  }
   const maxTotal = items.reduce((sum, item) => sum + item.points, 0);
 
   const raw = await chatComplete({
     messages: [
-      { role: "system", content: SCORING_SYSTEM_MESSAGE },
-      { role: "user", content: buildUserMessage(items, transcript) },
+      { role: "system", content: buildScoringSystemMessage(personaName) },
+      { role: "user", content: buildUserMessage(items, transcript, personaName) },
     ],
     temperature: 0,
     seed: SCORING_SEED,

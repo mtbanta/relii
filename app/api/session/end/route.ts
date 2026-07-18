@@ -1,15 +1,16 @@
 // POST /api/session/end
 // Body: { sessionId }
-// Ends the session, scores the transcript against the Discovery content rubric
-// with a single low-temperature pass, and saves the itemized score. All writes
-// use the server-only service role.
+// Ends the session, scores the transcript against the content rubric items for
+// this scenario's meeting (discovery or presentation) with a single
+// low-temperature pass, and saves the itemized score. Both the text and the
+// voice+video paths finish here. All writes use the server-only service role.
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { scoreTranscriptContent } from "@/lib/scoring";
 import { isSubmissionLocked } from "@/lib/submission";
 import { prunePractices, deletePracticesForAssignment } from "@/lib/practice";
-import type { RubricItem, TranscriptTurn } from "@/lib/types";
+import { isMeetingType, type RubricItem, type TranscriptTurn } from "@/lib/types";
 
 export async function POST(request: Request) {
   // 1. Must be a logged-in user.
@@ -69,14 +70,31 @@ export async function POST(request: Request) {
     .update({ status: "completed" })
     .eq("id", session.id);
 
-  // 5. Load the rubric for this scenario.
+  // 5. Load the rubric for this scenario, plus which meeting it is and who the
+  //    persona is, so the scorer picks this meeting's rubric items and labels
+  //    the customer by name (Alex for discovery, Jordan for presentation).
   const { data: scenario, error: scenarioError } = await admin
     .from("scenarios")
-    .select("rubric_id")
+    .select("rubric_id, meeting_type, persona_name")
     .eq("id", session.scenario_id)
     .single();
   if (scenarioError || !scenario) {
     return NextResponse.json({ error: "Scenario not found." }, { status: 404 });
+  }
+  // The database constrains meeting_type to discovery or presentation, so this
+  // should never fail. It is checked anyway because the alternative to failing
+  // here is scoring against the wrong meeting's items, which would save a wrong
+  // score that looks entirely legitimate. Better to stop and be noticed.
+  if (!isMeetingType(scenario.meeting_type)) {
+    console.error(
+      "Scenario has an unusable meeting_type:",
+      session.scenario_id,
+      scenario.meeting_type,
+    );
+    return NextResponse.json(
+      { error: "This scenario is not set up for scoring yet." },
+      { status: 500 },
+    );
   }
   const { data: rubric, error: rubricError } = await admin
     .from("rubrics")
@@ -93,7 +111,12 @@ export async function POST(request: Request) {
 
   let score;
   try {
-    score = await scoreTranscriptContent(transcript, rubricItems);
+    score = await scoreTranscriptContent(
+      transcript,
+      rubricItems,
+      scenario.meeting_type,
+      scenario.persona_name ?? "the customer",
+    );
   } catch (err) {
     console.error("Scoring failed:", err);
     return NextResponse.json(
