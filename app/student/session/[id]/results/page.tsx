@@ -147,6 +147,7 @@ export default async function ResultsPage({
         downloadUrl={videoUrl}
         isVoice={isVoice}
         filePrefix={session.kind === "submission" ? "relii-submission" : "relii-practice"}
+        conversationOnly={conversationOnly}
       />
 
       {/* The student's own recording (voice sessions only). Hidden when printing
@@ -163,8 +164,9 @@ export default async function ResultsPage({
             />
           ) : videoError === "1" ? (
             <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
-              Your recording could not be saved this time, but your score below
-              was saved. You can run another practice if you want a recording.
+              Your recording could not be saved this time, but your{" "}
+              {conversationOnly ? "transcript" : "score"} below was saved. You
+              can run another practice if you want a recording.
             </p>
           ) : (
             <p className="text-sm text-gray-500">

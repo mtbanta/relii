@@ -20,6 +20,7 @@ export function ResultsActions({
   downloadUrl,
   isVoice,
   filePrefix,
+  conversationOnly = false,
 }: {
   // The short-lived signed link to the recording, or null when there is no
   // recording to download (a text practice, the camera was off, or the upload
@@ -30,6 +31,9 @@ export function ResultsActions({
   // The start of the download filename, e.g. "relii-practice". The date and
   // time of the download are added on click.
   filePrefix: string;
+  // A conversation-only session has no score, so the print hint must not offer
+  // to save one.
+  conversationOnly?: boolean;
 }) {
   function downloadVideo() {
     if (!downloadUrl) return;
@@ -91,7 +95,7 @@ export function ResultsActions({
 
       <p className="mt-2 text-xs text-gray-500">
         Opens your browser&apos;s print window. Choose &quot;Save as PDF&quot; to
-        download your score and transcript.
+        download your {conversationOnly ? "transcript" : "score and transcript"}.
       </p>
     </section>
   );
