@@ -70,9 +70,9 @@ export async function POST(request: Request) {
     .update({ status: "completed" })
     .eq("id", session.id);
 
-  // 5. Load the rubric for this scenario, plus which meeting it is and who the
-  //    persona is, so the scorer picks this meeting's rubric items and labels
-  //    the customer by name (Alex for discovery, Jordan for presentation).
+  // 5. Load this scenario: whether it has a rubric at all, which meeting it is,
+  //    and who the persona is. The rubric decides whether there is anything to
+  //    score; the meeting and persona are what the scorer needs if there is.
   const { data: scenario, error: scenarioError } = await admin
     .from("scenarios")
     .select("rubric_id, meeting_type, persona_name")
@@ -81,6 +81,33 @@ export async function POST(request: Request) {
   if (scenarioError || !scenario) {
     return NextResponse.json({ error: "Scenario not found." }, { status: 404 });
   }
+
+  // 5a. CONVERSATION-ONLY: a scenario with no rubric has nothing to score, so we
+  //     stop here. The session is already marked 'completed' above, which is its
+  //     terminal state: the transcript is saved (it was saved turn by turn during
+  //     the conversation) and so is the recording for voice+video, but no score
+  //     JSON, no total, and no scored_at is ever written.
+  //
+  //     Note this branches on the scenario having NO RUBRIC, never on the status
+  //     being 'completed'. Those are different things: a scenario that DOES have
+  //     a rubric also sits at 'completed' for the moment between the conversation
+  //     ending and the score saving, and it stays there if scoring fails. Keying
+  //     off the status would turn a temporary scoring failure into a permanent
+  //     "no score" result instead of letting the student end the session again.
+  if (scenario.rubric_id === null) {
+    // The retention cap still applies, so it has to run on this path too. For a
+    // conversation-only case a FINISHED practice is a 'completed' one, since it
+    // will never be 'scored'. Best-effort, exactly like the scored path below.
+    if (session.kind === "practice" && session.assignment_id) {
+      try {
+        await prunePractices(admin, user.id, session.assignment_id, "completed");
+      } catch (err) {
+        console.error("Pruning old conversation-only practices failed:", err);
+      }
+    }
+    return NextResponse.json({ ok: true });
+  }
+
   // The database constrains meeting_type to discovery or presentation, so this
   // should never fail. It is checked anyway because the alternative to failing
   // here is scoring against the wrong meeting's items, which would save a wrong
@@ -156,7 +183,7 @@ export async function POST(request: Request) {
   // logged and never returned to the student.
   if (session.kind === "practice" && session.assignment_id) {
     try {
-      await prunePractices(admin, user.id, session.assignment_id);
+      await prunePractices(admin, user.id, session.assignment_id, "scored");
     } catch (err) {
       console.error("Pruning old practices failed:", err);
     }

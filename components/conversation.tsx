@@ -12,6 +12,7 @@ export function Conversation({
   scenarioTitle,
   initialTranscript,
   isSubmission = false,
+  conversationOnly = false,
 }: {
   sessionId: string;
   personaName: string;
@@ -20,6 +21,9 @@ export function Conversation({
   // A graded submission ends with an explicit submit-and-score confirmation
   // step (its one official attempt), instead of practice's quick pop-up.
   isSubmission?: boolean;
+  // A conversation-only case (its scenario has no rubric) is never scored, so
+  // the wording must not promise a score that is not coming.
+  conversationOnly?: boolean;
 }) {
   const router = useRouter();
   const [turns, setTurns] = useState<TranscriptTurn[]>(initialTranscript);
@@ -84,7 +88,9 @@ export function Conversation({
       return;
     }
     const ok = window.confirm(
-      "End this session and see your score? You will not be able to add more messages.",
+      conversationOnly
+        ? "End this session? You will not be able to add more messages. This practice is not scored."
+        : "End this session and see your score? You will not be able to add more messages.",
     );
     if (ok) void doEnd();
   }
@@ -102,7 +108,13 @@ export function Conversation({
         body: JSON.stringify({ sessionId }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "Could not score the session.");
+      if (!res.ok)
+        throw new Error(
+          data?.error ??
+            (conversationOnly
+              ? "Could not end the session."
+              : "Could not score the session."),
+        );
       router.push(`/student/session/${sessionId}/results`);
     } catch (err) {
       setEnding(false);
@@ -126,7 +138,9 @@ export function Conversation({
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
         >
           {ending
-            ? "Scoring..."
+            ? conversationOnly
+              ? "Ending..."
+              : "Scoring..."
             : isSubmission
               ? "Submit assignment"
               : "End session"}

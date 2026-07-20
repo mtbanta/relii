@@ -33,12 +33,33 @@ export default async function ResultsPage({
 
   if (!session) notFound();
 
-  // Not scored yet? Send them back to the live conversation.
-  if (session.status !== "scored" || !session.score) {
+  // The scenario is loaded BEFORE deciding whether to show this page, because
+  // whether it has a rubric is what decides which kind of results page this is.
+  const { data: scenario } = await supabase
+    .from("scenarios")
+    .select("title, persona_name, rubric_id")
+    .eq("id", session.scenario_id)
+    .single();
+
+  // A scenario with NO rubric is conversation-only: it is never scored, so its
+  // finished state is 'completed' and there is no score to show. Note this keys
+  // on the scenario having no rubric, NOT on the status being 'completed'. A
+  // scored case also passes through 'completed', and stays there if its scoring
+  // failed; that student must still be sent back to end the session again rather
+  // than shown a permanent "no score" page.
+  const conversationOnly = scenario?.rubric_id === null;
+
+  if (conversationOnly) {
+    // Still talking? Back to the live conversation. Otherwise show the results.
+    if (session.status === "in_progress") {
+      redirect(`/student/session/${id}`);
+    }
+  } else if (session.status !== "scored" || !session.score) {
+    // Not scored yet? Send them back to the live conversation.
     redirect(`/student/session/${id}`);
   }
 
-  const score = session.score as SessionScore;
+  const score = session.score as SessionScore | null;
   const transcript = (session.transcript ?? []) as TranscriptTurn[];
   const isVoice = session.mode === "voice_video";
 
@@ -55,19 +76,16 @@ export default async function ResultsPage({
     videoUrl = signed?.signedUrl ?? null;
   }
 
-  // Load the scenario + rubric so we can show each item's human-friendly label
-  // and category next to its score.
-  const { data: scenario } = await supabase
-    .from("scenarios")
-    .select("title, persona_name, rubric_id")
-    .eq("id", session.scenario_id)
-    .single();
-
-  const { data: rubric } = await supabase
-    .from("rubrics")
-    .select("items")
-    .eq("id", scenario?.rubric_id)
-    .single();
+  // Load the rubric so we can show each item's human-friendly label and category
+  // next to its score. A conversation-only session has no rubric and no itemized
+  // score to label, so this is skipped entirely.
+  const { data: rubric } = conversationOnly
+    ? { data: null }
+    : await supabase
+        .from("rubrics")
+        .select("items")
+        .eq("id", scenario?.rubric_id)
+        .single();
 
   const rubricItems = (rubric?.items ?? []) as RubricItem[];
   const labelById = new Map(rubricItems.map((i) => [i.id, i]));
@@ -89,22 +107,38 @@ export default async function ResultsPage({
         </Link>
       </header>
 
-      <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-5">
-        <p className="text-sm text-gray-600">
-          Content score ({isVoice ? "voice" : "text"} role-play)
-        </p>
-        <p className="text-3xl font-semibold">
-          {score.total}
-          <span className="text-lg font-normal text-gray-500">
-            {" "}
-            / {score.max_total}
-          </span>
-        </p>
-        <p className="mt-1 text-xs text-gray-500">
-          Scored by AI on the discovery content items. Delivery items (tone,
-          pace, and other spoken-only points) are added in a later stage.
-        </p>
-      </div>
+      {conversationOnly || !score ? (
+        // A conversation-only case has no rubric behind it, so there is nothing
+        // to score. Say so plainly, so an unscored result never looks like a
+        // score that failed to load.
+        <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-5">
+          <p className="text-sm font-medium">
+            Conversation-only practice, no score
+          </p>
+          <p className="mt-1 text-sm text-gray-600">
+            This case is for practising the conversation itself, so it is not
+            graded and no score is given. Your full transcript
+            {isVoice ? " and recording are" : " is"} saved below.
+          </p>
+        </div>
+      ) : (
+        <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-5">
+          <p className="text-sm text-gray-600">
+            Content score ({isVoice ? "voice" : "text"} role-play)
+          </p>
+          <p className="text-3xl font-semibold">
+            {score.total}
+            <span className="text-lg font-normal text-gray-500">
+              {" "}
+              / {score.max_total}
+            </span>
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            Scored by AI on the discovery content items. Delivery items (tone,
+            pace, and other spoken-only points) are added in a later stage.
+          </p>
+        </div>
+      )}
 
       {/* Save-a-copy controls: download the recording and print/save the score
           and transcript. Read-only; hidden when printing. We pass the same
@@ -140,8 +174,16 @@ export default async function ResultsPage({
         </section>
       )}
 
-      <div className="grid gap-8 md:grid-cols-2 print:grid-cols-1 print:gap-6">
-        {/* Itemized score */}
+      {/* Two columns when there is a score to sit beside the transcript; a
+          conversation-only session has none, so the transcript gets the full
+          width on its own. */}
+      <div
+        className={`grid gap-8 print:gap-6 ${
+          score ? "md:grid-cols-2 print:grid-cols-1" : ""
+        }`}
+      >
+        {/* Itemized score (graded cases only) */}
+        {score && (
         <section>
           <h2 className="mb-3 text-lg font-medium">Itemized score</h2>
           <ul className="space-y-3">
@@ -171,6 +213,7 @@ export default async function ResultsPage({
             })}
           </ul>
         </section>
+        )}
 
         {/* Transcript */}
         <section>

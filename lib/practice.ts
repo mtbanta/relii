@@ -55,19 +55,34 @@ export async function deletePractice(
   return {};
 }
 
+// What "finished" means for one assignment's practices. A graded case's practice
+// is finished when it has been SCORED. A conversation-only case (a scenario with
+// no rubric) is never scored, so its practice is finished when the conversation
+// is over, which is status 'completed'.
+//
+// This is passed in per assignment rather than guessed, and it is deliberately
+// ONE value rather than "scored or completed". Every practice under one
+// assignment shares that assignment's scenario, so an assignment is entirely one
+// kind or the other, and the caller always knows which. Matching only the right
+// status also keeps a rubric practice that stopped at 'completed' because SCORING
+// FAILED out of the prune: that session is not a finished practice, it is a
+// broken one the student can still retry, and it must not evict a good score.
+export type FinishedPracticeStatus = "scored" | "completed";
+
 // Keep only the newest KEPT_PRACTICES finished practices for this student and
 // assignment; delete the older ones, each with its recording. Every query is
-// scoped to (this student, this assignment, kind = practice, status = scored),
-// so it can NEVER touch another student's, another assignment's, or any graded
-// submission's data.
+// scoped to (this student, this assignment, kind = practice, the finished status
+// for this assignment), so it can NEVER touch another student's, another
+// assignment's, or any graded submission's data.
 //
-// Best-effort by design: callers run this as cleanup AFTER the student's score is
+// Best-effort by design: callers run this as cleanup AFTER the student's result is
 // already saved, so any failure here is logged and the student keeps their
-// result. The next scored practice re-runs the prune and corrects the count.
+// result. The next finished practice re-runs the prune and corrects the count.
 export async function prunePractices(
   admin: AdminClient,
   studentId: string,
   assignmentId: string,
+  finishedStatus: FinishedPracticeStatus,
 ): Promise<void> {
   const { data: practices, error } = await admin
     .from("sessions")
@@ -75,7 +90,7 @@ export async function prunePractices(
     .eq("student_id", studentId)
     .eq("assignment_id", assignmentId)
     .eq("kind", "practice")
-    .eq("status", "scored")
+    .eq("status", finishedStatus)
     .order("created_at", { ascending: false })
     .order("id", { ascending: false });
 

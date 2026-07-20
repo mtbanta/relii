@@ -106,6 +106,7 @@ export function VoiceConversation({
   personaName,
   scenarioTitle,
   isSubmission = false,
+  conversationOnly = false,
 }: {
   sessionId: string;
   personaName: string;
@@ -113,6 +114,9 @@ export function VoiceConversation({
   // A graded submission ends with an explicit submit-and-score confirmation
   // step (its one official attempt), instead of practice's quick pop-up.
   isSubmission?: boolean;
+  // A conversation-only case (its scenario has no rubric) is never scored, so
+  // the wording must not promise a score that is not coming.
+  conversationOnly?: boolean;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
@@ -506,7 +510,9 @@ export function VoiceConversation({
           pc.connectionState === "disconnected"
         ) {
           setError(
-            "The voice connection dropped. End the session to score what you have, or try again.",
+            conversationOnly
+              ? "The voice connection dropped. End the session to keep what you have, or try again."
+              : "The voice connection dropped. End the session to score what you have, or try again.",
           );
         }
       };
@@ -602,7 +608,9 @@ export function VoiceConversation({
       return;
     }
     const ok = window.confirm(
-      "End this session and see your score? You will not be able to add more.",
+      conversationOnly
+        ? "End this session? You will not be able to add more. This practice is not scored."
+        : "End this session and see your score? You will not be able to add more.",
     );
     if (ok) void endCall();
   }
@@ -634,8 +642,9 @@ export function VoiceConversation({
       }
     }
 
-    // Always score, no matter what happened to the video.
-    setEndNote("Scoring...");
+    // Always finish the session, no matter what happened to the video. For a
+    // graded case that means scoring it; a conversation-only case just ends.
+    setEndNote(conversationOnly ? "Finishing..." : "Scoring...");
     try {
       const res = await fetch("/api/session/end", {
         method: "POST",
@@ -644,19 +653,28 @@ export function VoiceConversation({
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data?.error ?? "Could not score the session.");
+        throw new Error(
+          data?.error ??
+            (conversationOnly
+              ? "Could not end the session."
+              : "Could not score the session."),
+        );
       }
       setStatus("ended");
       router.push(
         `/student/session/${sessionId}/results${videoFailed ? "?videoError=1" : ""}`,
       );
     } catch (err) {
-      // Scoring failed (rare). The transcript is saved, so the student can click
-      // End again to retry; the recording, if any, is already uploaded.
+      // Finishing failed (rare). The transcript is saved, so the student can
+      // click End again to retry; the recording, if any, is already uploaded.
       setStatus("live");
       setEndNote("");
       setError(
-        err instanceof Error ? err.message : "Could not score the session.",
+        err instanceof Error
+          ? err.message
+          : conversationOnly
+            ? "Could not end the session."
+            : "Could not score the session.",
       );
     }
   }

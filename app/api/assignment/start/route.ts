@@ -54,6 +54,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Assignment not found." }, { status: 404 });
   }
 
+  // 3a. A scenario with NO rubric is conversation-only: there is nothing to
+  //     grade, so it can never be submitted. The student home already hides the
+  //     graded control for these assignments, but that is only the button; this
+  //     is the actual enforcement, refused server-side the way every other
+  //     session rule in this app is.
+  const { data: gradedCheck, error: gradedCheckError } = await admin
+    .from("scenarios")
+    .select("rubric_id")
+    .eq("id", assignment.scenario_id)
+    .single();
+  if (gradedCheckError || !gradedCheck) {
+    return NextResponse.json({ error: "Scenario not found." }, { status: 404 });
+  }
+  if (gradedCheck.rubric_id === null) {
+    return NextResponse.json(
+      {
+        error:
+          "This is a practice-only assignment with no grade. Use the practice buttons instead.",
+      },
+      { status: 400 },
+    );
+  }
+
   // 4. One submission per assignment per student. If one already exists, do NOT
   //    create another: tell the client where to go instead.
   const existing = await findExistingSubmission(admin, user.id, assignment.id);

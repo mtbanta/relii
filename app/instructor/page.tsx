@@ -125,9 +125,13 @@ export default async function InstructorHome({
   );
 
   // The scenarios this instructor can assign (the create-assignment dropdown).
+  // Only ENABLED scenarios are offered. A disabled scenario is one that is not
+  // ready to be used: chunk 2c writes AI-generated candidate personas turned off,
+  // so half-finished drafts can never be assigned to a student by accident.
   const { data: scenarios } = await supabase
     .from("scenarios")
     .select("id, title, persona_name")
+    .eq("enabled", true)
     .order("created_at", { ascending: true });
 
   // ALL assignments, newest first, for the dashboard selector. Per decision B an

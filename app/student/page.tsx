@@ -43,7 +43,13 @@ type AssignmentRow = {
   required_mode: string;
   due_at: string | null;
   instructions: string | null;
-  scenarios: { title: string; persona_name: string } | null;
+  // rubric_id is null for a conversation-only case: nothing to grade, so the
+  // assignment is practice-only.
+  scenarios: {
+    title: string;
+    persona_name: string;
+    rubric_id: string | null;
+  } | null;
 };
 
 type SubmissionRow = {
@@ -58,6 +64,7 @@ type PracticeRow = {
   id: string;
   assignment_id: string;
   mode: string;
+  status: string;
   score_total: number | null;
   score: SessionScore | null;
   created_at: string;
@@ -87,9 +94,18 @@ export default async function StudentHome() {
   // The assignments this student can do, with each one's scenario embedded.
   const { data: assignments } = await supabase
     .from("assignments")
-    .select("id, title, required_mode, due_at, instructions, scenarios ( title, persona_name )")
+    .select("id, title, required_mode, due_at, instructions, scenarios ( title, persona_name, rubric_id )")
     .order("created_at", { ascending: false })
     .returns<AssignmentRow[]>();
+
+  // Which of those assignments are conversation-only (their scenario has no
+  // rubric, so there is nothing to grade). Used twice below: to decide what a
+  // "finished" practice looks like, and to hide the graded controls.
+  const conversationOnlyAssignments = new Set(
+    (assignments ?? [])
+      .filter((a) => a.scenarios != null && a.scenarios.rubric_id === null)
+      .map((a) => a.id),
+  );
 
   // This student's submissions, so we can show each assignment's state. RLS lets
   // a student read only their own sessions.
@@ -105,15 +121,22 @@ export default async function StudentHome() {
     if (s.assignment_id) submissionByAssignment.set(s.assignment_id, s);
   }
 
-  // This student's kept practices: the finished (scored) ones, newest first. We
-  // group them per assignment for the "Saved practices: X of 3" list. Legacy
-  // practice rows with no assignment link are ignored (they never appear here).
+  // This student's kept practices: the FINISHED ones, newest first. We group them
+  // per assignment for the "Saved practices: X of 3" list. Legacy practice rows
+  // with no assignment link are ignored (they never appear here).
+  //
+  // "Finished" depends on the assignment. A graded case's practice is finished
+  // when it has been SCORED. A conversation-only case is never scored, so its
+  // practice is finished when the conversation is over ('completed'). We fetch
+  // both statuses and then keep only the right one per assignment, which matters:
+  // a graded practice sitting at 'completed' is one whose SCORING FAILED, and it
+  // must stay out of this list exactly as it does today.
   const { data: practices } = await supabase
     .from("sessions")
-    .select("id, assignment_id, mode, score_total, score, created_at")
+    .select("id, assignment_id, mode, status, score_total, score, created_at")
     .eq("student_id", user.id)
     .eq("kind", "practice")
-    .eq("status", "scored")
+    .in("status", ["scored", "completed"])
     .not("assignment_id", "is", null)
     .order("created_at", { ascending: false })
     .returns<PracticeRow[]>();
@@ -121,6 +144,10 @@ export default async function StudentHome() {
   const practicesByAssignment = new Map<string, PracticeRow[]>();
   for (const p of practices ?? []) {
     if (!p.assignment_id) continue;
+    const finishedStatus = conversationOnlyAssignments.has(p.assignment_id)
+      ? "completed"
+      : "scored";
+    if (p.status !== finishedStatus) continue;
     const list = practicesByAssignment.get(p.assignment_id) ?? [];
     list.push(p);
     practicesByAssignment.set(p.assignment_id, list);
@@ -153,6 +180,7 @@ export default async function StudentHome() {
               submission?.status === "completed";
             const interrupted = submission?.status === "in_progress";
             const kept = practicesByAssignment.get(a.id) ?? [];
+            const practiceOnly = conversationOnlyAssignments.has(a.id);
 
             return (
               <li key={a.id} className="rounded-lg border border-gray-200 p-5">
@@ -162,7 +190,10 @@ export default async function StudentHome() {
                   {a.scenarios?.persona_name
                     ? ` (with ${a.scenarios.persona_name})`
                     : ""}{" "}
-                  &middot; {modeLabel(a.required_mode)} required
+                  &middot;{" "}
+                  {practiceOnly
+                    ? "practice only, not graded"
+                    : `${modeLabel(a.required_mode)} required`}
                   {due ? ` · due ${due}` : ""}
                 </p>
                 {a.instructions && (
@@ -171,9 +202,16 @@ export default async function StudentHome() {
                   </p>
                 )}
 
-                {/* The official, one-shot graded submission. */}
+                {/* The official, one-shot graded submission. A conversation-only
+                    case has no rubric, so there is nothing to grade and no
+                    graded path at all: it is practice only. */}
                 <div className="mt-4">
-                  {submitted ? (
+                  {practiceOnly ? (
+                    <p className="text-sm text-gray-600">
+                      This one is for conversation practice only. There is
+                      nothing to submit and no score.
+                    </p>
+                  ) : submitted ? (
                     <div className="flex flex-wrap items-center gap-3">
                       <span className="text-sm text-green-700">
                         Submitted
@@ -241,9 +279,12 @@ export default async function StudentHome() {
                             {formatShortDate(p.created_at)}
                           </span>
                           <span className="tabular-nums text-gray-600">
-                            {p.score_total != null && p.score?.max_total != null
-                              ? `${p.score_total} / ${p.score.max_total}`
-                              : "—"}
+                            {practiceOnly
+                              ? "no score"
+                              : p.score_total != null &&
+                                  p.score?.max_total != null
+                                ? `${p.score_total} / ${p.score.max_total}`
+                                : "—"}
                           </span>
                           <span className="ml-auto flex items-center gap-3">
                             <Link

@@ -45,11 +45,14 @@ export default async function SessionPage({
 
   const { data: scenario } = await supabase
     .from("scenarios")
-    .select("title, persona_name")
+    .select("title, persona_name, rubric_id")
     .eq("id", session.scenario_id)
     .single();
 
   const isSubmission = session.kind === "submission";
+  // No rubric means this case is never scored, so the end-of-session wording
+  // must not promise a score.
+  const conversationOnly = scenario?.rubric_id === null;
 
   // The assignment title, used only on the locked screen for a submission.
   let assignmentTitle: string | undefined;
@@ -82,6 +85,7 @@ export default async function SessionPage({
         personaName={scenario?.persona_name ?? "the customer"}
         scenarioTitle={scenario?.title ?? "Practice session"}
         isSubmission={isSubmission}
+        conversationOnly={conversationOnly}
       />
     ) : (
       <Conversation
@@ -90,6 +94,7 @@ export default async function SessionPage({
         scenarioTitle={scenario?.title ?? "Practice session"}
         initialTranscript={(session.transcript ?? []) as TranscriptTurn[]}
         isSubmission={isSubmission}
+        conversationOnly={conversationOnly}
       />
     );
 
