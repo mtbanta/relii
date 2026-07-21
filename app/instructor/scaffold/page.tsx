@@ -6,8 +6,9 @@
 // again for itself, because a route can be reached without ever loading this
 // page.
 //
-// Nothing on this page is saved. Writing a chosen candidate into the database
-// as a disabled scenario is chunk 2c.
+// Generating writes both candidates into the database as DISABLED,
+// conversation-only scenarios. Picking a winner, enabling it, and deleting the
+// loser is chunk 2d.
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -43,8 +44,9 @@ export default async function ScaffoldPage() {
         <h1 className="mt-2 text-2xl font-semibold">Persona scaffolding</h1>
         <p className="mt-1 text-sm text-gray-600">
           Describe a sales case and the AI writes two candidate buyer personas
-          in the same style as Alex and Jordan. Read both, then pick the one
-          that feels most real. Nothing is saved yet.
+          in the same style as Alex and Jordan. Both are saved turned OFF, so no
+          student can be given one, and you compare them side by side before
+          anything goes live.
         </p>
       </div>
 

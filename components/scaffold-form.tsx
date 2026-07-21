@@ -1,40 +1,15 @@
 "use client";
 
-// The persona scaffolding form and the candidate review below it.
+// The persona scaffolding form.
 //
-// The instructor fills in the case, clicks Generate, and the server route
-// returns TWO candidate personas. Each is shown twice over: first as the
-// structured fields (in the same order as the field set in
-// docs/Relii-Piece2-Design-Decisions.md, so chunk 2c can turn this into the
-// real side-by-side compare view without reordering anything), then as the
-// assembled scenario_context and persona_system_prompt that the fixed template
-// built from those fields.
+// The instructor fills in the case and clicks Generate. The server route writes
+// TWO candidate personas into the database as DISABLED, conversation-only
+// scenarios sharing one generation group, and returns that group's id.
 //
-// Nothing here is saved. This chunk is generate-and-judge-the-quality; writing
-// candidates into the database as disabled scenarios is chunk 2c.
+// The candidates are not rendered here any more. They are read back from the
+// database by the compare view, which is what makes the comparison survive a
+// reload.
 import { useState } from "react";
-
-type HiddenFact = { fact: string; detail: string };
-
-type PersonaCandidate = {
-  persona_name: string;
-  role: string;
-  company: { type: string; size: string };
-  meeting_type: string;
-  chain_position: { position: string; gates_access_to: string | null };
-  win_condition: string;
-  demeanor: string[];
-  decision_criteria: string[];
-  hidden_facts: HiddenFact[];
-  objections: string[];
-  earns_win: string[];
-  fails_win: string[];
-};
-
-type GeneratedCandidate = {
-  candidate: PersonaCandidate;
-  assembled: { scenario_context: string; persona_system_prompt: string };
-};
 
 const inputClass = "w-full rounded-md border border-gray-300 px-3 py-2";
 const labelClass = "mb-1 block text-sm text-gray-600";
@@ -44,7 +19,6 @@ export function ScaffoldForm() {
   const [personaRole, setPersonaRole] = useState("");
   const [productOrService, setProductOrService] = useState("");
   const [companySize, setCompanySize] = useState("");
-  const [meetingType, setMeetingType] = useState("discovery");
   const [chainPosition, setChainPosition] = useState("gatekeeper");
   const [gatesAccessTo, setGatesAccessTo] = useState("");
   const [winCondition, setWinCondition] = useState("");
@@ -52,12 +26,12 @@ export function ScaffoldForm() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [results, setResults] = useState<GeneratedCandidate[] | null>(null);
+  const [savedGroupId, setSavedGroupId] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    setResults(null);
+    setSavedGroupId("");
     setLoading(true);
 
     try {
@@ -69,7 +43,6 @@ export function ScaffoldForm() {
           personaRole,
           productOrService,
           companySize,
-          meetingType,
           chainPosition,
           gatesAccessTo,
           winCondition,
@@ -82,7 +55,7 @@ export function ScaffoldForm() {
         setError(data?.error ?? "Generation failed. Please try again.");
         return;
       }
-      setResults(data.candidates as GeneratedCandidate[]);
+      setSavedGroupId(String(data.groupId ?? ""));
     } catch {
       setError(
         "Could not reach the server. Check your connection and try again.",
@@ -150,18 +123,10 @@ export function ScaffoldForm() {
           />
         </div>
 
-        <div>
-          <label className={labelClass}>Meeting type</label>
-          <select
-            value={meetingType}
-            onChange={(e) => setMeetingType(e.target.value)}
-            className={inputClass}
-          >
-            <option value="discovery">Discovery</option>
-            <option value="presentation">Presentation</option>
-          </select>
-        </div>
-
+        {/* Chain position is the ONLY question here. The meeting type follows
+            from it (gatekeeper means a discovery meeting, decision maker means
+            the presentation and close), so it is no longer asked separately and
+            the two can never disagree. */}
         <div>
           <label className={labelClass}>Chain position</label>
           <select
@@ -169,9 +134,18 @@ export function ScaffoldForm() {
             onChange={(e) => setChainPosition(e.target.value)}
             className={inputClass}
           >
-            <option value="gatekeeper">Gatekeeper</option>
-            <option value="decision_maker">Decision maker</option>
+            <option value="gatekeeper">
+              Gatekeeper (discovery meeting)
+            </option>
+            <option value="decision_maker">
+              Decision maker (presentation and close)
+            </option>
           </select>
+          <p className="mt-1 text-xs text-gray-500">
+            {chainPosition === "gatekeeper"
+              ? "A discovery meeting, like Alex. This persona controls access to someone else."
+              : "A presentation and close, like Jordan. This persona can decide themselves."}
+          </p>
         </div>
 
         {/* Only a gatekeeper gates access to someone. */}
@@ -233,142 +207,18 @@ export function ScaffoldForm() {
         {error && <p className="text-sm text-red-600">{error}</p>}
       </form>
 
-      {results && (
-        <div className="space-y-8">
-          <div>
-            <h2 className="font-medium">Two candidates</h2>
-            <p className="text-sm text-gray-500">
-              Nothing is saved yet. Read both, then we will add saving and the
-              side-by-side compare view in the next chunk.
-            </p>
-          </div>
-          {results.map((result, index) => (
-            <CandidateCard
-              key={index}
-              label={`Candidate ${index + 1}`}
-              result={result}
-            />
-          ))}
+      {savedGroupId && (
+        <div className="rounded-lg border border-gray-200 p-4">
+          <h2 className="font-medium">Two candidates saved</h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Both were written as scenarios that are turned OFF, so no student can
+            be given one. The side-by-side compare view is the next step.
+          </p>
+          <p className="mt-2 text-xs text-gray-500">
+            Generation group: <span className="font-mono">{savedGroupId}</span>
+          </p>
         </div>
       )}
-    </div>
-  );
-}
-
-// One labelled block of the structured fields.
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <h4 className="text-xs font-medium uppercase tracking-wide text-gray-500">
-        {label}
-      </h4>
-      <div className="mt-1 text-sm text-gray-800">{children}</div>
-    </div>
-  );
-}
-
-function BulletList({ items }: { items: string[] }) {
-  return (
-    <ul className="list-disc space-y-1 pl-5">
-      {items.map((item, i) => (
-        <li key={i}>{item}</li>
-      ))}
-    </ul>
-  );
-}
-
-// One candidate: the structured fields in the design doc's order, then the
-// assembled text the fixed template produced from exactly those fields.
-function CandidateCard({
-  label,
-  result,
-}: {
-  label: string;
-  result: GeneratedCandidate;
-}) {
-  const c = result.candidate;
-  const position =
-    c.chain_position.position === "gatekeeper" ? "Gatekeeper" : "Decision maker";
-
-  return (
-    <div className="space-y-6 rounded-lg border border-gray-200 p-4">
-      <h3 className="font-medium">
-        {label}: {c.persona_name}, {c.role}
-      </h3>
-
-      <div className="space-y-4">
-        <Field label="Persona name and role">
-          {c.persona_name}, {c.role}
-        </Field>
-
-        <Field label="Company (type and size)">
-          {c.company.size} {c.company.type}
-        </Field>
-
-        <Field label="Meeting type and chain position">
-          {c.meeting_type === "discovery" ? "Discovery" : "Presentation"}.{" "}
-          {position}
-          {c.chain_position.gates_access_to
-            ? `, gating access to ${c.chain_position.gates_access_to}`
-            : ""}
-          .
-        </Field>
-
-        <Field label="Win condition and close terms">{c.win_condition}</Field>
-
-        <Field label="Demeanor">{c.demeanor.join(", ")}</Field>
-
-        <Field label="Top decision criteria, ranked">
-          <ol className="list-decimal space-y-1 pl-5">
-            {c.decision_criteria.map((item, i) => (
-              <li key={i}>{item}</li>
-            ))}
-          </ol>
-        </Field>
-
-        <Field label="Hidden facts and incumbent shortfalls">
-          <ul className="list-disc space-y-1 pl-5">
-            {c.hidden_facts.map((h, i) => (
-              <li key={i}>
-                <span className="font-medium">{h.fact}:</span> {h.detail}
-              </li>
-            ))}
-          </ul>
-        </Field>
-
-        <Field label="Objections they raise">
-          <BulletList items={c.objections} />
-        </Field>
-
-        <Field label="What earns the win">
-          <BulletList items={c.earns_win} />
-        </Field>
-
-        <Field label="What fails it">
-          <BulletList items={c.fails_win} />
-        </Field>
-      </div>
-
-      {/* The assembled text, built from the fields above by the fixed template.
-          This is what would actually drive the conversation. */}
-      <div className="space-y-4 border-t border-gray-200 pt-4">
-        <p className="text-xs text-gray-500">
-          Assembled by the fixed template from the fields above. This is the
-          text that would drive the role-play.
-        </p>
-
-        <Field label="Scenario context (what the student is briefed on)">
-          <p className="whitespace-pre-wrap rounded-md bg-gray-50 p-3">
-            {result.assembled.scenario_context}
-          </p>
-        </Field>
-
-        <Field label="Persona system prompt (what the AI is told to be)">
-          <p className="whitespace-pre-wrap rounded-md bg-gray-50 p-3">
-            {result.assembled.persona_system_prompt}
-          </p>
-        </Field>
-      </div>
     </div>
   );
 }

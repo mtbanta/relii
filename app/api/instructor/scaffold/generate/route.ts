@@ -1,9 +1,13 @@
 // POST /api/instructor/scaffold/generate
-// Body: the scaffolding form's inputs. Returns TWO candidate personas.
+// Body: the scaffolding form's inputs.
+// Generates TWO candidate personas, saves both as DISABLED, conversation-only
+// scenarios sharing one generation group id, and returns that group id so the
+// browser can open the compare view for the pair.
 //
-// This generates persona candidates with the AI and returns them for review.
-// It writes NOTHING to the database: chunk 2b is generate-and-look-at-it, and
-// saving candidates as disabled scenarios is chunk 2c.
+// Nothing saved here is reachable by a student: the rows are turned off, and a
+// disabled scenario is both hidden from the create-assignment picker and refused
+// by the start routes. Picking a winner, enabling it, and deleting the loser is
+// chunk 2d.
 //
 // It is guarded the same way the other instructor routes are: the caller must be
 // an instructor, with the role read from the DATABASE and never trusted from the
@@ -16,7 +20,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { generateTwoCandidates } from "@/lib/persona-scaffold";
+import {
+  generateTwoCandidates,
+  meetingTypeForChainPosition,
+} from "@/lib/persona-scaffold";
 import type { ScaffoldInputs } from "@/lib/persona-scaffold";
 import { assembleScenario } from "@/lib/persona-assembly";
 
@@ -66,21 +73,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing form details." }, { status: 400 });
   }
 
-  const meetingType = readText(body, "meetingType");
   const chainPosition = readText(body, "chainPosition");
-  if (meetingType !== "discovery" && meetingType !== "presentation") {
-    return NextResponse.json({ error: "Pick a meeting type." }, { status: 400 });
-  }
   if (chainPosition !== "gatekeeper" && chainPosition !== "decision_maker") {
     return NextResponse.json({ error: "Pick a chain position." }, { status: 400 });
   }
+
+  // The meeting type is NOT asked for separately. It follows from the chain
+  // position, so the two can never disagree.
+  const meetingType = meetingTypeForChainPosition(chainPosition);
 
   const inputs: ScaffoldInputs = {
     industry: readText(body, "industry"),
     personaRole: readText(body, "personaRole"),
     productOrService: readText(body, "productOrService"),
     companySize: readText(body, "companySize"),
-    meetingType,
     chainPosition,
     gatesAccessTo: readText(body, "gatesAccessTo"),
     winCondition: readText(body, "winCondition"),
@@ -112,12 +118,58 @@ export async function POST(request: Request) {
   try {
     const [first, second] = await generateTwoCandidates(inputs);
 
-    return NextResponse.json({
-      candidates: [first, second].map((candidate) => ({
+    // 5. Save both candidates as real scenario rows, TURNED OFF.
+    //
+    //    Everything about these rows is deliberately harmless:
+    //      enabled = false   nobody can assign or start one (the create-
+    //                        assignment picker lists enabled scenarios only, and
+    //                        the start routes refuse a disabled scenario)
+    //      rubric_id = null  conversation-only, so nothing is ever scored
+    //
+    //    The pair shares one generation_group_id, which is how the compare view
+    //    finds them again after a reload.
+    const groupId = crypto.randomUUID();
+
+    const rows = [first, second].map((candidate, index) => ({
+      title: `Scaffold candidate ${index + 1} (${
+        inputs.chainPosition === "gatekeeper" ? "gatekeeper" : "decision maker"
+      }): ${candidate.persona_name}, ${candidate.role}`,
+      persona_name: candidate.persona_name,
+      // The two text fields that actually drive the role-play, built from the
+      // candidate's fields by the fixed template (lib/persona-assembly.ts).
+      ...assembleScenario(candidate, inputs),
+      rubric_id: null,
+      enabled: false,
+      // Derived from the chain position, the same single source the prompt used.
+      meeting_type: meetingType,
+      generation_group_id: groupId,
+      chain_role: inputs.chainPosition,
+      // The structured fields the compare view renders, plus the admin's own
+      // answers (chunk 2d generates the matching second persona from them) and
+      // which of the pair this is, so the order on screen is always the same.
+      generation_fields: {
+        version: 1,
+        candidate_index: index + 1,
         candidate,
-        assembled: assembleScenario(candidate, inputs),
-      })),
-    });
+        inputs,
+      },
+      created_by: user.id,
+    }));
+
+    // ONE insert for both rows, so a pair can never be half-written.
+    const { error: insertError } = await admin.from("scenarios").insert(rows);
+    if (insertError) {
+      console.error("Saving persona candidates failed:", insertError);
+      return NextResponse.json(
+        {
+          error:
+            "The personas were written but could not be saved. Please try again.",
+        },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({ groupId });
   } catch (error) {
     console.error("Persona generation failed:", error);
     return NextResponse.json(

@@ -25,13 +25,28 @@ export type ScaffoldInputs = {
   // An approximate employee count, e.g. "250". Kept as text: the admin may
   // reasonably type "about 250" or "250-300", and it is only ever describing.
   companySize: string;
-  meetingType: ScaffoldMeetingType;
   chainPosition: ChainPosition;
   // Who this persona gates access to. Only meaningful for a gatekeeper.
   gatesAccessTo: string;
   winCondition: string;
   sellerCompanyType: string;
 };
+
+// The meeting type is DERIVED from the chain position, never asked for
+// separately. A gatekeeper meeting is a discovery meeting; a decision maker is
+// the presentation and close. That is Part D of the prompt doc, and it mirrors
+// the two personas we already have (Alex discovery, Jordan presentation).
+//
+// It is derived rather than collected because the two questions overlapped: the
+// form used to ask both, which meant an admin could pick "presentation" for a
+// gatekeeper and leave the saved scenario disagreeing with itself. One source
+// makes that impossible. Both the generation prompt and the saved scenario
+// column call this one function.
+export function meetingTypeForChainPosition(
+  position: ChainPosition,
+): ScaffoldMeetingType {
+  return position === "gatekeeper" ? "discovery" : "presentation";
+}
 
 // ---------------------------------------------------------------------------
 // The candidate the model returns (Part B)
@@ -131,7 +146,7 @@ function buildInputsMessage(inputs: ScaffoldInputs): string {
     `- persona role: ${inputs.personaRole}`,
     `- product or service being sold: ${inputs.productOrService}`,
     `- prospect company size (approximate employee count): ${inputs.companySize}`,
-    `- meeting type: ${inputs.meetingType}`,
+    `- meeting type: ${meetingTypeForChainPosition(inputs.chainPosition)}`,
     `- chain position: ${chainLine}`,
     `- win condition: ${inputs.winCondition}`,
     `- seller company type: ${inputs.sellerCompanyType}`,
