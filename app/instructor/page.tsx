@@ -255,7 +255,13 @@ export default async function InstructorHome({
           <h1 className="text-2xl font-semibold">Instructor dashboard</h1>
           <p className="text-sm text-gray-500">{user.email}</p>
         </div>
-        <SignOutButton />
+        <div className="flex items-center gap-4">
+          {/* Build new buyer personas with the AI (chunk 2b: generate and review). */}
+          <Link href="/instructor/scaffold" className="text-sm underline">
+            Persona scaffolding
+          </Link>
+          <SignOutButton />
+        </div>
       </header>
 
       {/* ---- Submissions dashboard ---- */}
