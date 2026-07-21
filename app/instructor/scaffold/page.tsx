@@ -13,6 +13,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ScaffoldForm } from "@/components/scaffold-form";
+import {
+  loadRecentGenerations,
+  chainRoleLabel,
+} from "@/lib/scaffold-candidates";
 
 export default async function ScaffoldPage() {
   const supabase = await createClient();
@@ -35,6 +39,8 @@ export default async function ScaffoldPage() {
     redirect("/student");
   }
 
+  const recent = await loadRecentGenerations();
+
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-8">
       <div>
@@ -51,6 +57,46 @@ export default async function ScaffoldPage() {
       </div>
 
       <ScaffoldForm />
+
+      {/* Past generations, so a compare view is never lost just because the web
+          address was not kept. */}
+      <div className="space-y-2">
+        <h2 className="font-medium">Recent generations</h2>
+        {recent.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            Nothing generated yet. Your saved candidate pairs will be listed
+            here.
+          </p>
+        ) : (
+          <ul className="divide-y divide-gray-200 rounded-lg border border-gray-200">
+            {recent.map((generation) => (
+              <li
+                key={generation.groupId}
+                className="flex items-baseline justify-between gap-4 p-3"
+              >
+                <div className="text-sm">
+                  <span className="font-medium">
+                    {generation.personaNames.join(" and ")}
+                  </span>
+                  <span className="text-gray-600">
+                    {generation.industry ? `, ${generation.industry}` : ""}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-gray-500">
+                    {chainRoleLabel(generation.chainRole)}, generated{" "}
+                    {new Date(generation.createdAt).toLocaleString()}
+                  </span>
+                </div>
+                <Link
+                  href={`/instructor/scaffold/compare/${generation.groupId}`}
+                  className="shrink-0 text-sm underline"
+                >
+                  Compare
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </main>
   );
 }

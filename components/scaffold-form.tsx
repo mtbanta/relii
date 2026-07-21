@@ -10,11 +10,14 @@
 // database by the compare view, which is what makes the comparison survive a
 // reload.
 import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const inputClass = "w-full rounded-md border border-gray-300 px-3 py-2";
 const labelClass = "mb-1 block text-sm text-gray-600";
 
 export function ScaffoldForm() {
+  const router = useRouter();
   const [industry, setIndustry] = useState("");
   const [personaRole, setPersonaRole] = useState("");
   const [productOrService, setProductOrService] = useState("");
@@ -53,14 +56,23 @@ export function ScaffoldForm() {
       const data = await res.json();
       if (!res.ok) {
         setError(data?.error ?? "Generation failed. Please try again.");
+        setLoading(false);
         return;
       }
+
+      // Both candidates are saved, so send the instructor to the compare view
+      // for the pair. The group id is in the web address and the candidates are
+      // in the database, which is what lets that page survive a reload.
+      //
+      // The loading state is deliberately NOT switched off here: the button
+      // stays busy until the next page paints, so there is no dead moment where
+      // the form looks idle and invites a second generation.
       setSavedGroupId(String(data.groupId ?? ""));
+      router.push(`/instructor/scaffold/compare/${data.groupId}`);
     } catch {
       setError(
         "Could not reach the server. Check your connection and try again.",
       );
-    } finally {
       setLoading(false);
     }
   }
@@ -207,15 +219,19 @@ export function ScaffoldForm() {
         {error && <p className="text-sm text-red-600">{error}</p>}
       </form>
 
+      {/* Normally the redirect above has already happened by now. This is the
+          fallback link, so a slow or blocked navigation never strands the
+          instructor on a page with no way to reach what was just saved. */}
       {savedGroupId && (
         <div className="rounded-lg border border-gray-200 p-4">
           <h2 className="font-medium">Two candidates saved</h2>
           <p className="mt-1 text-sm text-gray-600">
-            Both were written as scenarios that are turned OFF, so no student can
-            be given one. The side-by-side compare view is the next step.
-          </p>
-          <p className="mt-2 text-xs text-gray-500">
-            Generation group: <span className="font-mono">{savedGroupId}</span>
+            <Link
+              href={`/instructor/scaffold/compare/${savedGroupId}`}
+              className="underline"
+            >
+              Compare them side by side
+            </Link>
           </p>
         </div>
       )}
