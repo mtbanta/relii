@@ -55,11 +55,26 @@ export async function POST(request: Request) {
   // 4. Load that scenario's persona so the AI can open the meeting in character.
   const { data: scenario, error: scenarioError } = await admin
     .from("scenarios")
-    .select("id, persona_system_prompt, scenario_context")
+    .select("id, persona_system_prompt, scenario_context, enabled")
     .eq("id", assignment.scenario_id)
     .single();
   if (scenarioError || !scenario) {
     return NextResponse.json({ error: "Scenario not found." }, { status: 404 });
+  }
+
+  // 4a. A turned-off scenario cannot be started. The create-assignment picker
+  //     already lists enabled scenarios only, but that is just the button: this
+  //     is the actual enforcement, refused server-side the way every other
+  //     session rule in this app is. It matters now that real disabled rows
+  //     exist, because scaffolded persona candidates are written turned off.
+  if (!scenario.enabled) {
+    return NextResponse.json(
+      {
+        error:
+          "This scenario has been turned off and cannot be started. Please contact your instructor.",
+      },
+      { status: 403 },
+    );
   }
 
   // 5. Ask the persona for a short opening greeting.

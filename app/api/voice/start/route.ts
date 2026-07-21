@@ -50,6 +50,29 @@ export async function POST(request: Request) {
     );
   }
 
+  // 3a. A turned-off scenario cannot be started. Unlike the text route, this
+  //     one had no reason to load the scenario at all (the voice persona is
+  //     greeted live on the call), so this is a small extra read purely to
+  //     enforce the rule. It matters now that real disabled rows exist, because
+  //     scaffolded persona candidates are written turned off.
+  const { data: scenario, error: scenarioError } = await admin
+    .from("scenarios")
+    .select("enabled")
+    .eq("id", assignment.scenario_id)
+    .single();
+  if (scenarioError || !scenario) {
+    return NextResponse.json({ error: "Scenario not found." }, { status: 404 });
+  }
+  if (!scenario.enabled) {
+    return NextResponse.json(
+      {
+        error:
+          "This scenario has been turned off and cannot be started. Please contact your instructor.",
+      },
+      { status: 403 },
+    );
+  }
+
   // 4. Create the session, linked to the assignment. The schema has no
   //    voice-only mode, so we record voice sessions as "voice_video" and leave
   //    video_path null until the webcam upload saves it. The transcript starts

@@ -61,12 +61,26 @@ export async function POST(request: Request) {
   //     session rule in this app is.
   const { data: gradedCheck, error: gradedCheckError } = await admin
     .from("scenarios")
-    .select("rubric_id")
+    .select("rubric_id, enabled")
     .eq("id", assignment.scenario_id)
     .single();
   if (gradedCheckError || !gradedCheck) {
     return NextResponse.json({ error: "Scenario not found." }, { status: 404 });
   }
+
+  // A turned-off scenario cannot be started at all, graded or not. Checked
+  // before the rubric branch below, so a disabled scenario is refused for the
+  // same reason whether or not it happens to have a rubric.
+  if (!gradedCheck.enabled) {
+    return NextResponse.json(
+      {
+        error:
+          "This scenario has been turned off and cannot be started. Please contact your instructor.",
+      },
+      { status: 403 },
+    );
+  }
+
   if (gradedCheck.rubric_id === null) {
     return NextResponse.json(
       {
