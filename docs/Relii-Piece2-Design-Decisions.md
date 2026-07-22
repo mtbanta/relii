@@ -6,7 +6,7 @@ Piece 2 lets an instructor trigger AI to build Alex/Jordan-style personas and sc
 
 ## Decisions from the July 18 design pass
 
-1. GENERATION INTERFACE: an in-app admin form in Relii, instructor-gated, with fields for industry, persona role, product or service, prospect company size, meeting type and chain position (gatekeeper or decision maker, and who they gate), win condition and trial terms, and seller company type, plus a Generate button. This is the demo artifact Dawn sees. Not a free-text brief.
+1. GENERATION INTERFACE: an in-app admin form in Relii, instructor-gated, with fields for industry, persona role, product or service, prospect company size, chain position (gatekeeper or decision maker, and who they gate), win condition and trial terms, and seller company type, plus a Generate button. This is the demo artifact Dawn sees. Not a free-text brief. NOTE (July 21, 2026, during the 2c build): meeting type is no longer a separate field. It is DERIVED from the chain position (gatekeeper gives discovery, decision maker gives presentation), because asking both let an admin choose a combination that disagreed with itself. Chain position is the single source.
 
 2. GENERATED OUTPUT: no downloadable markdown file and no Storage bucket for v1. The generator writes the scenario straight into the database; the admin reviews it in-app. This removes the bucket and signed-link work and one of the two Vercel-timeout surfaces. A .md or .docx export can be added later if Tom ever needs a copy (Michael would send the scenario to Cowork for conversion).
 
@@ -75,7 +75,7 @@ GUARDRAILS: additive schema only (rubric_id nullable, enabled boolean); no RLS o
 
 ## 2c: Write candidates live plus the compare view (outline)
 
-- Write the two generated candidates into the database as DISABLED scenarios (enabled = false), with the grouping columns (generation group id, chain role = gatekeeper) set. Render the side-by-side structured compare view.
+- Write the two generated candidates into the database as DISABLED scenarios (enabled = false), with the grouping columns (generation group id, and chain role set to whichever position the admin chose) set. Render the side-by-side structured compare view. CORRECTED July 21, 2026 during the 2c build: this bullet previously read "chain role = gatekeeper". 2c supports BOTH roles, because v1 requires that an instructor can generate and later assign a standalone decision-maker persona (like Jordan), not only a decision maker produced by the 2d chain. The 2d chain is an added path, not the only one.
 - This is where the Vercel timeout risk lands. If generation cannot finish inside a request, escalate to background-and-poll (Decision 7); otherwise keep it synchronous.
 
 ## 2d: Pick, enable, delete, and the chain (outline)
