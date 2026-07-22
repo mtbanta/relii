@@ -121,6 +121,108 @@ export async function loadRecentGenerations(
   return [...groups.values()];
 }
 
+// ---------------------------------------------------------------------------
+// Is a scaffold scenario USED? (the delete-if-unused rule)
+// ---------------------------------------------------------------------------
+//
+// TWO things make a scenario undeletable, not one, and both are enforced by the
+// database itself: sessions.scenario_id and assignments.scenario_id are BOTH
+// declared "on delete restrict" (supabase/stage-2-data-model.sql). So Postgres
+// refuses to delete a scenario that any student has run OR that any assignment
+// points at.
+//
+// That makes this count the load-bearing part of every delete in chunk 2d, not
+// a nicety: a delete statement covering several rows is all-or-nothing, so ONE
+// blocked row would fail the whole statement and delete nothing. Every delete
+// here counts first and then removes only the rows that came back clean.
+export type ScenarioUsage = { sessions: number; assignments: number };
+
+export function isUsed(usage: ScenarioUsage | undefined): boolean {
+  if (!usage) return false;
+  return usage.sessions > 0 || usage.assignments > 0;
+}
+
+// Count sessions and assignments for a set of scenario ids in two queries,
+// whether that set is one candidate or every candidate in the database.
+export async function countScenarioUsage(
+  scenarioIds: string[],
+): Promise<Map<string, ScenarioUsage>> {
+  const usage = new Map<string, ScenarioUsage>();
+  for (const id of scenarioIds) usage.set(id, { sessions: 0, assignments: 0 });
+  if (scenarioIds.length === 0) return usage;
+
+  const admin = createAdminClient();
+
+  const [sessionsResult, assignmentsResult] = await Promise.all([
+    admin.from("sessions").select("scenario_id").in("scenario_id", scenarioIds),
+    admin
+      .from("assignments")
+      .select("scenario_id")
+      .in("scenario_id", scenarioIds),
+  ]);
+
+  // A failed count must never be read as "nothing is using this". Throwing
+  // means the caller refuses to delete rather than deleting something live.
+  if (sessionsResult.error) {
+    throw new Error(
+      `Could not count sessions for these scenarios: ${sessionsResult.error.message}`,
+    );
+  }
+  if (assignmentsResult.error) {
+    throw new Error(
+      `Could not count assignments for these scenarios: ${assignmentsResult.error.message}`,
+    );
+  }
+
+  for (const row of sessionsResult.data ?? []) {
+    const entry = usage.get(row.scenario_id as string);
+    if (entry) entry.sessions += 1;
+  }
+  for (const row of assignmentsResult.data ?? []) {
+    const entry = usage.get(row.scenario_id as string);
+    if (entry) entry.assignments += 1;
+  }
+
+  return usage;
+}
+
+// Plain-English "why this one cannot be deleted", for the refusal messages.
+export function usageReason(usage: ScenarioUsage): string {
+  const parts: string[] = [];
+  if (usage.sessions > 0) {
+    parts.push(
+      `${usage.sessions} role-play session${usage.sessions === 1 ? "" : "s"}`,
+    );
+  }
+  if (usage.assignments > 0) {
+    parts.push(
+      `${usage.assignments} assignment${usage.assignments === 1 ? "" : "s"}`,
+    );
+  }
+  return parts.join(" and ");
+}
+
+// ---------------------------------------------------------------------------
+// The title a candidate gets when it WINS and goes live
+// ---------------------------------------------------------------------------
+//
+// While it is a candidate a row is titled "Scaffold candidate 1 (gatekeeper):
+// Riley, facilities director", which is right for the compare view and wrong
+// everywhere else: once a winner is switched on, that title is what an
+// instructor picks from in the create-assignment list. So the pick renames it to
+// the convention Alex and Jordan already use:
+//
+//   Discovery-Close: Alex (procurement director)
+//   Presentation-Close: Jordan (plant manager)
+export function liveScenarioTitle(
+  personaName: string,
+  role: string,
+  meetingType: string,
+): string {
+  const meeting = meetingType === "discovery" ? "Discovery" : "Presentation";
+  return `${meeting}-Close: ${personaName.trim()} (${role.trim().toLowerCase()})`;
+}
+
 // "gatekeeper" -> "Gatekeeper", "decision_maker" -> "Decision maker".
 export function chainRoleLabel(role: string | null): string {
   if (role === "gatekeeper") return "Gatekeeper";

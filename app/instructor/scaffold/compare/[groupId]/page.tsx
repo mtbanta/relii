@@ -9,8 +9,17 @@
 // (design decision 3): the admin compares by reading the structured fields, not
 // by role-playing the candidates.
 //
-// There is deliberately NO pick, enable, or delete control here. Choosing a
-// winner is chunk 2d.
+// The page has TWO states, and it decides which one by asking whether any row in
+// the group is switched ON, never by counting rows:
+//
+//   UNDECIDED (every row off): the comparison, with a "Choose this one" button
+//     under each candidate.
+//   DECIDED (a row is on): the winner, what it is now, and what to do next.
+//
+// Keying on the enabled flag rather than on "is there still more than one row"
+// matters for the one case that would otherwise be misread: if a loser could not
+// be deleted because something was using it, the group still has two rows but
+// the pick has definitely been made.
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -19,6 +28,7 @@ import {
   chainRoleLabel,
   meetingTypeLabel,
 } from "@/lib/scaffold-candidates";
+import { ChooseCandidateButton } from "@/components/choose-candidate-button";
 import type { CandidateRow } from "@/lib/scaffold-candidates";
 import type { PersonaCandidate } from "@/lib/persona-scaffold";
 
@@ -153,6 +163,14 @@ export default async function CompareCandidatesPage({
   const rows = await loadGenerationGroup(groupId);
   if (rows.length === 0) notFound();
 
+  // The winner, if this generation has already been decided. Any switched-on row
+  // means a pick has been made.
+  const winner = rows.find((row) => row.enabled) ?? null;
+  const decided = winner !== null;
+  // A row that is still off after a pick was made is a loser that could not be
+  // deleted, which only happens when something is using it.
+  const retainedLosers = decided ? rows.filter((row) => !row.enabled) : [];
+
   return (
     <main className="mx-auto max-w-6xl space-y-6 p-8">
       <div>
@@ -162,27 +180,56 @@ export default async function CompareCandidatesPage({
         >
           Back to persona scaffolding
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold">Compare the candidates</h1>
+        <h1 className="mt-2 text-2xl font-semibold">
+          {decided ? "The chosen persona" : "Compare the candidates"}
+        </h1>
         <p className="mt-1 text-sm text-gray-600">
-          Two candidate buyer personas built from the same case. Read them field
-          by field and decide which one is the more real, more teachable buyer.
+          {decided
+            ? "You have already picked a winner from this generation. The comparison is kept below for reference."
+            : "Two candidate buyer personas built from the same case. Read them field by field and decide which one is the more real, more teachable buyer."}
         </p>
       </div>
 
       {/* What state these rows are in, said plainly. */}
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-        <p>
-          <span className="font-medium">Both are saved and turned OFF.</span>{" "}
-          Neither can be assigned to a student or started by one, and neither is
-          scored (these are conversation-only cases with no rubric).
-        </p>
-        <p className="mt-2 text-gray-600">
-          Choosing a winner, switching it on, and deleting the other one is the
-          next piece of work, so there is no pick button here yet.
-        </p>
-      </div>
+      {decided ? (
+        <div className="rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-900">
+          <p>
+            <span className="font-medium">
+              {winner.persona_name} is switched ON.
+            </span>{" "}
+            Saved as{" "}
+            <span className="font-medium">{winner.title}</span>, and now
+            available in the create-assignment list as a conversation-only case
+            (it is never scored).
+          </p>
+          <p className="mt-2">
+            Before anyone else sees this case, role-play it once yourself through
+            a normal assignment. Reading the fields shows whether the case is
+            coherent; only a conversation shows how the persona actually behaves.
+          </p>
+          {retainedLosers.length > 0 && (
+            <p className="mt-2 rounded-md bg-amber-50 p-2 text-amber-900">
+              The other candidate (
+              {retainedLosers.map((row) => row.persona_name).join(", ")}) could
+              not be deleted, because a session or an assignment is using it. It
+              is switched off and unreachable by any student.
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+          <p>
+            <span className="font-medium">Both are saved and turned OFF.</span>{" "}
+            Neither can be assigned to a student or started by one, and neither
+            is scored (these are conversation-only cases with no rubric).
+          </p>
+          <p className="mt-2 text-gray-600">
+            Choosing one switches it on and permanently deletes the other.
+          </p>
+        </div>
+      )}
 
-      {rows.length !== 2 && (
+      {!decided && rows.length !== 2 && (
         <p className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
           This generation has {rows.length} candidate
           {rows.length === 1 ? "" : "s"} saved rather than the usual two.
@@ -201,6 +248,11 @@ export default async function CompareCandidatesPage({
                 <th key={row.id} className="p-3 text-left align-bottom">
                   <span className="block text-xs font-medium uppercase tracking-wide text-gray-500">
                     Candidate {i + 1}
+                    {decided && row.enabled && (
+                      <span className="ml-2 rounded bg-green-100 px-1.5 py-0.5 text-green-800">
+                        Chosen
+                      </span>
+                    )}
                   </span>
                   <span className="block text-base font-semibold text-gray-900">
                     {row.persona_name}
@@ -239,6 +291,28 @@ export default async function CompareCandidatesPage({
               </tr>
             ))}
           </tbody>
+          {/* The pick itself, sitting directly under the fields it is based on,
+              so the decision is made where the evidence is. Only while the
+              generation is still undecided. */}
+          {!decided && (
+            <tfoot>
+              <tr>
+                <td className="p-3" />
+                {rows.map((row) => (
+                  <td key={row.id} className="p-3 align-top">
+                    <ChooseCandidateButton
+                      candidateId={row.id}
+                      personaName={row.persona_name}
+                      otherPersonaName={
+                        rows.find((other) => other.id !== row.id)
+                          ?.persona_name ?? null
+                      }
+                    />
+                  </td>
+                ))}
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
 
