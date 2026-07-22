@@ -70,12 +70,24 @@ export async function loadGenerationGroup(
   return [...rows].sort((a, b) => candidateIndex(a) - candidateIndex(b));
 }
 
+export type GenerationRowSummary = {
+  id: string;
+  personaName: string;
+  title: string;
+  enabled: boolean;
+  used: boolean;
+};
+
 export type GenerationSummary = {
   groupId: string;
   createdAt: string;
   chainRole: string | null;
   industry: string | null;
   personaNames: string[];
+  // Each candidate's state, which is what decides the controls the list offers:
+  // a live (switched-on) generation gets Turn off, an untouched one gets
+  // Discard, and one that has been role-played gets neither.
+  rows: GenerationRowSummary[];
 };
 
 // The most recent generations, newest first, for the list on the scaffold page.
@@ -102,10 +114,12 @@ export async function loadRecentGenerations(
   })[];
 
   const groups = new Map<string, GenerationSummary>();
+  const listed: (CandidateRow & { generation_group_id: string })[] = [];
   for (const row of rows) {
     const existing = groups.get(row.generation_group_id);
     if (existing) {
       existing.personaNames.push(row.persona_name);
+      listed.push(row);
       continue;
     }
     if (groups.size >= limit) continue;
@@ -115,6 +129,32 @@ export async function loadRecentGenerations(
       chainRole: row.chain_role,
       industry: row.generation_fields?.inputs?.industry ?? null,
       personaNames: [row.persona_name],
+      rows: [],
+    });
+    listed.push(row);
+  }
+
+  // Whether each listed candidate has been used, so the list can offer the right
+  // control (and never offer Discard on something the delete would refuse).
+  // A failed count is treated as "used", which is the safe direction: it hides
+  // the Discard button rather than offering one that would fail.
+  let usage = new Map<string, ScenarioUsage>();
+  try {
+    usage = await countScenarioUsage(listed.map((row) => row.id));
+  } catch (error) {
+    console.error("Counting candidate usage for the list failed:", error);
+    for (const row of listed) {
+      usage.set(row.id, { sessions: 1, assignments: 0 });
+    }
+  }
+
+  for (const row of listed) {
+    groups.get(row.generation_group_id)?.rows.push({
+      id: row.id,
+      personaName: row.persona_name,
+      title: row.title,
+      enabled: row.enabled,
+      used: isUsed(usage.get(row.id)),
     });
   }
 
@@ -221,6 +261,122 @@ export function liveScenarioTitle(
 ): string {
   const meeting = meetingType === "discovery" ? "Discovery" : "Presentation";
   return `${meeting}-Close: ${personaName.trim()} (${role.trim().toLowerCase()})`;
+}
+
+// ---------------------------------------------------------------------------
+// Planning a discard: deciding what may be deleted BEFORE anything is deleted
+// ---------------------------------------------------------------------------
+//
+// A scaffold scenario may be deleted only if ALL FOUR of these are true:
+//
+//   1. It has a generation_group_id. Alex, Jordan, and every hand-written
+//      scenario leave that column empty, so this single condition puts them
+//      outside every query here by construction.
+//   2. It is switched OFF. ON MEANS LIVE, and cleanup never touches a live
+//      scenario. This covers the case that is easy to miss: a winner picked
+//      minutes ago has no sessions and no assignment yet, so without this rule
+//      a "discard all unused" would destroy the case the admin just chose.
+//   3. It has no sessions. Anything a student has actually role-played is
+//      kept, and can only be switched off.
+//   4. No assignment points at it.
+//
+// Conditions 3 and 4 are correctness, not just caution. Both foreign keys are
+// "on delete restrict", and one delete statement covering several rows is
+// all-or-nothing, so a single blocked row would fail the whole statement and
+// delete nothing. Planning first is what makes the delete work at all.
+export type DiscardCandidate = {
+  id: string;
+  title: string;
+  personaName: string;
+  groupId: string;
+};
+
+export type BlockedCandidate = DiscardCandidate & { reason: string };
+
+export type DiscardPlan = {
+  // Safe to delete: off, unused, and generated.
+  deletable: DiscardCandidate[];
+  // Kept because a student has run it or an assignment points at it.
+  used: BlockedCandidate[];
+  // Kept because it is switched on, so it is a live case, not test litter.
+  live: DiscardCandidate[];
+};
+
+type PlannableRow = {
+  id: string;
+  title: string;
+  persona_name: string;
+  enabled: boolean;
+  generation_group_id: string;
+};
+
+// Sort a set of scaffold rows into the three buckets above.
+async function planFor(rows: PlannableRow[]): Promise<DiscardPlan> {
+  const plan: DiscardPlan = { deletable: [], used: [], live: [] };
+
+  const describe = (row: PlannableRow): DiscardCandidate => ({
+    id: row.id,
+    title: row.title,
+    personaName: row.persona_name,
+    groupId: row.generation_group_id,
+  });
+
+  // A switched-on row is live and is never counted, so it is never even
+  // usage-checked: it is out of scope whatever is pointing at it.
+  const offRows = rows.filter((row) => !row.enabled);
+  for (const row of rows.filter((row) => row.enabled)) {
+    plan.live.push(describe(row));
+  }
+
+  const usage = await countScenarioUsage(offRows.map((row) => row.id));
+  for (const row of offRows) {
+    const rowUsage = usage.get(row.id);
+    if (rowUsage && isUsed(rowUsage)) {
+      plan.used.push({ ...describe(row), reason: usageReason(rowUsage) });
+    } else {
+      plan.deletable.push(describe(row));
+    }
+  }
+
+  return plan;
+}
+
+const PLAN_COLUMNS = "id, title, persona_name, enabled, generation_group_id";
+
+// Every generated candidate in the database, sorted into the three buckets.
+// This is what the bulk "discard all unused" both previews and acts on, so the
+// count the admin approves and the rows that are deleted come from one place.
+export async function planBulkDiscard(): Promise<DiscardPlan> {
+  const admin = createAdminClient();
+
+  const { data, error } = await admin
+    .from("scenarios")
+    .select(PLAN_COLUMNS)
+    // THE line that keeps Alex and Jordan out of this entirely.
+    .not("generation_group_id", "is", null);
+
+  if (error) {
+    throw new Error(`Could not read the generated personas: ${error.message}`);
+  }
+
+  return planFor((data ?? []) as PlannableRow[]);
+}
+
+// The same sorting, for the rows of ONE generation group.
+export async function planGroupDiscard(groupId: string): Promise<DiscardPlan> {
+  const admin = createAdminClient();
+
+  const { data, error } = await admin
+    .from("scenarios")
+    .select(PLAN_COLUMNS)
+    .eq("generation_group_id", groupId)
+    .not("generation_group_id", "is", null);
+
+  if (error) {
+    throw new Error(`Could not read this generation: ${error.message}`);
+  }
+
+  return planFor((data ?? []) as PlannableRow[]);
 }
 
 // "gatekeeper" -> "Gatekeeper", "decision_maker" -> "Decision maker".

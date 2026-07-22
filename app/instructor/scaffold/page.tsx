@@ -13,6 +13,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ScaffoldForm } from "@/components/scaffold-form";
+import { GenerationActions } from "@/components/generation-actions";
+import { DiscardAllGenerations } from "@/components/discard-all-generations";
 import {
   loadRecentGenerations,
   chainRoleLabel,
@@ -72,7 +74,7 @@ export default async function ScaffoldPage() {
             {recent.map((generation) => (
               <li
                 key={generation.groupId}
-                className="flex items-baseline justify-between gap-4 p-3"
+                className="flex items-start justify-between gap-4 p-3"
               >
                 <div className="text-sm">
                   <span className="font-medium">
@@ -85,17 +87,34 @@ export default async function ScaffoldPage() {
                     {chainRoleLabel(generation.chainRole)}, generated{" "}
                     {new Date(generation.createdAt).toLocaleString()}
                   </span>
+                  <Link
+                    href={`/instructor/scaffold/compare/${generation.groupId}`}
+                    className="mt-1 inline-block text-sm underline"
+                  >
+                    Compare
+                  </Link>
                 </div>
-                <Link
-                  href={`/instructor/scaffold/compare/${generation.groupId}`}
-                  className="shrink-0 text-sm underline"
-                >
-                  Compare
-                </Link>
+                <GenerationActions
+                  groupId={generation.groupId}
+                  rows={generation.rows}
+                />
               </li>
             ))}
           </ul>
         )}
+      </div>
+
+      {/* The bulk tidy-up, kept at the bottom and away from everything else,
+          because it is the one control here that can delete a lot at once. */}
+      <div className="space-y-2 border-t border-gray-200 pt-6">
+        <h2 className="font-medium">Clean up</h2>
+        <p className="text-sm text-gray-600">
+          Testing leaves candidate pairs behind. This removes every generated
+          persona that is switched off and has never been used. It cannot touch
+          Alex, Jordan, a chosen persona that is switched on, or anything a
+          student has role-played.
+        </p>
+        <DiscardAllGenerations />
       </div>
     </main>
   );
