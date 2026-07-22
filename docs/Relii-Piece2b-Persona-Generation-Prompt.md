@@ -15,8 +15,10 @@ GROUND RULES
 - Price is already settled in every case. The student must win on non-price value and risk, never on discounts. Do not create a price objection as the path to the win.
 - Assume the buyer already uses an incumbent product or service. Invent that incumbent's common, believable shortfalls and make them the hidden facts the seller must uncover.
 - Not every trial can be risk-free. Where the win is a trial that cannot be truly risk-free, the seller earns it by showing the trial clearly reduces risk versus the incumbent, not by eliminating risk.
+- The win condition is read by the student in their briefing. State it as the terms of the close only (what, scope, how long). Any performance threshold, target percentage, or incumbent metric belongs in the hidden facts or in what earns the win, never in the win condition.
 - The meeting runs about 15 minutes. The buyer is busy, realistic, and never coaches or grades the seller.
 - Difficulty and demeanor match a skeptical-but-fair, proof-driven professional: polite, unimpressed by fluff, opens up to specific and well-informed questions, guarded with vague or generic ones.
+- The decision criteria must be rooted in THIS buyer's own pressures, role, and situation. Do not fall back on the generic criteria that would apply to any purchase in this category, for example efficiency, ease of integration, user-friendliness, and support.
 - The buyer must NOT volunteer the hidden facts or any numbers. Those are revealed only in response to good, specific questions.
 
 INPUTS (provided by the admin)
@@ -43,7 +45,7 @@ Return JSON only, no prose around it.
   "company": { "type": "string, generic descriptor, no real name", "size": "string, a size descriptor based on the employee-count input, e.g. mid-sized (roughly 250 employees)" },
   "meeting_type": "discovery | presentation",
   "chain_position": { "position": "gatekeeper | decision_maker", "gates_access_to": "string or null, who they gate" },
-  "win_condition": "string: exactly what the seller must earn; if a trial, the concrete terms (what, how much, how long, and either what risk-free means or, where the trial cannot be risk-free, how it clearly reduces risk versus the buyer's current vendor)",
+  "win_condition": "string: exactly what the seller must earn, stated as the TERMS OF THE CLOSE ONLY (what, scope, how long). The student reads this in their briefing, so it must NOT contain performance thresholds, target percentages, incumbent metrics, or any number describing how well the product must perform. Put those in hidden_facts or earns_win. Where the win is a trial that cannot be truly risk-free, do not make the risk argument here: state the terms, and let earns_win carry what the seller must show.",
   "demeanor": ["3 to 5 short descriptors"],
   "decision_criteria": ["ranked list, most important first"],
   "hidden_facts": [
@@ -89,7 +91,7 @@ persona_system_prompt (assembled from the JSON):
 ---
 
 ## Part D. Notes for the 2b build
-- The generation prompt produces ONE persona per call (keeps it focused and the JSON simple). To get the two candidates the compare view needs, the APP calls this prompt TWICE with the same inputs, adding a short nudge on the second call to make it meaningfully different from the first (a different angle on the same buyer). Two calls, one persona each.
+- The generation prompt produces ONE persona per call (keeps it focused and the JSON simple). To get the two candidates the compare view needs, the APP calls this prompt TWICE with the same inputs, adding a short nudge on the second call to make it meaningfully different from the first. The nudge asks for a different primary pressure, a different angle within the skeptical-but-fair range, a different ranking and substance of decision criteria, and a different set of hidden facts and objections. Two calls, one persona each.
 - No web search, no external tools; model knowledge only.
 - meeting_type is a required scenarios column and carries no scoring for scaffolded cases (they are conversation-only, null rubric); set it from chain_position (gatekeeper leans discovery, decision maker leans presentation).
 - Voice: generated personas share the existing voice for now (no per-scenario voice).
