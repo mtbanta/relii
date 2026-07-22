@@ -12,7 +12,19 @@
 //
 // This is a pure function with no database and no model call, so chunk 2c can
 // import it unchanged and only has to persist what it returns.
-import type { PersonaCandidate, ScaffoldInputs } from "./persona-scaffold";
+//
+// Part C-chain adds the ONE variation in this file: a decision maker generated
+// from a chosen gatekeeper opens as a SECOND meeting and names the gatekeeper,
+// the way Jordan's text names Alex. That reference is narrative only. It is
+// written in here, at generation time, and nothing ever looks the gatekeeper up
+// again, so the two scenarios stay independently assignable with no prerequisite
+// and no unlock between them. A decision maker generated straight from the form
+// gets none of it, because it has no earlier meeting to refer to.
+import type {
+  PersonaCandidate,
+  ScaffoldInputs,
+  ChainContext,
+} from "./persona-scaffold";
 
 export type AssembledScenario = {
   scenario_context: string;
@@ -53,6 +65,7 @@ function lowerFirst(text: string): string {
 export function assembleScenario(
   candidate: PersonaCandidate,
   inputs: ScaffoldInputs,
+  chain?: ChainContext,
 ): AssembledScenario {
   const {
     persona_name,
@@ -79,15 +92,23 @@ export function assembleScenario(
       : "";
 
   // ---- scenario_context: the STUDENT BRIEFING. -----------------------------
-  // It is built only from the name, role, company, gated person, and win
-  // condition. It deliberately never touches hidden_facts, so the hidden
-  // numbers the student is supposed to uncover can never leak into the briefing.
-  const scenario_context =
-    `You are about to role-play a sales meeting. You play a sales representative from a ${sellerType}. ` +
-    `The buyer is ${persona_name}, the ${role} at a ${companyDescription}.${gatekeeperSentence} ` +
-    `You have about fifteen minutes. Pricing has already been settled, so this is not a price negotiation. ` +
-    `Your job is to show you did your homework, uncover ${persona_name}'s real concerns, and earn ${trimTrailingPeriod(win_condition)}. ` +
-    `You earn it only by presenting specific, credible, low-risk value, not by competing on price.`;
+  // It is built only from the name, role, company, gated person, the chain
+  // reference, and the win condition. It deliberately never touches
+  // hidden_facts, so the hidden numbers the student is supposed to uncover can
+  // never leak into the briefing. That is a structural guarantee for the chain
+  // too: naming the earlier meeting adds a name and a role, never a number.
+  const scenario_context = chain
+    ? `You are about to role-play a second sales meeting. You play a sales representative from a ${sellerType}. ` +
+      `You already had a discovery meeting with ${chain.gatekeeperName}, the ${chain.gatekeeperRole}, and you earned this meeting with ${persona_name}, the ${role} at a ${companyDescription}. ` +
+      `You have about fifteen minutes. This is a presentation and close meeting, not a fresh discovery, though ${persona_name} will share more detail if you ask well. ` +
+      `Pricing has already been settled, so this is not a price negotiation. ` +
+      `Your job is to build on what you learned from ${chain.gatekeeperName} rather than starting discovery over, uncover ${persona_name}'s own concerns, and earn ${trimTrailingPeriod(win_condition)}. ` +
+      `You earn it only by presenting specific, credible, low-risk value, not by competing on price.`
+    : `You are about to role-play a sales meeting. You play a sales representative from a ${sellerType}. ` +
+      `The buyer is ${persona_name}, the ${role} at a ${companyDescription}.${gatekeeperSentence} ` +
+      `You have about fifteen minutes. Pricing has already been settled, so this is not a price negotiation. ` +
+      `Your job is to show you did your homework, uncover ${persona_name}'s real concerns, and earn ${trimTrailingPeriod(win_condition)}. ` +
+      `You earn it only by presenting specific, credible, low-risk value, not by competing on price.`;
 
   // ---- persona_system_prompt: what drives the AI persona. ------------------
   const demeanorSentence = lowerFirst(toSentenceList(demeanor));
@@ -100,11 +121,21 @@ export function assembleScenario(
     .map((o) => `- "${o.trim().replace(/^"|"$/g, "")}"`)
     .join("\n");
 
+  // The opening line, and the extra demeanor line that is what actually makes
+  // this persona reward a seller for building on the first meeting.
+  const opening = chain
+    ? `You are ${persona_name}, the ${role} at a ${companyDescription}. You are meeting a sales representative from a ${sellerType}, who earned this meeting through your ${chain.gatekeeperRole}, ${chain.gatekeeperName}. The rep already did discovery with ${chain.gatekeeperName}; this meeting is for them to present a solution and ask for your business. You have set aside about fifteen minutes. Pricing has already been settled, so price is not the topic.`
+    : `You are ${persona_name}, the ${role} at a ${companyDescription}. You are meeting a sales representative from a ${sellerType}. You have set aside about fifteen minutes. Pricing has already been settled, so price is not the topic.`;
+
+  const buildsOnLine = chain
+    ? ` You expect the rep to have learned the basics from ${chain.gatekeeperName}. You respect one who builds on that and gets specific about your side of the problem, and you grow impatient with one who re-runs the discovery ${chain.gatekeeperName} already gave them.`
+    : "";
+
   const persona_system_prompt = [
-    `You are ${persona_name}, the ${role} at a ${companyDescription}. You are meeting a sales representative from a ${sellerType}. You have set aside about fifteen minutes. Pricing has already been settled, so price is not the topic.`,
+    opening,
     "",
     "YOUR ROLE AND DEMEANOR",
-    `You are ${demeanorSentence}. You are blunt but fair: you do not punish a rep for being new, but you have no patience for sales fluff, vague claims, or anything that sounds like a brochure. You reward a specific, well-informed question by engaging and sharing detail, and you meet a vague or generic pitch with short, skeptical answers.`,
+    `You are ${demeanorSentence}. You are blunt but fair: you do not punish a rep for being new, but you have no patience for sales fluff, vague claims, or anything that sounds like a brochure. You reward a specific, well-informed question by engaging and sharing detail, and you meet a vague or generic pitch with short, skeptical answers.${buildsOnLine}`,
     "",
     "WHAT YOU CARE ABOUT (your real decision criteria, in order)",
     toBullets(decision_criteria),

@@ -24,8 +24,9 @@ import {
   generateTwoCandidates,
   meetingTypeForChainPosition,
 } from "@/lib/persona-scaffold";
-import type { ScaffoldInputs } from "@/lib/persona-scaffold";
+import type { ScaffoldInputs, ChainContext } from "@/lib/persona-scaffold";
 import { assembleScenario } from "@/lib/persona-assembly";
+import type { GenerationFields } from "@/lib/scaffold-candidates";
 
 // Two model calls run at the same time and each one can be slow, so we ask for
 // more than the platform default rather than guessing what that default is.
@@ -73,25 +74,109 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing form details." }, { status: 400 });
   }
 
-  const chainPosition = readText(body, "chainPosition");
-  if (chainPosition !== "gatekeeper" && chainPosition !== "decision_maker") {
-    return NextResponse.json({ error: "Pick a chain position." }, { status: 400 });
+  // THE CHAIN. If a gatekeeper winner's id is sent, this is the paired second
+  // persona of an existing case rather than a fresh one. The shared case details
+  // are then read from that winner's OWN ROW rather than taken from the browser,
+  // so what carries over is what was actually generated and chosen.
+  const chainFromScenarioId = readText(body, "chainFromScenarioId");
+  let chain: ChainContext | undefined;
+  let inputs: ScaffoldInputs;
+
+  if (chainFromScenarioId) {
+    const { data: gatekeeper, error: gatekeeperError } = await admin
+      .from("scenarios")
+      .select("id, persona_name, chain_role, enabled, generation_group_id, generation_fields")
+      .eq("id", chainFromScenarioId)
+      .single();
+    if (gatekeeperError || !gatekeeper) {
+      return NextResponse.json(
+        { error: "That gatekeeper persona was not found." },
+        { status: 404 },
+      );
+    }
+
+    // It must be a CHOSEN, SWITCHED-ON, GENERATED GATEKEEPER. Each condition is
+    // a real one: an ungenerated scenario has no fields to carry over (and this
+    // is also the guard that keeps Alex and Jordan out), a decision maker gates
+    // nobody so there is no second meeting to build, and an unchosen candidate
+    // is not the case anyone settled on.
+    const fields = gatekeeper.generation_fields as GenerationFields | null;
+    if (!gatekeeper.generation_group_id || !fields?.candidate || !fields?.inputs) {
+      return NextResponse.json(
+        {
+          error:
+            "That scenario was not created by persona scaffolding, so there is nothing to carry over.",
+        },
+        { status: 400 },
+      );
+    }
+    if (gatekeeper.chain_role !== "gatekeeper") {
+      return NextResponse.json(
+        { error: "Only a gatekeeper has a decision maker to generate." },
+        { status: 400 },
+      );
+    }
+    if (!gatekeeper.enabled) {
+      return NextResponse.json(
+        {
+          error:
+            "Choose and switch on the gatekeeper first, then generate its decision maker.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const source = fields.candidate;
+    const sourceInputs = fields.inputs;
+
+    // What carries over, and what the admin still decides. The shared case
+    // details come from the winner; the new persona's role and win condition are
+    // the two things that are genuinely about this second meeting.
+    inputs = {
+      industry: sourceInputs.industry,
+      productOrService: sourceInputs.productOrService,
+      sellerCompanyType: sourceInputs.sellerCompanyType,
+      companySize: sourceInputs.companySize,
+      personaRole: readText(body, "personaRole"),
+      winCondition: readText(body, "winCondition"),
+      // A decision maker gates nobody.
+      chainPosition: "decision_maker",
+      gatesAccessTo: "",
+    };
+
+    chain = {
+      gatekeeperName: gatekeeper.persona_name as string,
+      gatekeeperRole: source.role,
+      // The company the model INVENTED for the gatekeeper, which is what makes
+      // both personas work at one company rather than two similar ones.
+      companyType: source.company.type,
+      companySize: source.company.size,
+      gatekeeperWinCondition: source.win_condition,
+    };
+  } else {
+    const chainPosition = readText(body, "chainPosition");
+    if (chainPosition !== "gatekeeper" && chainPosition !== "decision_maker") {
+      return NextResponse.json(
+        { error: "Pick a chain position." },
+        { status: 400 },
+      );
+    }
+
+    inputs = {
+      industry: readText(body, "industry"),
+      personaRole: readText(body, "personaRole"),
+      productOrService: readText(body, "productOrService"),
+      companySize: readText(body, "companySize"),
+      chainPosition,
+      gatesAccessTo: readText(body, "gatesAccessTo"),
+      winCondition: readText(body, "winCondition"),
+      sellerCompanyType: readText(body, "sellerCompanyType"),
+    };
   }
 
   // The meeting type is NOT asked for separately. It follows from the chain
   // position, so the two can never disagree.
-  const meetingType = meetingTypeForChainPosition(chainPosition);
-
-  const inputs: ScaffoldInputs = {
-    industry: readText(body, "industry"),
-    personaRole: readText(body, "personaRole"),
-    productOrService: readText(body, "productOrService"),
-    companySize: readText(body, "companySize"),
-    chainPosition,
-    gatesAccessTo: readText(body, "gatesAccessTo"),
-    winCondition: readText(body, "winCondition"),
-    sellerCompanyType: readText(body, "sellerCompanyType"),
-  };
+  const meetingType = meetingTypeForChainPosition(inputs.chainPosition);
 
   // Every field except gatesAccessTo is required. gatesAccessTo is required
   // only for a gatekeeper, since a decision maker gates nobody.
@@ -116,7 +201,7 @@ export async function POST(request: Request) {
   //    the fixed template. If either candidate cannot be produced validly, the
   //    whole request fails rather than showing half a case.
   try {
-    const [first, second] = await generateTwoCandidates(inputs);
+    const [first, second] = await generateTwoCandidates(inputs, chain);
 
     // 5. Save both candidates as real scenario rows, TURNED OFF.
     //
@@ -136,8 +221,12 @@ export async function POST(request: Request) {
       }): ${candidate.persona_name}, ${candidate.role}`,
       persona_name: candidate.persona_name,
       // The two text fields that actually drive the role-play, built from the
-      // candidate's fields by the fixed template (lib/persona-assembly.ts).
-      ...assembleScenario(candidate, inputs),
+      // candidate's fields by the fixed template (lib/persona-assembly.ts). For
+      // a chain generation the template also writes in the narrative reference
+      // to the gatekeeper, the way Jordan's text names Alex. That reference is
+      // baked in HERE and never looked up again, which is what keeps the two
+      // scenarios independently assignable with no prerequisite between them.
+      ...assembleScenario(candidate, inputs, chain),
       rubric_id: null,
       enabled: false,
       // Derived from the chain position, the same single source the prompt used.

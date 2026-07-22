@@ -126,6 +126,37 @@ const PART_B_SCHEMA_TEXT = [
   "}",
 ].join("\n");
 
+// ---------------------------------------------------------------------------
+// Part E: the chain instruction block, verbatim from the design doc
+// ---------------------------------------------------------------------------
+//
+// Added to the system message ONLY when generating a decision maker FROM a
+// chosen gatekeeper. A decision maker generated straight from the form never
+// sees it, because that persona has no earlier meeting and must not invent one.
+const PART_E_CHAIN_PROMPT = [
+  "THIS PERSONA IS THE SECOND MEETING OF AN EXISTING CASE",
+  "- A gatekeeper persona for this case has already been built and chosen. That persona, their company, and their situation are given in the inputs below. You are now building the DECISION MAKER they gate access to: the person the seller reaches by earning it in that first meeting.",
+  "- Use the SAME company as the gatekeeper, described in the inputs. Do not move this persona to a different or a differently sized organisation, and do not contradict what the gatekeeper's situation establishes. The two meetings must read as one coherent case at one company.",
+  "- This persona is senior to or more decisive than the gatekeeper on this purchase, and feels the problem from their own angle rather than the gatekeeper's. Their pressures, their decision criteria, and their hidden facts are their own, not a restatement of the gatekeeper's.",
+  "- The seller comes into this meeting having already done discovery with the gatekeeper, so they know the general shape of the problem but NOT this persona's specific numbers, which must still be earned with good questions.",
+  "- Reflect that in the persona's behavior: what earns the win should include building on what the seller learned in the first meeting and getting specific about this persona's own concerns, and what fails it should include re-running discovery this buyer's colleague already gave them, as well as arriving with nothing carried over.",
+  "- This is a presentation and close, not a fresh discovery meeting.",
+].join("\n");
+
+// What the chain carries over from the chosen gatekeeper.
+//
+// The company descriptor is the load-bearing part: it is the company the model
+// INVENTED for the gatekeeper, not the admin's employee-count input, and passing
+// it through is what puts both personas at one company rather than at two
+// similar-sounding ones.
+export type ChainContext = {
+  gatekeeperName: string;
+  gatekeeperRole: string;
+  companyType: string;
+  companySize: string;
+  gatekeeperWinCondition: string;
+};
+
 // The static "differ" nudge added to the SECOND call only (Part D). It is
 // deliberately static rather than a description of candidate one, so both calls
 // can run at the same time instead of one after the other. Halving the wall
@@ -136,13 +167,18 @@ const DIFFER_NUDGE = [
 ].join("\n");
 
 // The admin's answers, handed to the model as the INPUTS section Part A expects.
-function buildInputsMessage(inputs: ScaffoldInputs): string {
+// For a chain generation the chosen gatekeeper's facts are appended, which is
+// what Part E's "given in the inputs below" refers to.
+function buildInputsMessage(
+  inputs: ScaffoldInputs,
+  chain?: ChainContext,
+): string {
   const chainLine =
     inputs.chainPosition === "gatekeeper"
       ? `gatekeeper, who gates access to: ${inputs.gatesAccessTo}`
       : "decision maker (they can decide themselves, they gate nobody)";
 
-  return [
+  const lines = [
     "INPUTS",
     `- industry: ${inputs.industry}`,
     `- persona role: ${inputs.personaRole}`,
@@ -152,7 +188,20 @@ function buildInputsMessage(inputs: ScaffoldInputs): string {
     `- chain position: ${chainLine}`,
     `- win condition: ${inputs.winCondition}`,
     `- seller company type: ${inputs.sellerCompanyType}`,
-  ].join("\n");
+  ];
+
+  if (chain) {
+    lines.push(
+      "",
+      "THE GATEKEEPER ALREADY BUILT FOR THIS CASE (the first meeting)",
+      `- gatekeeper name: ${chain.gatekeeperName}`,
+      `- gatekeeper role: ${chain.gatekeeperRole}`,
+      `- the company, which this persona SHARES: ${chain.companySize} ${chain.companyType}`,
+      `- what the seller had to earn in that first meeting: ${chain.gatekeeperWinCondition}`,
+    );
+  }
+
+  return lines.join("\n");
 }
 
 // ---------------------------------------------------------------------------
@@ -333,8 +382,12 @@ const MAX_ATTEMPTS = 2;
 async function generateOneCandidate(
   inputs: ScaffoldInputs,
   useDifferNudge: boolean,
+  chain?: ChainContext,
 ): Promise<PersonaCandidate> {
   const systemContent = [PART_A_PROMPT, "", PART_B_SCHEMA_TEXT]
+    // The chain block goes to BOTH candidate calls: it describes the case, not
+    // the difference between the two candidates.
+    .concat(chain ? ["", PART_E_CHAIN_PROMPT] : [])
     .concat(useDifferNudge ? ["", DIFFER_NUDGE] : [])
     .join("\n");
 
@@ -344,7 +397,7 @@ async function generateOneCandidate(
     const rawText = await chatComplete({
       messages: [
         { role: "system", content: systemContent },
-        { role: "user", content: buildInputsMessage(inputs) },
+        { role: "user", content: buildInputsMessage(inputs, chain) },
       ],
       temperature: GENERATION_TEMPERATURE,
       responseFormat: RESPONSE_FORMAT,
@@ -378,12 +431,18 @@ async function generateOneCandidate(
 // They run AT THE SAME TIME, so the whole request takes about as long as one
 // call rather than two. If either candidate cannot be produced validly, the
 // whole thing fails: a half-generated case is never shown.
+//
+// The optional chain context makes this the paired SECOND persona of an existing
+// case (Part E). It changes what is generated, not how: still two calls at the
+// same time, still the same validation, so the chain is no slower than an
+// ordinary generation.
 export async function generateTwoCandidates(
   inputs: ScaffoldInputs,
+  chain?: ChainContext,
 ): Promise<[PersonaCandidate, PersonaCandidate]> {
   const [first, second] = await Promise.all([
-    generateOneCandidate(inputs, false),
-    generateOneCandidate(inputs, true),
+    generateOneCandidate(inputs, false, chain),
+    generateOneCandidate(inputs, true, chain),
   ]);
   return [first, second];
 }

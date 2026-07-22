@@ -33,6 +33,7 @@ export type CandidateRow = {
   scenario_context: string;
   persona_system_prompt: string;
   generation_fields: GenerationFields | null;
+  generation_group_id: string;
   created_at: string;
 };
 
@@ -68,6 +69,23 @@ export async function loadGenerationGroup(
 
   const rows = data as unknown as CandidateRow[];
   return [...rows].sort((a, b) => candidateIndex(a) - candidateIndex(b));
+}
+
+// One candidate row by its id, for the chain form (which needs the chosen
+// gatekeeper's own generated fields to show what will carry over).
+export async function loadCandidateById(
+  id: string,
+): Promise<CandidateRow | null> {
+  const admin = createAdminClient();
+
+  const { data, error } = await admin
+    .from("scenarios")
+    .select(CANDIDATE_COLUMNS)
+    .eq("id", id)
+    .single();
+
+  if (error || !data) return null;
+  return data as unknown as CandidateRow;
 }
 
 export type GenerationRowSummary = {

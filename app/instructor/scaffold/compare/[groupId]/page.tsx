@@ -215,6 +215,30 @@ export default async function CompareCandidatesPage({
               is switched off and unreachable by any student.
             </p>
           )}
+
+          {/* The chain, offered only from a gatekeeper: only a gatekeeper gates
+              access to somebody, so only a gatekeeper has a second meeting to
+              build. */}
+          {winner.chain_role === "gatekeeper" && (
+            <div className="mt-4 rounded-md border border-gray-300 bg-white p-3 text-gray-800">
+              <p className="font-medium text-gray-900">
+                Build the second meeting for this case
+              </p>
+              <p className="mt-1 text-gray-700">
+                {winner.persona_name} is a gatekeeper, so this case has a second
+                meeting in it: the decision maker they control access to. The
+                shared details carry over, so you only choose who that person is
+                and what the seller has to earn from them. Same shape as Jordan
+                following Alex, and the two stay independently assignable.
+              </p>
+              <Link
+                href={`/instructor/scaffold/chain/${winner.id}`}
+                className="mt-3 inline-block rounded-md bg-black px-3 py-1.5 text-white hover:bg-gray-800"
+              >
+                Generate the decision maker
+              </Link>
+            </div>
+          )}
         </div>
       ) : (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
