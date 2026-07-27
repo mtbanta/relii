@@ -20,7 +20,7 @@ import { ResetHistory } from "@/components/reset-history";
 import type { ResetHistoryRow } from "@/components/reset-history";
 import { NameGate } from "@/components/name-gate";
 import { isSubmissionLocked } from "@/lib/submission";
-import { hasName } from "@/lib/name";
+import { displayName, hasName } from "@/lib/name";
 import type { SessionScore } from "@/lib/types";
 
 // Compact mode label for the submissions table (matches the mockup: "V+V").
@@ -262,7 +262,10 @@ export default async function InstructorHome({
       <header className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Instructor dashboard</h1>
-          <p className="text-sm text-gray-500">{user.email}</p>
+          <p className="text-sm text-gray-700">
+            {displayName({ ...profile, email: user.email ?? "" })}
+          </p>
+          <p className="text-xs text-gray-400">{user.email}</p>
         </div>
         <div className="flex items-center gap-4">
           {/* Build new buyer personas with the AI (chunk 2b: generate and review). */}
