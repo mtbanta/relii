@@ -75,6 +75,13 @@ export type FinishedPracticeStatus = "scored" | "completed";
 // for this assignment), so it can NEVER touch another student's, another
 // assignment's, or any graded submission's data.
 //
+// keepId (Piece 4, used by "allow retake"): force-keep one specific practice even
+// though it is old. When an instructor allows a retake, the submission is turned
+// back into a scored practice with its ORIGINAL (old) date. Without this it would
+// be the first thing a normal prune deletes, recording and all. With keepId, that
+// returned practice is always kept and the remaining slots go to the newest
+// OTHERS, so the oldest OTHER practice is the one dropped if we are over the cap.
+//
 // Best-effort by design: callers run this as cleanup AFTER the student's result is
 // already saved, so any failure here is logged and the student keeps their
 // result. The next finished practice re-runs the prune and corrects the count.
@@ -83,6 +90,7 @@ export async function prunePractices(
   studentId: string,
   assignmentId: string,
   finishedStatus: FinishedPracticeStatus,
+  keepId?: string,
 ): Promise<void> {
   const { data: practices, error } = await admin
     .from("sessions")
@@ -98,10 +106,21 @@ export async function prunePractices(
     console.error("Listing practices to prune failed:", error);
     return;
   }
-  if (!practices || practices.length <= KEPT_PRACTICES) return;
+  if (!practices) return;
 
-  // Everything past the newest KEPT_PRACTICES is too old to keep.
-  const tooOld = practices.slice(KEPT_PRACTICES);
+  // Decide which rows are too old to keep. Normally we keep the newest
+  // KEPT_PRACTICES. With keepId set, that row is force-kept and the remaining
+  // slots go to the newest OTHERS, so the returned practice is never pruned.
+  let tooOld: typeof practices;
+  if (keepId) {
+    const forced = practices.filter((p) => p.id === keepId);
+    const others = practices.filter((p) => p.id !== keepId);
+    tooOld = others.slice(Math.max(0, KEPT_PRACTICES - forced.length));
+  } else {
+    if (practices.length <= KEPT_PRACTICES) return;
+    tooOld = practices.slice(KEPT_PRACTICES);
+  }
+  if (tooOld.length === 0) return;
 
   // Remove each recording first (Storage is not part of any database cascade),
   // then delete the rows in one statement.

@@ -8,29 +8,35 @@
 //
 //   type = "interrupted"  (low stakes): recover a stuck attempt. Requires a
 //     submission that is genuinely locked, i.e. kind = submission, status =
-//     in_progress, AND past the 30-minute live window (isSubmissionLocked).
+//     in_progress, AND past the 30-minute live window (isSubmissionLocked). This
+//     DELETES the stuck attempt (its row and any partial recording). Under the
+//     Piece 4 model no new graded attempts are started, so this path is dormant,
+//     but it is kept for any legacy in_progress row.
 //
-//   type = "retake"       (high stakes): allow a retake of a FINISHED grade.
-//     Requires kind = submission, status = scored. This permanently destroys a
-//     real grade and recording.
+//   type = "retake"       (Piece 4): allow a retake of a FINISHED submission.
+//     Requires kind = submission, status = scored. It is NO LONGER destructive:
+//     it RETURNS the submission to the student's practice pool (kind submission
+//     -> practice, submitted_at cleared), keeping the recording and the score so
+//     the student can submit again. Nothing is deleted.
 //
-// Anything else is refused: it can never delete a practice row, and never an
+// Anything else is refused: it can never touch a practice row, and never an
 // in_progress attempt that is still inside the live window (the student may
 // still be in it).
 //
-// This is destructive, so it runs SERVER-SIDE ONLY with the service-role key
-// (never the browser), and every query is scoped to the single target session
-// id, so it can never affect another student, another assignment, another
-// submission, or any practice row.
+// It runs SERVER-SIDE ONLY with the service-role key (never the browser), and
+// every query is scoped to the single target session id, so it can never affect
+// another student, another assignment, another submission, or any practice row.
 //
 // Order of operations: write the audit record FIRST (so the snapshot is captured
-// while the row still exists), then delete the Storage recording if there is one
-// (a database delete does not remove Storage files), then delete the session row.
+// with the facts still true), then apply the effect for the requested path
+// (interrupted: remove the recording then delete the row; retake: turn the row
+// back into a practice and re-run the retention cap keeping the returned one).
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
 import { isSubmissionLocked } from "@/lib/submission";
+import { prunePractices } from "@/lib/practice";
 import type { SessionScore } from "@/lib/types";
 
 type ResetType = "interrupted" | "retake";
@@ -163,41 +169,86 @@ export async function POST(
     );
   }
 
-  // 8. Delete the Storage recording if there is one. A database delete does not
-  //    remove Storage files, so we remove it by hand using the stored path.
-  //    Best-effort: a missing or already-removed file is logged, never thrown,
-  //    so a Storage hiccup can never block clearing the row (an orphaned file is
-  //    harmless and unreachable). A null video_path (text, camera off, or a
-  //    failed upload) simply has nothing to remove.
-  if (session.video_path) {
-    const { error: removeError } = await admin.storage
-      .from(SESSION_VIDEOS_BUCKET)
-      .remove([session.video_path]);
-    if (removeError) {
-      console.error(
-        "Removing the submission recording failed:",
-        session.video_path,
-        removeError,
+  // 8. Apply the effect. The two paths diverge here.
+  if (type === "interrupted") {
+    // Recover a stuck attempt: delete its recording (a database delete does not
+    // remove Storage files, so we remove it by hand using the stored path),
+    // then delete the row. Best-effort on Storage: a missing or already-removed
+    // file is logged, never thrown, so a Storage hiccup can never block clearing
+    // the row. A null video_path (text, camera off, or a failed upload) simply
+    // has nothing to remove.
+    if (session.video_path) {
+      const { error: removeError } = await admin.storage
+        .from(SESSION_VIDEOS_BUCKET)
+        .remove([session.video_path]);
+      if (removeError) {
+        console.error(
+          "Removing the interrupted recording failed:",
+          session.video_path,
+          removeError,
+        );
+      }
+    }
+    const { error: deleteError } = await admin
+      .from("sessions")
+      .delete()
+      .eq("id", session.id);
+    if (deleteError) {
+      console.error("Deleting the interrupted row failed:", session.id, deleteError);
+      return NextResponse.json(
+        {
+          error:
+            "The reset was recorded but the submission could not be deleted. Please try again.",
+        },
+        { status: 500 },
       );
     }
-  }
+  } else {
+    // type === "retake" (Piece 4): RETURN the submission to the practice pool
+    // instead of deleting it. Reverse the conversion (kind submission ->
+    // practice) and clear submitted_at, keeping the score, status ('scored'),
+    // scored_at, and the recording. Nothing is deleted, so the student has a
+    // re-selectable scored practice again and can submit once more. Once the row
+    // is a practice, the one-submission unique index no longer blocks them.
+    const { error: returnError } = await admin
+      .from("sessions")
+      .update({ kind: "practice", submitted_at: null })
+      .eq("id", session.id);
+    if (returnError) {
+      console.error(
+        "Returning the submission to the practice pool failed:",
+        session.id,
+        returnError,
+      );
+      return NextResponse.json(
+        {
+          error:
+            "The reset was recorded but the submission could not be returned. Please try again.",
+        },
+        { status: 500 },
+      );
+    }
 
-  // 9. Delete the submission row. Once it is gone, the one-submission unique
-  //    index no longer blocks the student, so their home shows Start assignment
-  //    again. Scoped to this id only.
-  const { error: deleteError } = await admin
-    .from("sessions")
-    .delete()
-    .eq("id", session.id);
-  if (deleteError) {
-    console.error("Deleting the submission row failed:", session.id, deleteError);
-    return NextResponse.json(
-      {
-        error:
-          "The reset was recorded but the submission could not be deleted. Please try again.",
-      },
-      { status: 500 },
-    );
+    // Retention cap: the returned practice carries its ORIGINAL (old) date, so
+    // it can push the pool over the cap. Prune now, but force-keep the returned
+    // practice (keepId) so its recording survives and it stays re-selectable;
+    // the oldest OTHER practice is dropped if we are over the cap (owner
+    // decision). Best-effort, exactly like every other prune: the return above
+    // is already saved, so any failure here is logged and never undone. A retake
+    // only exists on a gradable assignment, so the finished status is 'scored'.
+    if (session.assignment_id) {
+      try {
+        await prunePractices(
+          admin,
+          session.student_id,
+          session.assignment_id,
+          "scored",
+          session.id,
+        );
+      } catch (err) {
+        console.error("Pruning after return-to-pool failed:", err);
+      }
+    }
   }
 
   return NextResponse.json({ ok: true });

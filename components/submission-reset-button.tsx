@@ -9,16 +9,15 @@
 //     control): it names the student and assignment and explains the interrupted
 //     attempt will be deleted so the student can start over.
 //
-//   type = "retake"       A high-stakes deletion of a FINISHED grade. A red
-//     "Allow retake" button opens a visibly stronger confirm: red styling, a
-//     plain warning that it permanently deletes the completed submission
-//     including its score and recording, a reminder to download first, AND a
-//     deliberate extra step (the instructor must type the word RESET) before the
-//     final button is enabled.
+//   type = "retake"       Allow a retake of a FINISHED submission. Piece 4 made
+//     this non-destructive: an "Allow retake" button opens a plain confirm
+//     explaining that it RETURNS the student's submission to their practice pool
+//     (keeping the recording and the score) so they can submit again. Nothing is
+//     deleted, so there is no download reminder and no type-RESET gate.
 //
 // Both POST to /api/instructor/submission/<id>/reset with the matching type; the
-// server re-verifies the session qualifies for that path before deleting
-// anything. On success the page refreshes so the row updates.
+// server re-verifies the session qualifies for that path before acting. On
+// success the page refreshes so the row updates.
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -39,7 +38,6 @@ export function SubmissionResetButton({
 }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
-  const [typed, setTyped] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -71,7 +69,6 @@ export function SubmissionResetButton({
 
   function cancel() {
     setConfirming(false);
-    setTyped("");
     setError("");
   }
 
@@ -116,46 +113,32 @@ export function SubmissionResetButton({
     );
   }
 
-  // ---- Path 2: retake of a completed submission (high stakes) -------------
+  // ---- Path 2: allow a retake of a completed submission ------------------
+  // Piece 4: this is no longer destructive. Allowing a retake RETURNS the
+  // student's submission to their practice pool (keeping the recording and the
+  // score) so they can submit again, so it is a plain confirm, not the old
+  // type-RESET, "permanently delete" gate.
   const hadScore = priorScoreTotal != null && priorScoreMax != null;
 
   if (!confirming) {
     return (
       <button
         onClick={() => setConfirming(true)}
-        className="rounded-md border border-red-300 px-2 py-0.5 text-xs text-red-700 hover:bg-red-50"
+        className="rounded-md border border-amber-300 px-2 py-0.5 text-xs text-amber-700 hover:bg-amber-50"
       >
         Allow retake
       </button>
     );
   }
   return (
-    <div className="mt-1 rounded-md border-2 border-red-300 bg-red-50 p-2 text-xs">
-      <p className="mb-1 font-semibold text-red-800">
-        Permanently delete a completed submission
+    <div className="mt-1 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs">
+      <p className="mb-2 text-amber-900">
+        Allow <span className="font-medium">{studentEmail}</span> to retake{" "}
+        <span className="font-medium">{assignmentTitle}</span>? This returns their
+        submission{hadScore ? ` (${priorScoreTotal} / ${priorScoreMax})` : ""} to
+        their practice pool so they can submit again. The recording and the score
+        are kept; nothing is deleted. This is recorded in the reset history.
       </p>
-      <p className="mb-2 text-red-800">
-        This deletes <span className="font-medium">{studentEmail}</span>&apos;s
-        finished submission for{" "}
-        <span className="font-medium">{assignmentTitle}</span>, including its
-        score{hadScore ? ` (was ${priorScoreTotal} / ${priorScoreMax})` : ""} and
-        its recording, so they can submit again. This cannot be undone.
-      </p>
-      <p className="mb-2 text-red-700">
-        If you want a copy, download the Video, Transcript, or CSV (the links on
-        this row) BEFORE you continue.
-      </p>
-      <label className="mb-2 block text-red-800">
-        Type <span className="font-mono font-semibold">RESET</span> to confirm:
-        <input
-          type="text"
-          value={typed}
-          onChange={(e) => setTyped(e.target.value)}
-          className="mt-1 block w-32 rounded-md border border-red-300 bg-white px-2 py-0.5 font-mono"
-          autoComplete="off"
-          spellCheck={false}
-        />
-      </label>
       <div className="flex items-center gap-2">
         <button
           onClick={cancel}
@@ -166,10 +149,10 @@ export function SubmissionResetButton({
         </button>
         <button
           onClick={handleReset}
-          disabled={loading || typed !== "RESET"}
-          className="rounded-md bg-red-600 px-2 py-0.5 text-white hover:bg-red-700 disabled:opacity-50"
+          disabled={loading}
+          className="rounded-md bg-amber-600 px-2 py-0.5 text-white hover:bg-amber-700 disabled:opacity-50"
         >
-          {loading ? "Deleting..." : "Permanently delete grade and allow retake"}
+          {loading ? "Returning..." : "Allow retake"}
         </button>
       </div>
       {error && <p className="mt-2 text-red-700">{error}</p>}

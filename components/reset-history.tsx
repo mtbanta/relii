@@ -5,9 +5,10 @@
 // dashboard page); nothing sensitive reaches the browser it should not.
 //
 // Each entry shows: the student (email), the type (an interrupted recovery vs a
-// graded retake with the score wiped), the prior score for a graded retake only,
-// when it happened, and who did it (instructor email). Deliberately simple: no
-// filtering, search, pagination, or export.
+// graded retake that returned the submission to the student's practice pool), the
+// score the submission had at that point for a graded retake only, when it
+// happened, and who did it (instructor email). Deliberately simple: no filtering,
+// search, pagination, or export.
 
 // One reset as read for this list (a snapshot row from submission_resets).
 export type ResetHistoryRow = {
@@ -52,10 +53,10 @@ export function ResetHistory({ resets }: { resets: ResetHistoryRow[] }) {
         {resets.map((r) => {
           const isRetake = r.reset_type === "retake";
           const typeLabel = isRetake
-            ? "Graded retake (score wiped)"
+            ? "Graded retake (returned to pool)"
             : "Interrupted recovered";
-          // A prior score is shown for a graded retake only; an interrupted
-          // recovery never had one.
+          // The score the submission had is shown for a graded retake only; an
+          // interrupted recovery never had one.
           const hadScore =
             r.prior_score_total != null && r.prior_score_max != null;
           return (
@@ -68,7 +69,7 @@ export function ResetHistory({ resets }: { resets: ResetHistoryRow[] }) {
                 {" · "}
                 {typeLabel}
                 {isRetake && hadScore
-                  ? ` (was ${r.prior_score_total} / ${r.prior_score_max})`
+                  ? ` (${r.prior_score_total} / ${r.prior_score_max})`
                   : ""}
               </p>
               <p className="text-gray-400">
