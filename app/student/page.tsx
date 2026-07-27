@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SignOutButton } from "@/components/sign-out-button";
 import { PracticeButton } from "@/components/practice-button";
 import { StartAssignmentButton } from "@/components/start-assignment-button";
+import { SubmitPracticeButton } from "@/components/submit-practice-button";
 import { DeletePracticeButton } from "@/components/delete-practice-button";
 import { NameGate } from "@/components/name-gate";
 import { KEPT_PRACTICES } from "@/lib/practice";
@@ -69,6 +70,10 @@ type PracticeRow = {
   status: string;
   score_total: number | null;
   score: SessionScore | null;
+  // video_path is set only when the camera was on and the recording uploaded.
+  // Piece 4 uses it to decide whether a voice+video practice is eligible to be
+  // submitted as the graded assignment.
+  video_path: string | null;
   created_at: string;
 };
 
@@ -143,7 +148,7 @@ export default async function StudentHome() {
   // must stay out of this list exactly as it does today.
   const { data: practices } = await supabase
     .from("sessions")
-    .select("id, assignment_id, mode, status, score_total, score, created_at")
+    .select("id, assignment_id, mode, status, score_total, score, video_path, created_at")
     .eq("student_id", user.id)
     .eq("kind", "practice")
     .in("status", ["scored", "completed"])
@@ -194,6 +199,14 @@ export default async function StudentHome() {
             const interrupted = submission?.status === "in_progress";
             const kept = practicesByAssignment.get(a.id) ?? [];
             const practiceOnly = conversationOnlyAssignments.has(a.id);
+            // Piece 4: an assignment is GRADABLE when its scenario has a rubric
+            // (not practice-only) AND its required_mode is voice_video. Only then
+            // can a completed voice+video practice be submitted as the graded
+            // assignment. `hasSubmission` gates the submit control on ANY
+            // submission row already existing (even a legacy in_progress one),
+            // since the one-submission unique index would block a second anyway.
+            const gradable = !practiceOnly && a.required_mode === "voice_video";
+            const hasSubmission = submission != null;
 
             return (
               <li key={a.id} className="rounded-lg border border-gray-200 p-5">
@@ -311,6 +324,32 @@ export default async function StudentHome() {
                             </Link>
                             <DeletePracticeButton sessionId={p.id} />
                           </span>
+
+                          {/* Piece 4: submit this completed practice as the
+                              graded assignment. Only on a gradable assignment
+                              (voice+video required, has a rubric) with no
+                              submission yet, and only for a voice+video practice.
+                              A voice+video practice with no recording (camera off
+                              or a failed upload) shows the red warning instead;
+                              text practices show nothing. */}
+                          {gradable &&
+                            !hasSubmission &&
+                            p.mode === "voice_video" && (
+                              <div className="w-full">
+                                {p.video_path ? (
+                                  <SubmitPracticeButton
+                                    sessionId={p.id}
+                                    scoreTotal={p.score_total}
+                                    scoreMax={p.score?.max_total ?? null}
+                                  />
+                                ) : (
+                                  <p className="text-red-600">
+                                    Camera must be toggled on in order to be
+                                    eligible for submission.
+                                  </p>
+                                )}
+                              </div>
+                            )}
                         </li>
                       ))}
                     </ul>

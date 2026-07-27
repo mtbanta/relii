@@ -1,0 +1,96 @@
+"use client";
+
+// The "Submit as graded assignment" control on an eligible saved practice
+// (Piece 4). It promotes a completed voice+video practice (with a recording and a
+// score) into the graded submission for its assignment. A short confirm panel
+// describes the real effect, then it POSTs to /api/practice/submit and refreshes
+// the page so the practice moves up into the assignment's "Submitted" state.
+//
+// The server route re-verifies eligibility and ownership; this control only
+// decides what to show and collects the confirmation.
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+export function SubmitPracticeButton({
+  sessionId,
+  scoreTotal,
+  scoreMax,
+}: {
+  sessionId: string;
+  scoreTotal: number | null;
+  scoreMax: number | null;
+}) {
+  const router = useRouter();
+  const [confirming, setConfirming] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const hasScore = scoreTotal != null && scoreMax != null;
+
+  async function submit() {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/practice/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data?.error || "Could not submit this practice.");
+        setLoading(false);
+        return;
+      }
+      // Re-run the home page's queries so this practice now shows as the
+      // submission and leaves the saved-practices list.
+      router.refresh();
+    } catch {
+      setError("Something went wrong. Please try again.");
+      setLoading(false);
+    }
+  }
+
+  if (!confirming) {
+    return (
+      <button
+        onClick={() => setConfirming(true)}
+        className="rounded-md bg-black px-3 py-1 text-xs text-white hover:bg-gray-800"
+      >
+        Submit as graded assignment
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-1 w-full rounded-md border border-amber-300 bg-amber-50 p-3 text-xs">
+      <p className="text-amber-900">
+        Submit this practice as your graded assignment? It becomes your official
+        submission
+        {hasScore ? ` and keeps its score (${scoreTotal} / ${scoreMax})` : ""}.
+        Your other practices stay. This can only be changed if your instructor
+        allows a retake.
+      </p>
+      <div className="mt-2 flex items-center gap-2">
+        <button
+          onClick={() => {
+            setConfirming(false);
+            setError("");
+          }}
+          disabled={loading}
+          className="rounded-md border border-gray-300 px-2 py-0.5 disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={submit}
+          disabled={loading}
+          className="rounded-md bg-black px-2 py-0.5 text-white disabled:opacity-50"
+        >
+          {loading ? "Submitting..." : "Submit for a grade"}
+        </button>
+      </div>
+      {error && <p className="mt-2 text-red-700">{error}</p>}
+    </div>
+  );
+}
