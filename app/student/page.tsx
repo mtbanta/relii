@@ -248,10 +248,13 @@ export default async function StudentHome() {
                     </p>
                   ) : (
                     <>
-                      <StartAssignmentButton assignmentId={a.id} />
+                      {/* Piece 4: the one-shot "Start assignment" flow is
+                          disabled (grayed, unclickable) but kept intact. A
+                          graded submission is now made by submitting a completed
+                          voice + video practice from the list below. */}
+                      <StartAssignmentButton assignmentId={a.id} disabled />
                       <p className="mt-2 text-xs text-gray-400">
-                        One official attempt, done in one sitting. You cannot
-                        resume it if you leave.
+                        Start assignment is temporarily disabled.
                       </p>
                     </>
                   )}

@@ -186,12 +186,6 @@ export function Conversation({
             Submit this graded assignment for scoring? This is your one official
             attempt and cannot be redone.
           </p>
-          <p className="mt-2 text-amber-900">
-            Submitting also permanently clears your saved practices for this
-            assignment. If you want to keep any, save them first from your home
-            page (open a practice under Saved practices and use Download video or
-            Print / Save results).
-          </p>
           <div className="mt-3 flex items-center gap-2">
             <button
               onClick={() => setConfirming(false)}

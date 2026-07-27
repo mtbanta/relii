@@ -11,8 +11,14 @@ import { liveMarkerKey } from "@/lib/submission";
 
 export function StartAssignmentButton({
   assignmentId,
+  disabled = false,
 }: {
   assignmentId: string;
+  // Piece 4: the one-shot graded flow is intentionally disabled. When `disabled`
+  // is true the button renders grayed and non-clickable, and start() is never
+  // wired up. All the one-shot logic below stays intact and reachable: flipping
+  // this prop back to false re-enables the flow with no other change.
+  disabled?: boolean;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -56,6 +62,21 @@ export function StartAssignmentButton({
       setLoading(false);
       setError(err instanceof Error ? err.message : "Something went wrong.");
     }
+  }
+
+  // Disabled (Piece 4): a grayed, non-clickable button. No onClick, so the
+  // one-shot flow above cannot be reached from here.
+  if (disabled) {
+    return (
+      <button
+        type="button"
+        disabled
+        aria-disabled="true"
+        className="cursor-not-allowed rounded-md bg-black px-4 py-2 text-sm text-white opacity-40"
+      >
+        Start assignment
+      </button>
+    );
   }
 
   return (

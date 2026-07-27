@@ -118,6 +118,12 @@ export async function prunePractices(
   }
 }
 
+// RETIRED IN PIECE 4: this has no caller. It was the auto-delete of a student's
+// practices when they submitted a graded assignment. Piece 4 changed the model
+// (a submission is now a completed practice the student converts), so submitting
+// no longer wipes their other practices. Kept here only so the history reads
+// clearly; nothing calls it.
+//
 // When a student submits a graded assignment, ALL of that student's practices
 // for that assignment are permanently cleared: every row AND its recording. This
 // keeps a finished assignment clean, so old practice runs do not linger after the

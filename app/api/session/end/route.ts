@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { scoreTranscriptContent } from "@/lib/scoring";
 import { isSubmissionLocked } from "@/lib/submission";
-import { prunePractices, deletePracticesForAssignment } from "@/lib/practice";
+import { prunePractices } from "@/lib/practice";
 import { isMeetingType, type RubricItem, type TranscriptTurn } from "@/lib/types";
 
 export async function POST(request: Request) {
@@ -189,20 +189,10 @@ export async function POST(request: Request) {
     }
   }
 
-  // For a graded submission, permanently clear this student's practices for this
-  // assignment (rows and recordings), now that the official attempt is scored and
-  // saved. Best-effort cleanup, exactly like the prune above: the score is already
-  // saved, so a cleanup hiccup is logged and never blocks or undoes the submission
-  // or costs the student their result. Scoped to (this student, this assignment,
-  // kind = practice), so it can never touch the submission itself, another
-  // assignment, or another student.
-  if (session.kind === "submission" && session.assignment_id) {
-    try {
-      await deletePracticesForAssignment(admin, user.id, session.assignment_id);
-    } catch (err) {
-      console.error("Clearing practices on submission failed:", err);
-    }
-  }
+  // Piece 4 RETIRED the auto-delete of a student's practices on submission. A
+  // graded submission is now a completed practice the student converts, and
+  // submitting no longer wipes their other practices: all practices remain and
+  // only the FIFO retention cap (prunePractices above) ever removes them.
 
   return NextResponse.json({ ok: true });
 }
