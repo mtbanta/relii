@@ -17,6 +17,7 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
+import { displayName, hasName } from "@/lib/name";
 import type { RubricItem, SessionScore, TranscriptTurn } from "@/lib/types";
 
 function modeLabel(mode: string): string {
@@ -79,7 +80,11 @@ export default async function InstructorSubmissionPage({
   // labels and categories). All read with the admin client on the server.
   const [{ data: student }, { data: assignment }, { data: scenario }] =
     await Promise.all([
-      admin.from("profiles").select("email").eq("id", session.student_id).single(),
+      admin
+        .from("profiles")
+        .select("email, first_name, last_name")
+        .eq("id", session.student_id)
+        .single(),
       admin
         .from("assignments")
         .select("title")
@@ -91,6 +96,10 @@ export default async function InstructorSubmissionPage({
         .eq("id", session.scenario_id)
         .single(),
     ]);
+
+  // The student's display name, with the email as the fallback. Used in the
+  // header and as the label on the student's transcript turns.
+  const studentName = student ? displayName(student) : "Unknown student";
 
   const { data: rubric } = await admin
     .from("rubrics")
@@ -118,9 +127,10 @@ export default async function InstructorSubmissionPage({
       <header className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Submission</h1>
-          <p className="text-sm text-gray-500">
-            {student?.email ?? "Unknown student"}
-          </p>
+          <p className="text-sm text-gray-700">{studentName}</p>
+          {student && hasName(student) && (
+            <p className="text-xs text-gray-400">{student.email}</p>
+          )}
         </div>
         <Link
           href={`/instructor?assignment=${session.assignment_id}`}
@@ -268,7 +278,7 @@ export default async function InstructorSubmissionPage({
                 <div key={i}>
                   <p className="text-xs font-medium text-gray-400">
                     {turn.role === "student"
-                      ? student?.email ?? "Student"
+                      ? studentName
                       : scenario?.persona_name ?? "Customer"}
                   </p>
                   <p className="text-sm whitespace-pre-wrap text-gray-700">

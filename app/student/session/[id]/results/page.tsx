@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
 import { ResultsActions } from "@/components/results-actions";
+import { displayName, hasName } from "@/lib/name";
 import type { RubricItem, SessionScore, TranscriptTurn } from "@/lib/types";
 
 export default async function ResultsPage({
@@ -24,6 +25,16 @@ export default async function ResultsPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  // The student's own name, for the results header and the printed sheet. RLS
+  // only lets a student read this session if it is theirs, so this is the
+  // session owner's name. Falls back to email if no name is set.
+  const { data: nameProfile } = await supabase
+    .from("profiles")
+    .select("first_name, last_name")
+    .eq("id", user.id)
+    .single();
+  const student = { ...(nameProfile ?? {}), email: user.email ?? "" };
 
   const { data: session } = await supabase
     .from("sessions")
@@ -95,7 +106,11 @@ export default async function ResultsPage({
       <header className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Your results</h1>
-          <p className="text-sm text-gray-500">
+          <p className="mt-0.5 text-sm text-gray-700">{displayName(student)}</p>
+          {hasName(student) && (
+            <p className="text-xs text-gray-400">{user.email}</p>
+          )}
+          <p className="mt-1 text-sm text-gray-500">
             {scenario?.title ?? "Practice session"}
           </p>
         </div>

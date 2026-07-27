@@ -104,7 +104,7 @@ export default async function InstructorHome({
   // Submissions tile and the id -> email map the submissions table uses.
   const { data: allProfiles } = await admin
     .from("profiles")
-    .select("id, email, role")
+    .select("id, email, role, first_name, last_name")
     .order("email", { ascending: true });
 
   const profilesAll = allProfiles ?? [];
@@ -113,7 +113,7 @@ export default async function InstructorHome({
     (p) => p.role === "instructor",
   );
 
-  const studentEmailById = new Map(students.map((s) => [s.id, s.email]));
+  const studentById = new Map(students.map((s) => [s.id, s]));
   const enrolledCount = students.length;
 
   // The full invite list. A person's status is derived by matching emails
@@ -226,13 +226,19 @@ export default async function InstructorHome({
     resets = data ?? [];
   }
 
-  // Build the table rows, one per student, sorted by email.
+  // Build the table rows, one per student, sorted by the name shown. Each row
+  // carries both the display name (name, or email when no name is set) and the
+  // email, so the Student column can show the name with the email beneath it.
   const rows = submissions
-    .map((s) => ({
-      ...s,
-      email: studentEmailById.get(s.student_id) ?? "Unknown student",
-    }))
-    .sort((a, b) => a.email.localeCompare(b.email));
+    .map((s) => {
+      const student = studentById.get(s.student_id);
+      return {
+        ...s,
+        email: student?.email ?? "Unknown student",
+        name: student ? displayName(student) : "Unknown student",
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   // Tile numbers.
   // Submissions: how many enrolled students have a submission row for this
@@ -379,7 +385,14 @@ export default async function InstructorHome({
                           key={r.id}
                           className="border-b border-gray-100 last:border-0"
                         >
-                          <td className="p-3">{r.email}</td>
+                          <td className="p-3">
+                            <div>{r.name}</div>
+                            {r.name !== r.email && (
+                              <div className="text-xs text-gray-400">
+                                {r.email}
+                              </div>
+                            )}
+                          </td>
                           <td className="p-3 text-gray-500">{selected.title}</td>
                           <td className="p-3">{modeShort(r.mode)}</td>
                           <td className="p-3 tabular-nums">
@@ -560,7 +573,11 @@ export default async function InstructorHome({
           <ul className="space-y-2">
             {students.map((s) => (
               <li key={s.id} className="rounded-lg border border-gray-200 p-3">
-                <DeleteStudentButton studentId={s.id} email={s.email} />
+                <DeleteStudentButton
+                  studentId={s.id}
+                  email={s.email}
+                  name={displayName(s)}
+                />
               </li>
             ))}
           </ul>
@@ -584,11 +601,14 @@ export default async function InstructorHome({
             {registeredInstructors.map((p) => (
               <li
                 key={p.id}
-                className="flex items-center gap-2 rounded-lg border border-gray-200 p-3 text-sm"
+                className="flex flex-wrap items-center gap-x-2 rounded-lg border border-gray-200 p-3 text-sm"
               >
-                <span>{p.email}</span>
+                <span>{displayName(p)}</span>
                 {p.id === user.id && (
                   <span className="text-xs text-gray-400">(you)</span>
+                )}
+                {hasName(p) && (
+                  <span className="text-xs text-gray-400">· {p.email}</span>
                 )}
               </li>
             ))}
