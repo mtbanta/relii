@@ -9,7 +9,9 @@ import { SignOutButton } from "@/components/sign-out-button";
 import { PracticeButton } from "@/components/practice-button";
 import { StartAssignmentButton } from "@/components/start-assignment-button";
 import { DeletePracticeButton } from "@/components/delete-practice-button";
+import { NameGate } from "@/components/name-gate";
 import { KEPT_PRACTICES } from "@/lib/practice";
+import { displayName, hasName } from "@/lib/name";
 import type { SessionScore } from "@/lib/types";
 
 // Friendly label for a stored mode value.
@@ -82,13 +84,21 @@ export default async function StudentHome() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, first_name, last_name")
     .eq("id", user.id)
     .single();
 
   // Instructors who land here get sent to their own page.
   if (profile?.role !== "student") {
     redirect("/instructor");
+  }
+
+  // The required name gate: with no name set, the whole home is replaced by the
+  // gate, so the Practice and Start buttons below are not rendered and the
+  // student cannot start anything until first and last name are entered. It does
+  // not return on later visits. A legacy account with no name sees it too.
+  if (!hasName(profile)) {
+    return <NameGate email={user.email ?? ""} />;
   }
 
   // The assignments this student can do, with each one's scenario embedded.
@@ -158,7 +168,10 @@ export default async function StudentHome() {
       <header className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Student home</h1>
-          <p className="text-sm text-gray-500">{user.email}</p>
+          <p className="text-sm text-gray-700">
+            {displayName({ ...profile, email: user.email ?? "" })}
+          </p>
+          <p className="text-xs text-gray-400">{user.email}</p>
         </div>
         <SignOutButton />
       </header>

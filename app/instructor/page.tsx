@@ -18,7 +18,9 @@ import { AssignmentSelector } from "@/components/assignment-selector";
 import { SubmissionResetButton } from "@/components/submission-reset-button";
 import { ResetHistory } from "@/components/reset-history";
 import type { ResetHistoryRow } from "@/components/reset-history";
+import { NameGate } from "@/components/name-gate";
 import { isSubmissionLocked } from "@/lib/submission";
+import { hasName } from "@/lib/name";
 import type { SessionScore } from "@/lib/types";
 
 // Compact mode label for the submissions table (matches the mockup: "V+V").
@@ -74,13 +76,20 @@ export default async function InstructorHome({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, first_name, last_name")
     .eq("id", user.id)
     .single();
 
   // Students who land here get sent to their own page.
   if (profile?.role !== "instructor") {
     redirect("/student");
+  }
+
+  // The required name gate applies to instructors too: with no name set, the
+  // whole dashboard is replaced by the gate until first and last name are
+  // entered. It does not return on later visits.
+  if (!hasName(profile)) {
+    return <NameGate email={user.email ?? ""} />;
   }
 
   // The admin (service-role) client reads data ordinary browser rules do not
