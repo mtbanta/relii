@@ -11,18 +11,17 @@ import { useEffect, useRef, useState } from "react";
 // never for a graded submission.
 //
 // ---------------------------------------------------------------------------
-// TIME THRESHOLDS. These three numbers are the only place the timing lives.
+// TIME THRESHOLDS. These three numbers are the only place the timing lives, so
+// this is where the accessibility/contrast pass or any retuning happens.
 //   - YELLOW_AT_SECONDS: the clock text turns yellow at this elapsed time.
 //   - RED_AT_SECONDS:    the clock text turns red at this time and stays red.
 //   - AUTO_END_AT_SECONDS: the clock stops here and the practice auto-ends.
-//
-// >>> TEST VALUES BELOW: shortened so all four states (default, yellow, red,
-// >>> auto-end) can be watched in under a minute on relii.vercel.app.
-// >>> Restore the REAL values (shown in the comments) before the final build.
+// The fifteen-minute red mark warns the student around the intended meeting
+// length; the thirty-minute stop is a hard backstop, not a usage limit.
 // ---------------------------------------------------------------------------
-const YELLOW_AT_SECONDS = 15; // REAL: 10 * 60  (10:00)
-const RED_AT_SECONDS = 30; // REAL: 15 * 60  (15:00)
-const AUTO_END_AT_SECONDS = 45; // REAL: 30 * 60  (30:00)
+const YELLOW_AT_SECONDS = 10 * 60; // 10:00
+const RED_AT_SECONDS = 15 * 60; // 15:00
+const AUTO_END_AT_SECONDS = 30 * 60; // 30:00
 
 // The timer itself. It measures REAL elapsed time from wall-clock timestamps and
 // only advances while `active` is true, folding each running stretch into an
