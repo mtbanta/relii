@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SignOutButton } from "@/components/sign-out-button";
 import { AddEmailForm } from "@/components/add-email-form";
+import { BulkInviteForm } from "@/components/bulk-invite-form";
 import { DeleteStudentButton } from "@/components/delete-student-button";
 import { UninviteButton } from "@/components/uninvite-button";
 import { CreateAssignmentForm } from "@/components/create-assignment-form";
@@ -492,8 +493,9 @@ export default async function InstructorHome({
         )}
       </section>
 
-      {/* ---- Existing instructor controls (unchanged) ---- */}
+      {/* ---- Existing instructor controls ---- */}
       <AddEmailForm />
+      <BulkInviteForm />
 
       <section className="mt-8">
         <h2 className="mb-1 font-medium">Assignments</h2>
