@@ -2,6 +2,7 @@
 
 import { useEffect, useReducer, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { PracticeClock } from "@/components/practice-clock";
 import { OPENING_NUDGE } from "@/lib/persona";
 import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
@@ -122,6 +123,10 @@ export function VoiceConversation({
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
   const [confirming, setConfirming] = useState(false);
+  // The practice clock reached its thirty-minute hard stop; the practice is
+  // being auto-ended (practice only; never set for a graded submission).
+  const [expired, setExpired] = useState(false);
+  const autoEndStartedRef = useRef(false);
 
   // Camera on/off, chosen before the call. Defaults on, because voice plus video
   // is the graded format, so practice should resemble it.
@@ -183,6 +188,24 @@ export function VoiceConversation({
   useEffect(() => {
     return () => cleanup();
   }, []);
+
+  // SINGLE CONTROL POINT for whether the practice clock is running. The clock is
+  // a practice-only feature, so it never runs for a graded submission, and it
+  // only advances while the call is live. Piece 6's pause will stop the clock by
+  // AND-ing `&& !paused` here; nothing else changes.
+  const clockActive = !isSubmission && status === "live" && !expired;
+
+  // When the clock hits the thirty-minute hard stop, end the call the SAME way
+  // the student's End button does (endCall, which reuses /api/session/end). Fire
+  // once, only from a live call.
+  useEffect(() => {
+    if (!expired || autoEndStartedRef.current) return;
+    if (status !== "live") return;
+    autoEndStartedRef.current = true;
+    void endCall();
+    // endCall is intentionally omitted from deps: it is guarded to run once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expired, status]);
 
   function cleanup() {
     try {
@@ -699,17 +722,28 @@ export function VoiceConversation({
             {personaName}
           </p>
         </div>
-        <button
-          onClick={requestEndCall}
-          disabled={!canEnd}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
-        >
-          {status === "ending"
-            ? "Finishing..."
-            : isSubmission
-              ? "Submit assignment"
-              : "End session"}
-        </button>
+        <div className="flex items-center gap-3">
+          {!isSubmission &&
+            (status === "live" ||
+              status === "ending" ||
+              status === "ended") && (
+              <PracticeClock
+                active={clockActive}
+                onExpire={() => setExpired(true)}
+              />
+            )}
+          <button
+            onClick={requestEndCall}
+            disabled={!canEnd}
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
+          >
+            {status === "ending"
+              ? "Finishing..."
+              : isSubmission
+                ? "Submit assignment"
+                : "End session"}
+          </button>
+        </div>
       </header>
 
       {/* Graded submission: the explicit submit-and-score step. */}
@@ -734,6 +768,12 @@ export function VoiceConversation({
             </button>
           </div>
         </div>
+      )}
+
+      {expired && (
+        <p className="mb-3 text-sm text-red-600">
+          Time is up. Ending your practice...
+        </p>
       )}
 
       {/* The live self-view, shown while the camera is recording. */}

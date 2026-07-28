@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { PracticeClock } from "@/components/practice-clock";
 import type { TranscriptTurn } from "@/lib/types";
 
 // The live text conversation with the persona. Shows the running transcript,
@@ -32,12 +33,34 @@ export function Conversation({
   const [ending, setEnding] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState("");
+  // The practice clock reached its thirty-minute hard stop; the practice is
+  // being auto-ended (practice only; never set for a graded submission).
+  const [expired, setExpired] = useState(false);
+  const autoEndStartedRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // SINGLE CONTROL POINT for whether the practice clock is running. The clock is
+  // a practice-only feature, so it never runs for a graded submission, and it
+  // stops once the practice is ending or the hard stop is reached. Piece 6's
+  // pause will stop the clock by AND-ing `&& !paused` here; nothing else changes.
+  const clockActive = !isSubmission && !ending && !expired;
 
   // Keep the newest message in view.
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [turns, sending]);
+
+  // When the clock hits the thirty-minute hard stop, end the practice the SAME
+  // way the student's End button does (doEnd, which reuses /api/session/end).
+  // Fire once, and wait out any in-flight message send first.
+  useEffect(() => {
+    if (!expired || autoEndStartedRef.current) return;
+    if (sending || ending) return;
+    autoEndStartedRef.current = true;
+    void doEnd();
+    // doEnd is intentionally omitted from deps: it is guarded to run once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expired, sending, ending]);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -132,19 +155,24 @@ export function Conversation({
             {personaName}
           </p>
         </div>
-        <button
-          onClick={requestEnd}
-          disabled={ending || sending}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
-        >
-          {ending
-            ? conversationOnly
-              ? "Ending..."
-              : "Scoring..."
-            : isSubmission
-              ? "Submit assignment"
-              : "End session"}
-        </button>
+        <div className="flex items-center gap-3">
+          {!isSubmission && (
+            <PracticeClock active={clockActive} onExpire={() => setExpired(true)} />
+          )}
+          <button
+            onClick={requestEnd}
+            disabled={ending || sending || expired}
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
+          >
+            {ending
+              ? conversationOnly
+                ? "Ending..."
+                : "Scoring..."
+              : isSubmission
+                ? "Submit assignment"
+                : "End session"}
+          </button>
+        </div>
       </header>
 
       <div className="flex-1 space-y-3 overflow-y-auto pr-1">
@@ -179,6 +207,12 @@ export function Conversation({
 
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
 
+      {expired && (
+        <p className="mt-2 text-sm text-red-600">
+          Time is up. Ending your practice...
+        </p>
+      )}
+
       {/* Graded submission: the explicit submit-and-score step. */}
       {isSubmission && confirming && (
         <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm">
@@ -211,12 +245,12 @@ export function Conversation({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={`Type your message to ${personaName}...`}
-          disabled={ending}
+          disabled={ending || expired}
           className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm disabled:opacity-50"
         />
         <button
           type="submit"
-          disabled={sending || ending || !input.trim()}
+          disabled={sending || ending || expired || !input.trim()}
           className="rounded-md bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
         >
           Send
