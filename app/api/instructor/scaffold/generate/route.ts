@@ -26,6 +26,10 @@ import {
 } from "@/lib/persona-scaffold";
 import type { ScaffoldInputs, ChainContext } from "@/lib/persona-scaffold";
 import { assembleScenario } from "@/lib/persona-assembly";
+import {
+  GENERATION_FIELDS_VERSION,
+  candidateScenarioTitle,
+} from "@/lib/scaffold-candidates";
 import type { GenerationFields } from "@/lib/scaffold-candidates";
 
 // Two model calls run at the same time and each one can be slow, so we ask for
@@ -216,9 +220,14 @@ export async function POST(request: Request) {
     const groupId = crypto.randomUUID();
 
     const rows = [first, second].map((candidate, index) => ({
-      title: `Scaffold candidate ${index + 1} (${
-        inputs.chainPosition === "gatekeeper" ? "gatekeeper" : "decision maker"
-      }): ${candidate.persona_name}, ${candidate.role}`,
+      // The candidate title format lives in one place, because editing a
+      // candidate's name or role has to rewrite it with the same shape.
+      title: candidateScenarioTitle(
+        index + 1,
+        inputs.chainPosition,
+        candidate.persona_name,
+        candidate.role,
+      ),
       persona_name: candidate.persona_name,
       // The two text fields that actually drive the role-play, built from the
       // candidate's fields by the fixed template (lib/persona-assembly.ts). For
@@ -236,11 +245,21 @@ export async function POST(request: Request) {
       // The structured fields the compare view renders, plus the admin's own
       // answers (chunk 2d generates the matching second persona from them) and
       // which of the pair this is, so the order on screen is always the same.
+      //
+      // THE CHAIN IS STORED TOO (version 2, added in PD-2). Editing a candidate
+      // rebuilds its two text fields from this JSON by re-running the same fixed
+      // template used just below, and for a chained decision maker the chain is
+      // what puts the "you already had a discovery meeting with X" narrative in
+      // that text. Storing it here is what makes the rebuild self-contained from
+      // this one row: nothing has to look the gatekeeper up again, which keeps
+      // the two scenarios independent exactly as they are today. It is absent on
+      // a gatekeeper because a gatekeeper has no earlier meeting.
       generation_fields: {
-        version: 1,
+        version: GENERATION_FIELDS_VERSION,
         candidate_index: index + 1,
         candidate,
         inputs,
+        ...(chain ? { chain } : {}),
       },
       created_by: user.id,
     }));

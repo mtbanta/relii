@@ -250,7 +250,11 @@ export default async function CompareCandidatesPage({
             is scored (these are conversation-only cases with no rubric).
           </p>
           <p className="mt-2 text-gray-600">
-            Choosing one switches it on and permanently deletes the other.
+            Choosing one switches it on and permanently deletes the other. Before
+            you choose, you can customise either candidate: your edits rebuild
+            its briefing and persona instructions from the same fixed template,
+            with no AI involved, and they carry through to the live case if you
+            then choose it.
           </p>
         </div>
       )}
@@ -319,13 +323,24 @@ export default async function CompareCandidatesPage({
           </tbody>
           {/* The pick itself, sitting directly under the fields it is based on,
               so the decision is made where the evidence is. Only while the
-              generation is still undecided. */}
+              generation is still undecided.
+
+              Customise sits with it, above the pick, because both are decisions
+              about the same candidate and editing is something you do INSTEAD of
+              picking, at least for now. Editing is candidates-only, before a
+              winner is chosen, which is exactly when this footer is shown. */}
           {!decided && (
             <tfoot>
               <tr>
                 <td className="p-3" />
                 {rows.map((row) => (
-                  <td key={row.id} className="p-3 align-top">
+                  <td key={row.id} className="space-y-2 p-3 align-top">
+                    <Link
+                      href={`/instructor/scaffold/edit/${row.id}`}
+                      className="block w-full rounded-md border border-gray-300 px-3 py-2 text-center text-sm hover:bg-gray-50"
+                    >
+                      Customise {row.persona_name}
+                    </Link>
                     <ChooseCandidateButton
                       candidateId={row.id}
                       personaName={row.persona_name}

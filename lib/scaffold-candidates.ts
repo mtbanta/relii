@@ -9,7 +9,31 @@
 // must never be imported into a Client Component. Both callers are
 // instructor-gated pages that check the caller's role before reading.
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { PersonaCandidate, ScaffoldInputs } from "@/lib/persona-scaffold";
+import type {
+  PersonaCandidate,
+  ScaffoldInputs,
+  ChainContext,
+} from "@/lib/persona-scaffold";
+
+// The version stamped on every generation_fields object written from now on.
+//
+// VERSION 1 (up to PD-2) stored the candidate and the admin's inputs, but NOT
+// the chain: the gatekeeper facts that a chained decision maker's text is built
+// from. Nothing needed them again, because the text was assembled once at
+// generation time and never rebuilt.
+//
+// VERSION 2 (PD-2 onwards) adds the chain, because editing a candidate rebuilds
+// its text from the stored fields. Without the chain stored, rebuilding a
+// chained decision maker would quietly drop the "you already had a discovery
+// meeting with X" narrative and turn it back into a standalone meeting. That is
+// exactly the drift the fixed template exists to prevent.
+//
+// The bump is UNCONDITIONAL, on every generation, including a gatekeeper that
+// has no chain at all. Version 2 has to mean "provenance is fully recorded",
+// because that is what lets resolveChainForReassembly below read an ABSENT
+// chain on a version 2 decision maker as proof that it never had one. If the
+// version were only bumped on chain generations, that reading would be wrong.
+export const GENERATION_FIELDS_VERSION = 2;
 
 // What we stored in the generation_fields JSON column. Every part is optional
 // here on purpose: this is data read back out of a JSON column, so the code
@@ -20,6 +44,8 @@ export type GenerationFields = {
   candidate_index?: number;
   candidate?: PersonaCandidate;
   inputs?: ScaffoldInputs;
+  // Present only on a chained decision maker (version 2 onwards). See above.
+  chain?: ChainContext;
 };
 
 export type CandidateRow = {
@@ -279,6 +305,80 @@ export function liveScenarioTitle(
 ): string {
   const meeting = meetingType === "discovery" ? "Discovery" : "Presentation";
   return `${meeting}-Close: ${personaName.trim()} (${role.trim().toLowerCase()})`;
+}
+
+// The title a row carries WHILE it is still a candidate, for example
+// "Scaffold candidate 1 (gatekeeper): Riley, facilities director".
+//
+// It lives here rather than inline in the generate route because two places now
+// write it: generation writes it once, and editing a candidate's name or role
+// has to rewrite it so the recent-generations list does not keep showing the
+// old name. Writing the same format out twice is the drift this project avoids
+// everywhere else, so both callers use this one function.
+export function candidateScenarioTitle(
+  candidateIndex: number,
+  chainRole: string | null,
+  personaName: string,
+  role: string,
+): string {
+  const position = chainRole === "gatekeeper" ? "gatekeeper" : "decision maker";
+  return `Scaffold candidate ${candidateIndex} (${position}): ${personaName.trim()}, ${role.trim()}`;
+}
+
+// ---------------------------------------------------------------------------
+// Which chain context a candidate must be REBUILT with
+// ---------------------------------------------------------------------------
+//
+// Editing a candidate re-runs the fixed template (lib/persona-assembly.ts) over
+// the edited fields. That template takes an OPTIONAL chain, and the chain is
+// what writes the "you already had a discovery meeting with X, and you earned
+// this meeting" narrative into a chained decision maker's briefing and system
+// prompt. Rebuild without it and that narrative silently disappears.
+//
+// So the chain is never guessed. It is resolved from what the row itself
+// carries, using facts that hold by construction in the generate route:
+//
+//   A chain is only ever built inside the "generate from a chosen gatekeeper"
+//   branch, and that branch forces the new persona to be a decision maker.
+//   Therefore a chain always implies a decision maker, and a GATEKEEPER NEVER
+//   HAS ONE.
+//
+// That gives four cases, three answerable and one not:
+//
+//   gatekeeper, any version          -> no chain, by construction
+//   decision maker, v2, chain stored -> that stored chain
+//   decision maker, v2, no chain     -> no chain: v2 records provenance in
+//                                       full, so absent means it never had one
+//   decision maker, v1 or unstamped  -> UNKNOWN. Version 1 stored no chain
+//                                       whether or not the persona had one, and
+//                                       nothing on the row points back at its
+//                                       gatekeeper, so it cannot be recovered.
+//
+// The last case refuses rather than guessing. Guessing "no chain" is the exact
+// silent drift this function exists to prevent, and guessing "some chain" is
+// not possible. The fix is to regenerate the case under the current code.
+export type ChainResolution =
+  | { ok: true; chain: ChainContext | undefined }
+  | { ok: false; reason: string };
+
+export function resolveChainForReassembly(
+  chainRole: string | null,
+  fields: GenerationFields,
+): ChainResolution {
+  if (chainRole === "gatekeeper") {
+    return { ok: true, chain: undefined };
+  }
+
+  const version = fields.version ?? 1;
+  if (version < GENERATION_FIELDS_VERSION) {
+    return {
+      ok: false,
+      reason:
+        "This candidate was generated before editing existed, so the app cannot tell whether its briefing refers to an earlier meeting with a gatekeeper. Editing it could quietly remove that reference. Generate this case again and edit the new candidates instead.",
+    };
+  }
+
+  return { ok: true, chain: fields.chain };
 }
 
 // ---------------------------------------------------------------------------
