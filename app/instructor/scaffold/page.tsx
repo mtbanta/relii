@@ -10,8 +10,7 @@
 // conversation-only scenarios. Picking a winner, enabling it, and deleting the
 // loser is chunk 2d.
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireInstructor } from "@/lib/instructor-auth";
 import { ScaffoldForm } from "@/components/scaffold-form";
 import { GenerationActions } from "@/components/generation-actions";
 import { DiscardAllGenerations } from "@/components/discard-all-generations";
@@ -21,35 +20,20 @@ import {
 } from "@/lib/scaffold-candidates";
 
 export default async function ScaffoldPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  // Students who land here get sent to their own page.
-  if (profile?.role !== "instructor") {
-    redirect("/student");
-  }
+  // The shared instructor layout already gated this page (signed in, an
+  // instructor, and past the name gate); this confirms it again for the page
+  // itself, since a page can be requested directly.
+  await requireInstructor();
 
   const recent = await loadRecentGenerations();
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 p-8">
+    <main className="mx-auto max-w-3xl space-y-6 px-8 pb-12 pt-6">
+      {/* No back link: this is one of the five destinations in the instructor
+          nav above, so the nav is how you leave it. The heading is an h2,
+          because the page title in the shared header is the h1. */}
       <div>
-        <Link href="/instructor" className="text-sm text-gray-500 underline">
-          Back to dashboard
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold">Persona scaffolding</h1>
+        <h2 className="text-xl font-semibold">Persona Scaffolding</h2>
         <p className="mt-1 text-sm text-gray-600">
           Describe a sales case and the AI writes two candidate buyer personas
           in the same style as Alex and Jordan. Both are saved turned OFF, so no
@@ -63,7 +47,7 @@ export default async function ScaffoldPage() {
       {/* Past generations, so a compare view is never lost just because the web
           address was not kept. */}
       <div className="space-y-2">
-        <h2 className="font-medium">Recent generations</h2>
+        <h3 className="font-medium">Recent generations</h3>
         {recent.length === 0 ? (
           <p className="text-sm text-gray-500">
             Nothing generated yet. Your saved candidate pairs will be listed
@@ -107,7 +91,7 @@ export default async function ScaffoldPage() {
       {/* The bulk tidy-up, kept at the bottom and away from everything else,
           because it is the one control here that can delete a lot at once. */}
       <div className="space-y-2 border-t border-gray-200 pt-6">
-        <h2 className="font-medium">Clean up</h2>
+        <h3 className="font-medium">Clean up</h3>
         <p className="text-sm text-gray-600">
           Testing leaves candidate pairs behind. This removes every generated
           persona that is switched off and has never been used. It cannot touch

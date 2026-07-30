@@ -1,43 +1,30 @@
-// The instructor dashboard. The top of the page is the submissions dashboard:
-// pick an assignment and see its submissions in a table with three summary
-// tiles. Below that, the existing instructor controls remain unchanged: invite
-// students, create assignments, and manage the student roster. It confirms the
-// visitor is a logged-in instructor; otherwise it redirects.
+// SUBMISSIONS: the instructor's default landing page, reached at /instructor.
+//
+// Pick an assignment from the Active Assignments dropdown and see its
+// submissions in a table with three summary tiles, plus the reset / allow-retake
+// controls and that assignment's reset history.
+//
+// The header, the navigation menu, the signed-in-instructor check, and the name
+// gate all live in the shared layout (app/instructor/layout.tsx). Invite Users,
+// Manage Assignments, and Roster used to sit below this view on one long page;
+// they are now their own pages under the same nav, each reading only its own
+// data.
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { SignOutButton } from "@/components/sign-out-button";
-import { AddEmailForm } from "@/components/add-email-form";
-import { BulkInviteForm } from "@/components/bulk-invite-form";
-import { DeleteStudentButton } from "@/components/delete-student-button";
-import { UninviteButton } from "@/components/uninvite-button";
-import { CreateAssignmentForm } from "@/components/create-assignment-form";
-import { EditAssignmentForm } from "@/components/edit-assignment-form";
-import { DeleteAssignmentButton } from "@/components/delete-assignment-button";
 import { AssignmentSelector } from "@/components/assignment-selector";
 import { SubmissionResetButton } from "@/components/submission-reset-button";
 import { ResetHistory } from "@/components/reset-history";
 import type { ResetHistoryRow } from "@/components/reset-history";
-import { NameGate } from "@/components/name-gate";
+import { requireInstructor } from "@/lib/instructor-auth";
 import { isSubmissionLocked } from "@/lib/submission";
-import { displayName, hasName } from "@/lib/name";
+import { displayName } from "@/lib/name";
 import type { SessionScore } from "@/lib/types";
 
 // Compact mode label for the submissions table (matches the mockup: "V+V").
 function modeShort(mode: string): string {
   return mode === "voice_video" ? "V+V" : "Text";
 }
-
-// One assignment as read for the management list (this instructor's own).
-type AssignmentRow = {
-  id: string;
-  title: string;
-  required_mode: string;
-  due_at: string | null;
-  instructions: string | null;
-  scenarios: { title: string; persona_name: string } | null;
-};
 
 // One assignment as read for the dashboard selector (ALL assignments).
 type SelectorAssignment = {
@@ -59,39 +46,18 @@ type SubmissionRow = {
   created_at: string;
 };
 
-export default async function InstructorHome({
+export default async function InstructorSubmissions({
   searchParams,
 }: {
   searchParams: Promise<{ assignment?: string }>;
 }) {
   const { assignment: assignmentParam } = await searchParams;
 
+  // The layout already gated this page; this confirms it again for the page
+  // itself, which is also how it gets the signed-in user.
+  await requireInstructor();
+
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, first_name, last_name")
-    .eq("id", user.id)
-    .single();
-
-  // Students who land here get sent to their own page.
-  if (profile?.role !== "instructor") {
-    redirect("/student");
-  }
-
-  // The required name gate applies to instructors too: with no name set, the
-  // whole dashboard is replaced by the gate until first and last name are
-  // entered. It does not return on later visits.
-  if (!hasName(profile)) {
-    return <NameGate email={user.email ?? ""} />;
-  }
 
   // The admin (service-role) client reads data ordinary browser rules do not
   // allow (other students' emails, and submission rows joined to those emails).
@@ -99,50 +65,19 @@ export default async function InstructorHome({
   // database security rule needs to change.
   const admin = createAdminClient();
 
-  // Every REGISTERED user (both roles), for the roster. We read all profiles
-  // once and derive the pieces the dashboard needs from it, so there is a single
-  // source of truth. The students slice is still the "enrolled" count for the
-  // Submissions tile and the id -> email map the submissions table uses.
-  const { data: allProfiles } = await admin
+  // The registered STUDENTS. This view needs them for two things only: the
+  // "enrolled" count on the Submissions tile, and the id -> name/email map the
+  // table shows. The full roster of every user (both roles, plus the pending
+  // invites) belongs to the Roster page and is read there.
+  const { data: studentProfiles } = await admin
     .from("profiles")
-    .select("id, email, role, first_name, last_name")
+    .select("id, email, first_name, last_name")
+    .eq("role", "student")
     .order("email", { ascending: true });
 
-  const profilesAll = allProfiles ?? [];
-  const students = profilesAll.filter((p) => p.role === "student");
-  const registeredInstructors = profilesAll.filter(
-    (p) => p.role === "instructor",
-  );
-
+  const students = studentProfiles ?? [];
   const studentById = new Map(students.map((s) => [s.id, s]));
   const enrolledCount = students.length;
-
-  // The full invite list. A person's status is derived by matching emails
-  // (case-insensitive, the same way the signup trigger does): an invite whose
-  // email has no matching profile row is a PENDING invite; one that does match a
-  // profile is already registered (and appears in the registered lists above).
-  // Read server-side with the admin client, so no security rule changes.
-  const { data: invites } = await admin
-    .from("allowed_emails")
-    .select("email, role")
-    .order("email", { ascending: true });
-
-  const registeredEmails = new Set(
-    profilesAll.map((p) => p.email.toLowerCase()),
-  );
-  const pendingInvites = (invites ?? []).filter(
-    (i) => !registeredEmails.has(i.email.toLowerCase()),
-  );
-
-  // The scenarios this instructor can assign (the create-assignment dropdown).
-  // Only ENABLED scenarios are offered. A disabled scenario is one that is not
-  // ready to be used: chunk 2c writes AI-generated candidate personas turned off,
-  // so half-finished drafts can never be assigned to a student by accident.
-  const { data: scenarios } = await supabase
-    .from("scenarios")
-    .select("id, title, persona_name")
-    .eq("enabled", true)
-    .order("created_at", { ascending: true });
 
   // ALL assignments, newest first, for the dashboard selector. Per decision B an
   // instructor may see any student's submission, so the selector is not limited
@@ -153,43 +88,6 @@ export default async function InstructorHome({
     .select("id, title, required_mode, scenarios ( title, persona_name )")
     .order("created_at", { ascending: false })
     .returns<SelectorAssignment[]>();
-
-  // The assignments THIS instructor created (the management list + create form
-  // lower on the page). Unchanged from before.
-  const { data: assignments } = await supabase
-    .from("assignments")
-    .select("id, title, required_mode, due_at, instructions, scenarios ( title, persona_name )")
-    .eq("created_by", user.id)
-    .order("created_at", { ascending: false })
-    .returns<AssignmentRow[]>();
-
-  // How much student work sits under each of those assignments, split into
-  // submissions vs practices. This drives the delete control: 0 sessions means a
-  // clean delete (light confirm), 1+ means the strong type-DELETE confirm that
-  // names the counts. Read with the admin client, because instructors cannot
-  // read practice rows through ordinary browser rules. The delete route
-  // re-counts server-side before acting, so these numbers are only for display.
-  const assignmentCounts = new Map<
-    string,
-    { submissions: number; practices: number }
-  >();
-  const ownAssignmentIds = (assignments ?? []).map((a) => a.id);
-  if (ownAssignmentIds.length > 0) {
-    const { data: countRows } = await admin
-      .from("sessions")
-      .select("assignment_id, kind")
-      .in("assignment_id", ownAssignmentIds);
-    for (const row of countRows ?? []) {
-      if (!row.assignment_id) continue;
-      const current = assignmentCounts.get(row.assignment_id) ?? {
-        submissions: 0,
-        practices: 0,
-      };
-      if (row.kind === "submission") current.submissions += 1;
-      else if (row.kind === "practice") current.practices += 1;
-      assignmentCounts.set(row.assignment_id, current);
-    }
-  }
 
   // Resolve which assignment the dashboard is showing: the one named in the URL
   // if it is valid, otherwise the newest.
@@ -265,43 +163,43 @@ export default async function InstructorHome({
   const awaitingReview = scored.length;
 
   return (
-    <main className="mx-auto max-w-4xl p-8">
-      <header className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Instructor dashboard</h1>
-          <p className="text-sm text-gray-700">
-            {displayName({ ...profile, email: user.email ?? "" })}
-          </p>
-          <p className="text-xs text-gray-400">{user.email}</p>
-        </div>
-        <div className="flex items-center gap-4">
-          {/* Build new buyer personas with the AI (chunk 2b: generate and review). */}
-          <Link href="/instructor/scaffold" className="text-sm underline">
-            Persona scaffolding
-          </Link>
-          <SignOutButton />
-        </div>
-      </header>
-
-      {/* ---- Submissions dashboard ---- */}
-      <section className="mb-10">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <main className="mx-auto max-w-5xl px-8 pb-12 pt-6">
+      <section>
+        <div className="mb-4">
           <h2 className="font-medium">Submissions</h2>
           {selectorList.length > 0 && selected && (
-            <AssignmentSelector
-              assignments={selectorList.map((a) => ({
-                id: a.id,
-                label: a.title,
-              }))}
-              selectedId={selected.id}
-            />
+            <div className="mt-3">
+              {/* The dropdown is how an instructor moves between the sessions
+                  they are running, so it is labelled rather than left bare.
+                  NOTE: the list is every assignment. There is no active or
+                  inactive state in the data yet, so "Active Assignments" is the
+                  agreed label for the control, not a filter. */}
+              <label
+                htmlFor="assignment-selector"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Active Assignments
+              </label>
+              <div className="mt-1">
+                <AssignmentSelector
+                  assignments={selectorList.map((a) => ({
+                    id: a.id,
+                    label: a.title,
+                  }))}
+                  selectedId={selected.id}
+                />
+              </div>
+            </div>
           )}
         </div>
 
         {selectorList.length === 0 || !selected ? (
           <p className="rounded-lg border border-gray-200 p-4 text-sm text-gray-500">
-            No assignments yet. Create an assignment below and your students&apos;
-            submissions will appear here.
+            No assignments yet. Create one on the{" "}
+            <Link href="/instructor/assignments" className="underline">
+              Manage Assignments
+            </Link>{" "}
+            page and your students&apos; submissions will appear here.
           </p>
         ) : (
           <>
@@ -490,156 +388,6 @@ export default async function InstructorHome({
                 server-side. */}
             <ResetHistory resets={resets} />
           </>
-        )}
-      </section>
-
-      {/* ---- Existing instructor controls ---- */}
-      <AddEmailForm />
-      <BulkInviteForm />
-
-      <section className="mt-8">
-        <h2 className="mb-1 font-medium">Assignments</h2>
-        <p className="mb-3 text-sm text-gray-500">
-          Create an assignment for a scenario and pick the mode the graded
-          submission must use. Each student can submit an assignment once.
-        </p>
-
-        <CreateAssignmentForm scenarios={scenarios ?? []} createdBy={user.id} />
-
-        <div className="mt-4">
-          {assignments && assignments.length > 0 ? (
-            <ul className="space-y-2">
-              {assignments.map((a) => {
-                const counts = assignmentCounts.get(a.id) ?? {
-                  submissions: 0,
-                  practices: 0,
-                };
-                const inUse = counts.submissions + counts.practices > 0;
-                return (
-                  <li
-                    key={a.id}
-                    className="rounded-lg border border-gray-200 p-3"
-                  >
-                    <EditAssignmentForm
-                      assignment={{
-                        id: a.id,
-                        title: a.title,
-                        instructions: a.instructions,
-                        due_at: a.due_at,
-                        required_mode: a.required_mode,
-                        scenarioTitle: a.scenarios?.title ?? null,
-                        personaName: a.scenarios?.persona_name ?? null,
-                      }}
-                    />
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-2">
-                      <span className="text-xs text-gray-400">
-                        {inUse
-                          ? `In use: ${counts.submissions} submission${counts.submissions === 1 ? "" : "s"}, ${counts.practices} practice${counts.practices === 1 ? "" : "s"}`
-                          : "Not in use (no student work)"}
-                      </span>
-                      <DeleteAssignmentButton
-                        assignmentId={a.id}
-                        title={a.title}
-                        submissionsCount={counts.submissions}
-                        practicesCount={counts.practices}
-                      />
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="text-sm text-gray-500">
-              You have not created any assignments yet.
-            </p>
-          )}
-        </div>
-      </section>
-
-      <section className="mt-8">
-        <h2 className="mb-1 font-medium">Roster</h2>
-        <p className="mb-4 text-sm text-gray-500">
-          Everyone with access to Relii, grouped by status. Registered users have
-          signed up; pending invites are on the invite list but have not
-          registered yet. Deleting a student permanently removes their account,
-          sessions, and recorded videos, and frees their email from the invite
-          list.
-        </p>
-
-        {/* Registered students: the existing Delete action, unchanged. */}
-        <h3 className="mb-2 text-sm font-medium text-gray-700">
-          Registered students{" "}
-          <span className="font-normal text-gray-400">({students.length})</span>
-        </h3>
-        {students.length > 0 ? (
-          <ul className="space-y-2">
-            {students.map((s) => (
-              <li key={s.id} className="rounded-lg border border-gray-200 p-3">
-                <DeleteStudentButton
-                  studentId={s.id}
-                  email={s.email}
-                  name={displayName(s)}
-                />
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-gray-500">
-            No students have registered yet.
-          </p>
-        )}
-
-        {/* Registered instructors: display only. There is no delete for an
-            instructor (the delete-student route refuses a non-student), and you
-            cannot delete yourself. Your own account is marked "(you)". */}
-        <h3 className="mb-2 mt-6 text-sm font-medium text-gray-700">
-          Registered instructors{" "}
-          <span className="font-normal text-gray-400">
-            ({registeredInstructors.length})
-          </span>
-        </h3>
-        {registeredInstructors.length > 0 ? (
-          <ul className="space-y-2">
-            {registeredInstructors.map((p) => (
-              <li
-                key={p.id}
-                className="flex flex-wrap items-center gap-x-2 rounded-lg border border-gray-200 p-3 text-sm"
-              >
-                <span>{displayName(p)}</span>
-                {p.id === user.id && (
-                  <span className="text-xs text-gray-400">(you)</span>
-                )}
-                {hasName(p) && (
-                  <span className="text-xs text-gray-400">· {p.email}</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-gray-500">
-            No instructors have registered yet.
-          </p>
-        )}
-
-        {/* Pending invites: on the invite list but not registered yet. Either
-            role can be pending. Each has an Un-invite action that removes just
-            that one invite-list row (verified pending, server-side). */}
-        <h3 className="mb-2 mt-6 text-sm font-medium text-gray-700">
-          Invited, pending{" "}
-          <span className="font-normal text-gray-400">
-            ({pendingInvites.length})
-          </span>
-        </h3>
-        {pendingInvites.length > 0 ? (
-          <ul className="space-y-2">
-            {pendingInvites.map((i) => (
-              <li key={i.email} className="rounded-lg border border-gray-200 p-3">
-                <UninviteButton email={i.email} role={i.role} />
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-gray-500">No pending invites.</p>
         )}
       </section>
     </main>

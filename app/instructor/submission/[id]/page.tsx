@@ -123,11 +123,15 @@ export default async function InstructorSubmissionPage({
   const submittedAt = formatDateTime(session.submitted_at);
 
   return (
-    <main className="mx-auto max-w-5xl p-8">
+    <main className="mx-auto max-w-5xl px-8 pb-12 pt-6">
+      {/* An h2, not an h1: the page title in the shared instructor header above
+          is the h1. The name and email here are the STUDENT'S, and the header
+          above shows the signed-in instructor's, so this one says whose it is.
+          The back link returns to Submissions with this assignment selected. */}
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Submission</h1>
-          <p className="text-sm text-gray-700">{studentName}</p>
+          <h2 className="text-xl font-semibold">Submission</h2>
+          <p className="text-sm text-gray-700">Student: {studentName}</p>
           {student && hasName(student) && (
             <p className="text-xs text-gray-400">{student.email}</p>
           )}
@@ -136,7 +140,7 @@ export default async function InstructorSubmissionPage({
           href={`/instructor?assignment=${session.assignment_id}`}
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
         >
-          Back to dashboard
+          Back to Submissions
         </Link>
       </header>
 

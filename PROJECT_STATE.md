@@ -4,7 +4,7 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ## Current Stage
 
-THE CURRENT PLAN IS THE TWO-WEEK SPRINT BELOW, set at a July 2026 meeting with Tom and aimed at a demo. It REPLACES the old numbered stage sequence as the guide to what comes next: the build order in CLAUDE.md is history, not the current queue. Read this section to know what to work on. Nothing is blocked on Tom.
+THE CURRENT PLAN IS THE PRE-DEMO SPRINT (PD-1 to PD-8) DESCRIBED BELOW, set at the July 28, 2026 meeting with Tom and due before the Dawn demo on Monday, August 3, 2026. It sits on top of the earlier two-week sprint (also listed below, now all done except the deferred Piece 6), and both REPLACE the old numbered stage sequence as the guide to what comes next: the build order in CLAUDE.md is history, not the current queue. Read this section to know what to work on. Nothing is blocked on Tom.
 
 Done and live at https://relii.vercel.app: Stage 7 (session and assignment lifecycle, all six chunks) and the four buildable pieces of Stage 8 (the instructor dashboard). Stage 8 piece 1: the submissions dashboard, the read-only submission detail view, and the three downloads. Piece 2: the reset/allow-retake control, its snapshot audit log, and the per-assignment reset history. Piece 3: roster management (the combined roster plus un-invite a pending invite). Piece 4: assignment management (edit the low-risk fields, plus clean-delete an unused assignment and strong-confirm-delete an in-use one, with an audit log). Full detail on every one of these is in Completed below, which stays accurate.
 
@@ -20,7 +20,20 @@ The two-week sprint, in order (the owner's items):
 
 EXECUTION ORDER UPDATE (2026-07-27, owner decision at the Piece 5 kickoff): with Piece 5 done, the next piece is PIECE 7 (bulk invite via CSV), THEN the Stage 8.5 visual/accessibility polish pass, THEN PIECE 6 (practice pause with the per-assignment toggle). Piece 6 was deliberately deferred to last of the three: Piece 5 (this clock) was built before pause on purpose, because pause has to stop the clock, and the clock now exposes a single control point ready for it. The numbers 6 and 7 stay as piece identities (they are referenced by number throughout); only the execution order changed.
 
-UPDATE (2026-07-28): Piece 7 (bulk invite via CSV) is now DONE and live. The next piece is the Stage 8.5 visual/accessibility polish pass, THEN PIECE 6 (practice pause with the per-assignment toggle).
+STATUS OF THE TWO-WEEK SPRINT (2026-07-30): pieces 1, 2, 3, 4, 5, and 7 are all DONE and live. Piece 6 (practice pause with the per-assignment toggle) remains DEFERRED; it is not part of the pre-demo sprint below and comes after it.
+
+THE PRE-DEMO SPRINT (the current queue, set at the July 28, 2026 Tom meeting):
+
+A July 28, 2026 meeting with Tom ADDED a pre-demo sprint of eight pieces, PD-1 to PD-8, ALL due before the Dawn demo on MONDAY, AUGUST 3, 2026. This is the active queue and it takes precedence over the remaining two-week-sprint item (Piece 6) and everything else. Build the FUNCTIONAL pieces first, in order, then PD-8 LAST as a single pass:
+
+1. PD-1: instructor navigation / information-architecture restructure. IN PROGRESS. Adds a real nav menu to the instructor default page and relocates the existing instructor screens under it (Submissions as the default landing, Invite Users, Manage Assignments, Roster, Persona Scaffolding), plus an "Active Assignments" header above the assignment dropdown on Submissions. Reorganization plus a nav shell only: no screen changes what it does, no duplicated logic, no schema change. Note the label: the July 28 notes said "Create Assignment," but assignment create, edit, and delete already exist, so the owner renamed the destination "Manage Assignments." It is a relocation, not a new feature.
+2. PD-2: editable persona scaffolding.
+3. PD-3: Available Date.
+4. PD-4: variable meeting length.
+5. PD-5: Recording Length capture and display.
+6. PD-6: student practice interactions.
+7. PD-7: display and copy batch.
+8. PD-8: the Stage 8.5 visual polish pass, done LAST as one pass over the finished surfaces.
 
 Two final-tier items come after the sprint: rapport personas, then a Privacy Overview.
 
@@ -339,7 +352,7 @@ Stage 6 (the full scoring engine: the voice and delivery items, the OpenAI vs Cl
 
 ## Next Steps
 
-- NOW: the two-week sprint listed in Current Stage above. Piece 1 (Jordan, the second persona) is DONE and live. Piece 2 (admin scaffolding) is COMPLETE end to end and live: 2a, 2b, 2c, and 2d are all done. Piece 3 (student and instructor names) is DONE and live. Piece 4 (the assignment submission workflow revision) is DONE and live. Piece 5 (the 30:00 count-up clock) is DONE and live. Piece 7 (bulk invite via CSV) is DONE and live. NEXT is the Stage 8.5 visual/accessibility polish pass, THEN PIECE 6 (practice pause with the per-assignment toggle), per the execution-order update in Current Stage above. That list, not the old stage numbering, is the queue.
+- WHERE THE TWO-WEEK SPRINT LANDED (listed in Current Stage above): Piece 1 (Jordan, the second persona) is DONE and live. Piece 2 (admin scaffolding) is COMPLETE end to end and live: 2a, 2b, 2c, and 2d are all done. Piece 3 (student and instructor names) is DONE and live. Piece 4 (the assignment submission workflow revision) is DONE and live. Piece 5 (the 30:00 count-up clock) is DONE and live. Piece 7 (bulk invite via CSV) is DONE and live. Piece 6 (practice pause with the per-assignment toggle) is DEFERRED until after the pre-demo sprint. NOW: the PRE-DEMO SPRINT (PD-1 to PD-8) from the July 28, 2026 Tom meeting, all due before the Aug 3 demo, in the order listed in Current Stage above: the functional pieces PD-1 to PD-7 first, then PD-8 (the Stage 8.5 visual polish pass) LAST as one pass. PD-1 (the instructor nav restructure) is IN PROGRESS. That list, not the old stage numbering, is the queue.
 - OPEN UX QUESTION from Piece 4, small and optional, the owner's call: whether a student should be able to keep practicing AFTER submitting a graded assignment. The pre-existing !submitted gate hides the practice buttons once a submission exists, which under the new model (practice is unlimited and free) is arguably too strict. Leaving it as is means Piece 4's Decision 1 overflow (return-to-pool pushing the pool over 3) can never occur, so the keepId prune is a safe no-op backstop. Reconsidering the gate is the thing that would make that overflow reachable; it was left alone because the Piece 4 kickoff did not ask to change it.
 - The Vercel timeout never materialised anywhere in Piece 2. It was flagged for 2c, then for 2d's chain, and generation stayed SYNCHRONOUS throughout against an explicit 60-second maxDuration. The background-and-poll design (decision 7) was correctly never built, and the too-similar-candidates fallback (feeding candidate one into call two) is still held and unneeded.
 - OWNER'S MANUAL STEP, carried over from 2d and not something to build: the winner role-play gate (design decision 5). Role-play an enabled generated winner once through the normal assignment flow before Dawn sees the case, since reading the fields shows coherence but not conversational behavior.

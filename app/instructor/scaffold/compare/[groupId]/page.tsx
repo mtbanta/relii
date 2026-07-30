@@ -172,17 +172,19 @@ export default async function CompareCandidatesPage({
   const retainedLosers = decided ? rows.filter((row) => !row.enabled) : [];
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 p-8">
+    <main className="mx-auto max-w-6xl space-y-6 px-8 pb-12 pt-6">
       <div>
         <Link
           href="/instructor/scaffold"
           className="text-sm text-gray-500 underline"
         >
-          Back to persona scaffolding
+          Back to Persona Scaffolding
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold">
+        {/* An h2, not an h1: the page title in the shared instructor header
+            above is the h1. */}
+        <h2 className="mt-2 text-xl font-semibold">
           {decided ? "The chosen persona" : "Compare the candidates"}
-        </h1>
+        </h2>
         <p className="mt-1 text-sm text-gray-600">
           {decided
             ? "You have already picked a winner from this generation. The comparison is kept below for reference."

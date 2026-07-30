@@ -15,12 +15,15 @@ export function AssignmentSelector({
 }) {
   const router = useRouter();
 
+  // The id ties this dropdown to the visible "Active Assignments" label on the
+  // Submissions page, which is where its name now comes from (it used to carry
+  // an aria-label instead, when it had no visible label).
   return (
     <select
       value={selectedId}
       onChange={(e) => router.push(`/instructor?assignment=${e.target.value}`)}
       className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm"
-      aria-label="Choose an assignment"
+      id="assignment-selector"
     >
       {assignments.map((a) => (
         <option key={a.id} value={a.id}>

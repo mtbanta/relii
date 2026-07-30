@@ -49,11 +49,13 @@ export default async function ChainPage({
   // admin can act on both.
   if (gatekeeper.chain_role !== "gatekeeper") {
     return (
-      <main className="mx-auto max-w-3xl space-y-4 p-8">
+      <main className="mx-auto max-w-3xl space-y-4 px-8 pb-12 pt-6">
         <Link href="/instructor/scaffold" className="text-sm text-gray-500 underline">
-          Back to persona scaffolding
+          Back to Persona Scaffolding
         </Link>
-        <h1 className="text-2xl font-semibold">Nothing to chain from</h1>
+        {/* An h2, not an h1: the page title in the shared instructor header
+            above is the h1. */}
+        <h2 className="text-xl font-semibold">Nothing to chain from</h2>
         <p className="text-sm text-gray-600">
           {gatekeeper.persona_name} is a decision maker, and a decision maker
           gates nobody, so there is no second meeting to build. The chain starts
@@ -65,11 +67,11 @@ export default async function ChainPage({
 
   if (!gatekeeper.enabled) {
     return (
-      <main className="mx-auto max-w-3xl space-y-4 p-8">
+      <main className="mx-auto max-w-3xl space-y-4 px-8 pb-12 pt-6">
         <Link href="/instructor/scaffold" className="text-sm text-gray-500 underline">
-          Back to persona scaffolding
+          Back to Persona Scaffolding
         </Link>
-        <h1 className="text-2xl font-semibold">Choose this gatekeeper first</h1>
+        <h2 className="text-xl font-semibold">Choose this gatekeeper first</h2>
         <p className="text-sm text-gray-600">
           {gatekeeper.persona_name} is switched off, so it is not a case anyone
           has settled on yet. Choose it first, and then come back to build its
@@ -86,17 +88,17 @@ export default async function ChainPage({
   }
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 p-8">
+    <main className="mx-auto max-w-3xl space-y-6 px-8 pb-12 pt-6">
       <div>
         <Link
           href="/instructor/scaffold"
           className="text-sm text-gray-500 underline"
         >
-          Back to persona scaffolding
+          Back to Persona Scaffolding
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold">
+        <h2 className="mt-2 text-xl font-semibold">
           Build the decision maker for this case
-        </h1>
+        </h2>
         <p className="mt-1 text-sm text-gray-600">
           {gatekeeper.persona_name} is the gatekeeper. This builds the person
           they gate access to: the second meeting, where the seller presents and
