@@ -30,7 +30,10 @@ export function CreateAssignmentForm({
     "voice_video",
   );
   const [instructions, setInstructions] = useState("");
-  const [dueAt, setDueAt] = useState(""); // a date like "2026-08-14", or empty
+  // Both dates are a plain day like "2026-08-14", or empty. Empty means "not
+  // set": no due date, and for the available date, available now.
+  const [availableDate, setAvailableDate] = useState("");
+  const [dueAt, setDueAt] = useState("");
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -67,8 +70,10 @@ export function CreateAssignmentForm({
       title: cleanTitle,
       scenario_id: scenarioId,
       required_mode: requiredMode,
-      // Optional fields become null when left blank.
+      // Optional fields become null when left blank. A null available_date
+      // means the assignment is available now; a null due_at means no due date.
       instructions: instructions.trim() ? instructions.trim() : null,
+      available_date: availableDate ? availableDate : null,
       due_at: dueAt ? dueAt : null,
       created_by: createdBy,
     });
@@ -84,6 +89,7 @@ export function CreateAssignmentForm({
     setMessage(`Created "${cleanTitle}".`);
     setTitle("");
     setInstructions("");
+    setAvailableDate("");
     setDueAt("");
     // Re-run the instructor page's queries so the new assignment appears below.
     router.refresh();
@@ -153,6 +159,22 @@ export function CreateAssignmentForm({
           placeholder="Anything the student should know before they start."
           className="w-full rounded-md border border-gray-300 px-3 py-2"
         />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm text-gray-600">
+          Available date (optional)
+        </label>
+        <input
+          type="date"
+          value={availableDate}
+          onChange={(e) => setAvailableDate(e.target.value)}
+          className="w-full rounded-md border border-gray-300 px-3 py-2"
+        />
+        <p className="mt-1 text-xs text-gray-400">
+          Students see this assignment listed but locked until this date. Leave
+          blank to make it available now.
+        </p>
       </div>
 
       <div>

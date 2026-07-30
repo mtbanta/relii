@@ -13,6 +13,7 @@ import { DeletePracticeButton } from "@/components/delete-practice-button";
 import { NameGate } from "@/components/name-gate";
 import { KEPT_PRACTICES } from "@/lib/practice";
 import { displayName, hasName } from "@/lib/name";
+import { isLockedUntil, formatAvailableDate } from "@/lib/available-date";
 import type { SessionScore } from "@/lib/types";
 
 // Friendly label for a stored mode value.
@@ -45,6 +46,9 @@ type AssignmentRow = {
   title: string;
   required_mode: string;
   due_at: string | null;
+  // available_date is when the assignment UNLOCKS. Null means available now, so
+  // assignments created before PD-3 simply appear immediately.
+  available_date: string | null;
   instructions: string | null;
   // rubric_id is null for a conversation-only case: nothing to grade, so the
   // assignment is practice-only.
@@ -107,9 +111,19 @@ export default async function StudentHome() {
   }
 
   // The assignments this student can do, with each one's scenario embedded.
+  //
+  // Ordered by AVAILABLE DATE, soonest first, so the semester reads in the order
+  // it happens. Nulls come FIRST on purpose: a null available date means
+  // "available now", so those sit at the very top, above assignments with a real
+  // date (including ones whose date has already passed). Nulls-first has to be
+  // asked for explicitly, because an ascending sort puts them last by default,
+  // which would bury every assignment created before PD-3 at the bottom.
+  // created_at is the tiebreaker, so assignments sharing a date (or both empty)
+  // keep the newest-first order the page used before.
   const { data: assignments } = await supabase
     .from("assignments")
-    .select("id, title, required_mode, due_at, instructions, scenarios ( title, persona_name, rubric_id )")
+    .select("id, title, required_mode, due_at, available_date, instructions, scenarios ( title, persona_name, rubric_id )")
+    .order("available_date", { ascending: true, nullsFirst: true })
     .order("created_at", { ascending: false })
     .returns<AssignmentRow[]>();
 
@@ -207,11 +221,28 @@ export default async function StudentHome() {
             // since the one-submission unique index would block a second anyway.
             const gradable = !practiceOnly && a.required_mode === "voice_video";
             const hasSubmission = submission != null;
+            // PD-3: before its Available Date an assignment is LOCKED. It is
+            // still listed (so the student can see what is coming) but grayed,
+            // with no way to practice it and no way to submit it. A null or past
+            // Available Date is unlocked and behaves exactly as it did before.
+            // The lock is decided when the page loads, so an assignment that
+            // opens while the student is looking at it appears on their next
+            // visit or refresh. The server routes enforce the same rule, so this
+            // is the display half of it, not the whole of it.
+            const locked = isLockedUntil(a.available_date);
+            const availableOn = formatAvailableDate(a.available_date);
 
             return (
-              <li key={a.id} className="rounded-lg border border-gray-200 p-5">
-                <h3 className="font-semibold">{a.title}</h3>
-                <p className="mt-0.5 text-sm text-gray-500">
+              <li
+                key={a.id}
+                className={`rounded-lg border border-gray-200 p-5 ${locked ? "bg-gray-50" : ""}`}
+              >
+                <h3 className={`font-semibold ${locked ? "text-gray-400" : ""}`}>
+                  {a.title}
+                </h3>
+                <p
+                  className={`mt-0.5 text-sm ${locked ? "text-gray-400" : "text-gray-500"}`}
+                >
                   {a.scenarios?.title ?? "Scenario"}
                   {a.scenarios?.persona_name
                     ? ` (with ${a.scenarios.persona_name})`
@@ -223,16 +254,30 @@ export default async function StudentHome() {
                   {due ? ` · due ${due}` : ""}
                 </p>
                 {a.instructions && (
-                  <p className="mt-3 text-sm leading-relaxed text-gray-700">
+                  <p
+                    className={`mt-3 text-sm leading-relaxed ${locked ? "text-gray-400" : "text-gray-700"}`}
+                  >
                     {a.instructions}
                   </p>
                 )}
 
                 {/* The official, one-shot graded submission. A conversation-only
                     case has no rubric, so there is nothing to grade and no
-                    graded path at all: it is practice only. */}
+                    graded path at all: it is practice only.
+
+                    PD-3: a LOCKED assignment shows the unlock date here instead
+                    of any control. It is gated on there being no submission row
+                    at all (rather than on "not submitted yet"), so if an
+                    assignment the student has already worked on is later moved
+                    to a future date, their finished result and any interrupted
+                    attempt still show. The lock stops NEW practice and NEW
+                    submitting; it never hides work already done. */}
                 <div className="mt-4">
-                  {practiceOnly ? (
+                  {locked && !hasSubmission ? (
+                    <p className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-500">
+                      Locked. Available on {availableOn}.
+                    </p>
+                  ) : practiceOnly ? (
                     <p className="text-sm text-gray-600">
                       This one is for conversation practice only. There is
                       nothing to submit and no score.
@@ -273,9 +318,11 @@ export default async function StudentHome() {
                   )}
                 </div>
 
-                {/* Practice this assignment (unlimited; only before submitting).
-                    The student picks the mode each time. */}
-                {!submitted && (
+                {/* Practice this assignment (unlimited; only before submitting,
+                    and only once it is available). The student picks the mode
+                    each time. PD-3: on a locked assignment the practice buttons
+                    are not rendered at all, so there is nothing to click. */}
+                {!submitted && !locked && (
                   <div className="mt-5 border-t border-gray-100 pt-4">
                     <p className="text-sm font-medium">Practice this assignment</p>
                     <p className="mt-0.5 text-xs text-gray-500">
@@ -289,7 +336,13 @@ export default async function StudentHome() {
                   </div>
                 )}
 
-                {/* Saved practices: the kept, reviewable ones. */}
+                {/* Saved practices: the kept, reviewable ones. On a LOCKED
+                    assignment this whole section is hidden UNLESS the student
+                    actually has practices for it (which only happens if an
+                    already-open assignment was later moved to a future date), so
+                    a normal locked card reads clean and no existing work is ever
+                    hidden from the student who did it. */}
+                {(!locked || kept.length > 0) && (
                 <div className="mt-5 border-t border-gray-100 pt-4">
                   <p className="text-sm text-gray-600">
                     Saved practices: {kept.length} of {KEPT_PRACTICES}
@@ -313,7 +366,7 @@ export default async function StudentHome() {
                               : p.score_total != null &&
                                   p.score?.max_total != null
                                 ? `${p.score_total} / ${p.score.max_total}`
-                                : "—"}
+                                : "-"}
                           </span>
                           <span className="ml-auto flex items-center gap-3">
                             <Link
@@ -331,9 +384,11 @@ export default async function StudentHome() {
                               submission yet, and only for a voice+video practice.
                               A voice+video practice with no recording (camera off
                               or a failed upload) shows the red warning instead;
-                              text practices show nothing. */}
+                              text practices show nothing. PD-3 adds one more
+                              condition: never while the assignment is locked. */}
                           {gradable &&
                             !hasSubmission &&
+                            !locked &&
                             p.mode === "voice_video" && (
                               <div className="w-full">
                                 {p.video_path ? (
@@ -355,6 +410,7 @@ export default async function StudentHome() {
                     </ul>
                   )}
                 </div>
+                )}
               </li>
             );
           })}

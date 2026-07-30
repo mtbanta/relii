@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { chatComplete } from "@/lib/openai";
 import { buildSystemMessage, OPENING_NUDGE } from "@/lib/persona";
+import { isLockedUntil, formatAvailableDate } from "@/lib/available-date";
 import type { TranscriptTurn } from "@/lib/types";
 
 export async function POST(request: Request) {
@@ -47,14 +48,29 @@ export async function POST(request: Request) {
   // 3. Load the assignment: which scenario, and which mode is required.
   const { data: assignment, error: assignmentError } = await admin
     .from("assignments")
-    .select("id, scenario_id, required_mode")
+    .select("id, scenario_id, required_mode, available_date")
     .eq("id", assignmentId)
     .single();
   if (assignmentError || !assignment) {
     return NextResponse.json({ error: "Assignment not found." }, { status: 404 });
   }
 
-  // 3a. A scenario with NO rubric is conversation-only: there is nothing to
+  // 3a. PD-3: an assignment cannot be started before its Available Date. This
+  //     route is DORMANT today (the one-shot "Start assignment" button is
+  //     disabled since Piece 4), and the check is added anyway so the rule is
+  //     already in place if that flow is ever switched back on, rather than
+  //     being a hole somebody has to remember later. An empty available date
+  //     means available now.
+  if (isLockedUntil(assignment.available_date)) {
+    return NextResponse.json(
+      {
+        error: `This assignment is not available until ${formatAvailableDate(assignment.available_date)}.`,
+      },
+      { status: 403 },
+    );
+  }
+
+  // 3b. A scenario with NO rubric is conversation-only: there is nothing to
   //     grade, so it can never be submitted. The student home already hides the
   //     graded control for these assignments, but that is only the button; this
   //     is the actual enforcement, refused server-side the way every other

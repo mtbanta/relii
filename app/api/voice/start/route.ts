@@ -9,6 +9,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isLockedUntil, formatAvailableDate } from "@/lib/available-date";
 
 export async function POST(request: Request) {
   // 1. Who is asking? Must be a logged-in user.
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
   // 3. Load the assignment to find which scenario it practices.
   const { data: assignment, error: assignmentError } = await admin
     .from("assignments")
-    .select("id, scenario_id")
+    .select("id, scenario_id, available_date")
     .eq("id", assignmentId)
     .single();
   if (assignmentError || !assignment) {
@@ -50,7 +51,19 @@ export async function POST(request: Request) {
     );
   }
 
-  // 3a. A turned-off scenario cannot be started. Unlike the text route, this
+  // 3a. PD-3: an assignment cannot be practiced before its Available Date. Same
+  //     rule and same shared check as the text practice route, so the two modes
+  //     cannot drift apart. An empty available date means available now.
+  if (isLockedUntil(assignment.available_date)) {
+    return NextResponse.json(
+      {
+        error: `This assignment is not available until ${formatAvailableDate(assignment.available_date)}.`,
+      },
+      { status: 403 },
+    );
+  }
+
+  // 3b. A turned-off scenario cannot be started. Unlike the text route, this
   //     one had no reason to load the scenario at all (the voice persona is
   //     greeted live on the call), so this is a small extra read purely to
   //     enforce the rule. It matters now that real disabled rows exist, because

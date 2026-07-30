@@ -1,9 +1,9 @@
 "use client";
 
 // The instructor's per-assignment card in the "Assignments" management list. By
-// default it shows the assignment read-only (title, scenario, mode, due date,
-// instructions). An "Edit" button swaps in an inline form for the three
-// LOW-RISK fields only: title, instructions, and due date.
+// default it shows the assignment read-only (title, scenario, mode, available
+// and due dates, instructions). An "Edit" button swaps in an inline form for the
+// LOW-RISK fields only: title, instructions, available date, and due date.
 //
 // The required mode and the scenario are deliberately NOT editable. Existing
 // sessions and scores were graded under them, so changing them after the fact
@@ -25,6 +25,9 @@ type Assignment = {
   title: string;
   instructions: string | null;
   due_at: string | null;
+  // available_date is when the assignment unlocks for students. Null means
+  // available now.
+  available_date: string | null;
   required_mode: string;
   scenarioTitle: string | null;
   personaName: string | null;
@@ -36,7 +39,8 @@ function modeLabel(mode: string): string {
 }
 
 // Show a stored timestamp as a plain date. Read in UTC so a date picked as
-// "Aug 14" always shows as "Aug 14" (it is stored as midnight UTC).
+// "Aug 14" always shows as "Aug 14" (it is stored as midnight UTC). Used for
+// both the due date and the available date, which are stored the same way.
 function formatDueDate(value: string | null): string | null {
   if (!value) return null;
   return new Date(value).toLocaleDateString("en-US", {
@@ -63,6 +67,9 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
   // (see startEditing), so Cancel always returns to the saved values.
   const [title, setTitle] = useState(assignment.title);
   const [instructions, setInstructions] = useState(assignment.instructions ?? "");
+  const [availableDate, setAvailableDate] = useState(
+    toDateInputValue(assignment.available_date),
+  );
   const [dueAt, setDueAt] = useState(toDateInputValue(assignment.due_at));
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
@@ -72,6 +79,7 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
     // Seed the inputs from the latest saved values, then open the form.
     setTitle(assignment.title);
     setInstructions(assignment.instructions ?? "");
+    setAvailableDate(toDateInputValue(assignment.available_date));
     setDueAt(toDateInputValue(assignment.due_at));
     setMessage("");
     setIsError(false);
@@ -99,13 +107,15 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
     setLoading(true);
     const supabase = createClient();
 
-    // Only the three low-risk fields are updated. required_mode and scenario_id
-    // are intentionally left out, so they can never change here.
+    // Only the low-risk fields are updated. required_mode and scenario_id are
+    // intentionally left out, so they can never change here. Clearing the
+    // available date sets it back to null, which means available now.
     const { error } = await supabase
       .from("assignments")
       .update({
         title: cleanTitle,
         instructions: instructions.trim() ? instructions.trim() : null,
+        available_date: availableDate ? availableDate : null,
         due_at: dueAt ? dueAt : null,
       })
       .eq("id", assignment.id);
@@ -126,6 +136,7 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
   // ---- Read-only view (default) ------------------------------------------
   if (!editing) {
     const due = formatDueDate(assignment.due_at);
+    const available = formatDueDate(assignment.available_date);
     return (
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -134,6 +145,7 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
             {assignment.scenarioTitle ?? "Scenario"}
             {assignment.personaName ? ` (with ${assignment.personaName})` : ""}{" "}
             &middot; {modeLabel(assignment.required_mode)}
+            {available ? ` · available ${available}` : ""}
             {due ? ` · due ${due}` : ""}
           </p>
           {assignment.instructions && (
@@ -177,6 +189,22 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
           placeholder="Anything the student should know before they start."
           className="w-full rounded-md border border-gray-300 px-3 py-2"
         />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm text-gray-600">
+          Available date (optional)
+        </label>
+        <input
+          type="date"
+          value={availableDate}
+          onChange={(e) => setAvailableDate(e.target.value)}
+          className="w-full rounded-md border border-gray-300 px-3 py-2"
+        />
+        <p className="mt-1 text-xs text-gray-400">
+          Students see this assignment listed but locked until this date. Leave
+          blank to make it available now.
+        </p>
       </div>
 
       <div>

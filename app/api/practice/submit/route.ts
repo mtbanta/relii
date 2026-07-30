@@ -19,6 +19,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isLockedUntil, formatAvailableDate } from "@/lib/available-date";
 
 export async function POST(request: Request) {
   // 1. Who is asking? Must be a logged-in user.
@@ -111,11 +112,24 @@ export async function POST(request: Request) {
   //    (no rubric) has nothing to grade.
   const { data: assignment, error: assignmentError } = await admin
     .from("assignments")
-    .select("id, required_mode, scenario_id")
+    .select("id, required_mode, scenario_id, available_date")
     .eq("id", session.assignment_id)
     .single();
   if (assignmentError || !assignment) {
     return NextResponse.json({ error: "Assignment not found." }, { status: 404 });
+  }
+  // PD-3: nothing can be submitted for an assignment before its Available Date.
+  // The student home hides the submit control on a locked assignment; this is
+  // the enforcement. It is checked first, because "not available yet" is the
+  // most useful reason to give when it applies. An empty available date means
+  // available now, so this never affects an ordinary assignment.
+  if (isLockedUntil(assignment.available_date)) {
+    return NextResponse.json(
+      {
+        error: `This assignment is not available until ${formatAvailableDate(assignment.available_date)}.`,
+      },
+      { status: 403 },
+    );
   }
   if (assignment.required_mode !== "voice_video") {
     return NextResponse.json(

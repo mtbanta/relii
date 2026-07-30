@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { chatComplete } from "@/lib/openai";
 import { buildSystemMessage, OPENING_NUDGE } from "@/lib/persona";
+import { isLockedUntil, formatAvailableDate } from "@/lib/available-date";
 import type { TranscriptTurn } from "@/lib/types";
 
 export async function POST(request: Request) {
@@ -42,13 +43,28 @@ export async function POST(request: Request) {
   // 3. Load the assignment to find which scenario it practices.
   const { data: assignment, error: assignmentError } = await admin
     .from("assignments")
-    .select("id, scenario_id")
+    .select("id, scenario_id, available_date")
     .eq("id", assignmentId)
     .single();
   if (assignmentError || !assignment) {
     return NextResponse.json(
       { error: "Assignment not found." },
       { status: 404 },
+    );
+  }
+
+  // 3a. PD-3: an assignment cannot be practiced before its Available Date. The
+  //     student home already hides the practice buttons on a locked assignment,
+  //     but that is only the button; this is the actual enforcement, refused
+  //     server-side the way every other "what a student may start" rule in this
+  //     app is (turned-off scenario, practice-only assignment, one submission
+  //     per assignment). An empty available date means available now.
+  if (isLockedUntil(assignment.available_date)) {
+    return NextResponse.json(
+      {
+        error: `This assignment is not available until ${formatAvailableDate(assignment.available_date)}.`,
+      },
+      { status: 403 },
     );
   }
 
