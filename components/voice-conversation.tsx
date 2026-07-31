@@ -139,6 +139,17 @@ export function VoiceConversation({
   // is the graded format, so practice should resemble it.
   const [cameraOn, setCameraOn] = useState(true);
 
+  // PD-6: whether the live transcript is on screen. It is SHOWN by default
+  // (owner decision), with a control to hide it and show it again, for a student
+  // who would rather look at the camera than read along.
+  //
+  // THIS IS DISPLAY ONLY. The transcript itself lives in turnsRef and is filled
+  // by the OpenAI data-channel handlers, then saved by saveTranscript(); none of
+  // that reads this flag or the screen, so hiding the transcript cannot stop the
+  // capture, change what is saved, or change the score. It only decides whether
+  // the already-captured lines are drawn.
+  const [transcriptShown, setTranscriptShown] = useState(true);
+
   // For a graded voice+video submission the camera is REQUIRED and LOCKED ON:
   // the student cannot turn it off, and cannot proceed without it. (Practice
   // keeps the normal on/off toggle.) This component only renders for voice_video,
@@ -936,16 +947,42 @@ export function VoiceConversation({
       {/* During and after the call: the live transcript. */}
       {(status === "live" || status === "ending" || status === "ended") && (
         <>
-          <div className="mb-2 flex items-center gap-2 text-xs text-gray-500">
-            <span className="inline-block h-2 w-2 rounded-full bg-red-500" />
-            {status === "live"
-              ? "Live. Speak naturally; pause when you finish a thought."
-              : status === "ending"
-                ? endNote || "Finishing..."
-                : "Call ended."}
+          <div className="mb-2 flex items-center justify-between gap-3 text-xs text-gray-500">
+            <span className="flex items-center gap-2">
+              <span className="inline-block h-2 w-2 rounded-full bg-red-500" />
+              {status === "live"
+                ? "Live. Speak naturally; pause when you finish a thought."
+                : status === "ending"
+                  ? endNote || "Finishing..."
+                  : "Call ended."}
+            </span>
+            {/* PD-6: show/hide the transcript. Screen only; see transcriptShown. */}
+            <button
+              type="button"
+              onClick={() => setTranscriptShown((shown) => !shown)}
+              className="shrink-0 rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+            >
+              {transcriptShown ? "Hide transcript" : "Show transcript"}
+            </button>
           </div>
 
-          <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+          {!transcriptShown && (
+            <div className="flex flex-1 items-center justify-center">
+              <p className="max-w-sm text-center text-sm text-gray-400">
+                The transcript is hidden. Your conversation is still being
+                captured and saved, and your score is not affected. Click Show
+                transcript to read along again.
+              </p>
+            </div>
+          )}
+
+          <div
+            className={
+              transcriptShown
+                ? "flex-1 space-y-3 overflow-y-auto pr-1"
+                : "hidden"
+            }
+          >
             {turns.length === 0 && (
               <p className="text-sm text-gray-400">
                 {personaName} will speak first. The conversation will appear here

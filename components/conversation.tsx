@@ -6,6 +6,12 @@ import { PracticeClock } from "@/components/practice-clock";
 import { DEFAULT_MEETING_MINUTES } from "@/lib/meeting-length";
 import type { TranscriptTurn } from "@/lib/types";
 
+// PD-6: how tall the message box is allowed to grow before it starts scrolling
+// inside itself. Roughly six lines of text, which is enough to see a full
+// paragraph reply without the box eating the conversation above it. The exact
+// number is visual polish (PD-8), so it lives here as one value to tune.
+const MAX_INPUT_HEIGHT_PX = 160;
+
 // The live text conversation with the persona. Shows the running transcript,
 // takes the student's typed replies, and ends the session for scoring.
 export function Conversation({
@@ -44,6 +50,8 @@ export function Conversation({
   const [expired, setExpired] = useState(false);
   const autoEndStartedRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  // PD-6: the message box, so it can be resized to fit what the student typed.
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // SINGLE CONTROL POINT for whether the practice clock is running. The clock is
   // a practice-only feature, so it never runs for a graded submission, and it
@@ -55,6 +63,18 @@ export function Conversation({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [turns, sending]);
+
+  // PD-6: grow the message box to fit what the student has typed, instead of
+  // keeping one line and scrolling the text sideways out of sight. We flatten it
+  // back to "auto" first so it can SHRINK too (after a send, or after deleting a
+  // line), then set it to the content's own height, capped at the maximum. Past
+  // the cap the box stops growing and scrolls inside itself.
+  useEffect(() => {
+    const box = inputRef.current;
+    if (!box) return;
+    box.style.height = "auto";
+    box.style.height = `${Math.min(box.scrollHeight, MAX_INPUT_HEIGHT_PX)}px`;
+  }, [input]);
 
   // When the clock reaches the meeting length, end the practice the SAME way the
   // student's End button does (doEnd, which reuses /api/session/end). Fire once,
@@ -68,10 +88,30 @@ export function Conversation({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expired, sending, ending]);
 
-  async function send(e: React.FormEvent) {
+  // Submitting the form (the Send button, or Enter). Unchanged behavior; it just
+  // hands off to submitMessage so the Enter key can reuse the same path.
+  function send(e: React.FormEvent) {
     e.preventDefault();
+    void submitMessage();
+  }
+
+  // PD-6: the message box is now multi-line, so Enter has to be told what it
+  // means. We keep the chat convention the single-line field already had:
+  // ENTER SENDS, and SHIFT+ENTER starts a new line. An Enter pressed while the
+  // browser is still composing a character (accents, or a Chinese/Japanese/Korean
+  // input method) is left alone, so it finishes the word instead of sending.
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key !== "Enter" || e.shiftKey) return;
+    if (e.nativeEvent.isComposing) return;
+    e.preventDefault();
+    void submitMessage();
+  }
+
+  async function submitMessage() {
     const text = input.trim();
-    if (!text || sending || ending) return;
+    // The same guards the Send button already had. `expired` is belt and braces:
+    // the box is disabled once the clock runs out, so Enter cannot reach here.
+    if (!text || sending || ending || expired) return;
 
     setError("");
     setSending(true);
@@ -249,14 +289,25 @@ export function Conversation({
         </div>
       )}
 
-      <form onSubmit={send} className="mt-3 flex gap-2 border-t border-gray-200 pt-3">
-        <input
-          type="text"
+      {/* PD-6: the message box grows downward as the student types (up to
+          MAX_INPUT_HEIGHT_PX, then it scrolls inside itself) so they can see the
+          whole message. Send is unchanged: the Send button submits the form, and
+          Enter sends while Shift+Enter starts a new line. items-end keeps the
+          Send button level with the bottom of the box as it grows. */}
+      <form
+        onSubmit={send}
+        className="mt-3 flex items-end gap-2 border-t border-gray-200 pt-3"
+      >
+        <textarea
+          ref={inputRef}
+          rows={1}
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder={`Type your message to ${personaName}...`}
           disabled={ending || expired}
-          className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm disabled:opacity-50"
+          style={{ maxHeight: `${MAX_INPUT_HEIGHT_PX}px` }}
+          className="flex-1 resize-none overflow-y-auto rounded-md border border-gray-300 px-3 py-2 text-sm disabled:opacity-50"
         />
         <button
           type="submit"
