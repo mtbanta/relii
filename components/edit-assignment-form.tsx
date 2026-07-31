@@ -19,6 +19,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import {
+  DEFAULT_MEETING_MINUTES,
+  MAX_MEETING_MINUTES,
+  MIN_MEETING_MINUTES,
+  resolveMeetingMinutes,
+} from "@/lib/meeting-length";
 
 type Assignment = {
   id: string;
@@ -28,6 +34,9 @@ type Assignment = {
   // available_date is when the assignment unlocks for students. Null means
   // available now.
   available_date: string | null;
+  // duration_minutes is how long the role-play meeting runs (PD-4). Null means
+  // the standard 30 minute meeting.
+  duration_minutes: number | null;
   required_mode: string;
   scenarioTitle: string | null;
   personaName: string | null;
@@ -71,6 +80,13 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
     toDateInputValue(assignment.available_date),
   );
   const [dueAt, setDueAt] = useState(toDateInputValue(assignment.due_at));
+  // The meeting length as typed. Empty means "not set", which reads as the
+  // standard 30 minute meeting.
+  const [durationMinutes, setDurationMinutes] = useState(
+    assignment.duration_minutes === null
+      ? ""
+      : String(assignment.duration_minutes),
+  );
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -81,6 +97,11 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
     setInstructions(assignment.instructions ?? "");
     setAvailableDate(toDateInputValue(assignment.available_date));
     setDueAt(toDateInputValue(assignment.due_at));
+    setDurationMinutes(
+      assignment.duration_minutes === null
+        ? ""
+        : String(assignment.duration_minutes),
+    );
     setMessage("");
     setIsError(false);
     setEditing(true);
@@ -104,12 +125,35 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
       return;
     }
 
+    // The meeting length. Blank is allowed and saves as null, which reads as the
+    // standard 30 minute meeting. Anything typed must be a whole number of
+    // minutes in range: the browser's number input already limits it, and the
+    // database has the same rule, so this is the friendly message in between.
+    const typedDuration = durationMinutes.trim();
+    let duration: number | null = null;
+    if (typedDuration) {
+      const parsed = Number(typedDuration);
+      if (
+        !Number.isInteger(parsed) ||
+        parsed < MIN_MEETING_MINUTES ||
+        parsed > MAX_MEETING_MINUTES
+      ) {
+        setIsError(true);
+        setMessage(
+          `Meeting length must be a whole number of minutes from ${MIN_MEETING_MINUTES} to ${MAX_MEETING_MINUTES}, or left blank for ${DEFAULT_MEETING_MINUTES}.`,
+        );
+        return;
+      }
+      duration = parsed;
+    }
+
     setLoading(true);
     const supabase = createClient();
 
     // Only the low-risk fields are updated. required_mode and scenario_id are
     // intentionally left out, so they can never change here. Clearing the
-    // available date sets it back to null, which means available now.
+    // available date sets it back to null, which means available now; clearing
+    // the meeting length sets it back to null, which means 30 minutes.
     const { error } = await supabase
       .from("assignments")
       .update({
@@ -117,6 +161,7 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
         instructions: instructions.trim() ? instructions.trim() : null,
         available_date: availableDate ? availableDate : null,
         due_at: dueAt ? dueAt : null,
+        duration_minutes: duration,
       })
       .eq("id", assignment.id);
 
@@ -137,6 +182,12 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
   if (!editing) {
     const due = formatDueDate(assignment.due_at);
     const available = formatDueDate(assignment.available_date);
+    // The meeting length is always shown, including for an assignment with none
+    // set: null is not "no meeting length", it is the standard 30 minutes, so
+    // showing the effective number means the instructor never has to guess what
+    // an empty field does. (The dates are different: an empty date genuinely
+    // means there is no such date, so those stay hidden when unset.)
+    const meetingMinutes = resolveMeetingMinutes(assignment.duration_minutes);
     return (
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -145,6 +196,7 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
             {assignment.scenarioTitle ?? "Scenario"}
             {assignment.personaName ? ` (with ${assignment.personaName})` : ""}{" "}
             &middot; {modeLabel(assignment.required_mode)}
+            {` · ${meetingMinutes} min meeting`}
             {available ? ` · available ${available}` : ""}
             {due ? ` · due ${due}` : ""}
           </p>
@@ -189,6 +241,29 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
           placeholder="Anything the student should know before they start."
           className="w-full rounded-md border border-gray-300 px-3 py-2"
         />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm text-gray-600">
+          Meeting length (optional)
+        </label>
+        <input
+          type="number"
+          inputMode="numeric"
+          min={MIN_MEETING_MINUTES}
+          max={MAX_MEETING_MINUTES}
+          step={1}
+          placeholder={String(DEFAULT_MEETING_MINUTES)}
+          value={durationMinutes}
+          onChange={(e) => setDurationMinutes(e.target.value)}
+          className="w-full rounded-md border border-gray-300 px-3 py-2"
+        />
+        <p className="mt-1 text-xs text-gray-400">
+          How long the role-play runs, from {MIN_MEETING_MINUTES} to{" "}
+          {MAX_MEETING_MINUTES} minutes. The practice clock counts up and the
+          practice ends automatically at this length. Leave blank for{" "}
+          {DEFAULT_MEETING_MINUTES} minutes.
+        </p>
       </div>
 
       <div>

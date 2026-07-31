@@ -9,6 +9,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import {
+  DEFAULT_MEETING_MINUTES,
+  MAX_MEETING_MINUTES,
+  MIN_MEETING_MINUTES,
+} from "@/lib/meeting-length";
 
 type ScenarioOption = {
   id: string;
@@ -34,6 +39,9 @@ export function CreateAssignmentForm({
   // set": no due date, and for the available date, available now.
   const [availableDate, setAvailableDate] = useState("");
   const [dueAt, setDueAt] = useState("");
+  // How long the meeting runs, as typed. Empty means "not set", which reads as
+  // the standard 30 minute meeting.
+  const [durationMinutes, setDurationMinutes] = useState("");
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -63,6 +71,28 @@ export function CreateAssignmentForm({
       return;
     }
 
+    // The meeting length. Blank is allowed and saves as null, which reads as the
+    // standard 30 minute meeting. Anything typed must be a whole number of
+    // minutes in range: the browser's number input already limits it, and the
+    // database has the same rule, so this is the friendly message in between.
+    const typedDuration = durationMinutes.trim();
+    let duration: number | null = null;
+    if (typedDuration) {
+      const parsed = Number(typedDuration);
+      if (
+        !Number.isInteger(parsed) ||
+        parsed < MIN_MEETING_MINUTES ||
+        parsed > MAX_MEETING_MINUTES
+      ) {
+        setIsError(true);
+        setMessage(
+          `Meeting length must be a whole number of minutes from ${MIN_MEETING_MINUTES} to ${MAX_MEETING_MINUTES}, or left blank for ${DEFAULT_MEETING_MINUTES}.`,
+        );
+        return;
+      }
+      duration = parsed;
+    }
+
     setLoading(true);
     const supabase = createClient();
 
@@ -71,10 +101,12 @@ export function CreateAssignmentForm({
       scenario_id: scenarioId,
       required_mode: requiredMode,
       // Optional fields become null when left blank. A null available_date
-      // means the assignment is available now; a null due_at means no due date.
+      // means the assignment is available now; a null due_at means no due date;
+      // a null duration_minutes means the standard 30 minute meeting.
       instructions: instructions.trim() ? instructions.trim() : null,
       available_date: availableDate ? availableDate : null,
       due_at: dueAt ? dueAt : null,
+      duration_minutes: duration,
       created_by: createdBy,
     });
 
@@ -91,6 +123,7 @@ export function CreateAssignmentForm({
     setInstructions("");
     setAvailableDate("");
     setDueAt("");
+    setDurationMinutes("");
     // Re-run the instructor page's queries so the new assignment appears below.
     router.refresh();
   }
@@ -145,6 +178,29 @@ export function CreateAssignmentForm({
         </select>
         <p className="mt-1 text-xs text-gray-400">
           The mode the graded submission must be done in.
+        </p>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm text-gray-600">
+          Meeting length (optional)
+        </label>
+        <input
+          type="number"
+          inputMode="numeric"
+          min={MIN_MEETING_MINUTES}
+          max={MAX_MEETING_MINUTES}
+          step={1}
+          placeholder={String(DEFAULT_MEETING_MINUTES)}
+          value={durationMinutes}
+          onChange={(e) => setDurationMinutes(e.target.value)}
+          className="w-full rounded-md border border-gray-300 px-3 py-2"
+        />
+        <p className="mt-1 text-xs text-gray-400">
+          How long the role-play runs, from {MIN_MEETING_MINUTES} to{" "}
+          {MAX_MEETING_MINUTES} minutes. The practice clock counts up and the
+          practice ends automatically at this length. Leave blank for{" "}
+          {DEFAULT_MEETING_MINUTES} minutes.
         </p>
       </div>
 

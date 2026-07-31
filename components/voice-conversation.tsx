@@ -3,6 +3,7 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PracticeClock } from "@/components/practice-clock";
+import { DEFAULT_MEETING_MINUTES } from "@/lib/meeting-length";
 import { OPENING_NUDGE } from "@/lib/persona";
 import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
@@ -108,6 +109,7 @@ export function VoiceConversation({
   scenarioTitle,
   isSubmission = false,
   conversationOnly = false,
+  meetingMinutes = DEFAULT_MEETING_MINUTES,
 }: {
   sessionId: string;
   personaName: string;
@@ -118,12 +120,16 @@ export function VoiceConversation({
   // A conversation-only case (its scenario has no rubric) is never scored, so
   // the wording must not promise a score that is not coming.
   conversationOnly?: boolean;
+  // How long this assignment's meeting runs (PD-4), already resolved by the
+  // session page: it is the assignment's duration_minutes, or 30 when none is
+  // set. It is what the practice clock counts up to before auto-ending.
+  meetingMinutes?: number;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
   const [confirming, setConfirming] = useState(false);
-  // The practice clock reached its thirty-minute hard stop; the practice is
+  // The practice clock reached the assignment's meeting length; the practice is
   // being auto-ended (practice only; never set for a graded submission).
   const [expired, setExpired] = useState(false);
   const autoEndStartedRef = useRef(false);
@@ -195,8 +201,8 @@ export function VoiceConversation({
   // AND-ing `&& !paused` here; nothing else changes.
   const clockActive = !isSubmission && status === "live" && !expired;
 
-  // When the clock hits the thirty-minute hard stop, end the call the SAME way
-  // the student's End button does (endCall, which reuses /api/session/end). Fire
+  // When the clock reaches the meeting length, end the call the SAME way the
+  // student's End button does (endCall, which reuses /api/session/end). Fire
   // once, only from a live call.
   useEffect(() => {
     if (!expired || autoEndStartedRef.current) return;
@@ -729,6 +735,7 @@ export function VoiceConversation({
               status === "ended") && (
               <PracticeClock
                 active={clockActive}
+                autoEndSeconds={meetingMinutes * 60}
                 onExpire={() => setExpired(true)}
               />
             )}

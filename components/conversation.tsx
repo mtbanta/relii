@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PracticeClock } from "@/components/practice-clock";
+import { DEFAULT_MEETING_MINUTES } from "@/lib/meeting-length";
 import type { TranscriptTurn } from "@/lib/types";
 
 // The live text conversation with the persona. Shows the running transcript,
@@ -14,6 +15,7 @@ export function Conversation({
   initialTranscript,
   isSubmission = false,
   conversationOnly = false,
+  meetingMinutes = DEFAULT_MEETING_MINUTES,
 }: {
   sessionId: string;
   personaName: string;
@@ -25,6 +27,10 @@ export function Conversation({
   // A conversation-only case (its scenario has no rubric) is never scored, so
   // the wording must not promise a score that is not coming.
   conversationOnly?: boolean;
+  // How long this assignment's meeting runs (PD-4), already resolved by the
+  // session page: it is the assignment's duration_minutes, or 30 when none is
+  // set. It is what the practice clock counts up to before auto-ending.
+  meetingMinutes?: number;
 }) {
   const router = useRouter();
   const [turns, setTurns] = useState<TranscriptTurn[]>(initialTranscript);
@@ -33,7 +39,7 @@ export function Conversation({
   const [ending, setEnding] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState("");
-  // The practice clock reached its thirty-minute hard stop; the practice is
+  // The practice clock reached the assignment's meeting length; the practice is
   // being auto-ended (practice only; never set for a graded submission).
   const [expired, setExpired] = useState(false);
   const autoEndStartedRef = useRef(false);
@@ -50,9 +56,9 @@ export function Conversation({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [turns, sending]);
 
-  // When the clock hits the thirty-minute hard stop, end the practice the SAME
-  // way the student's End button does (doEnd, which reuses /api/session/end).
-  // Fire once, and wait out any in-flight message send first.
+  // When the clock reaches the meeting length, end the practice the SAME way the
+  // student's End button does (doEnd, which reuses /api/session/end). Fire once,
+  // and wait out any in-flight message send first.
   useEffect(() => {
     if (!expired || autoEndStartedRef.current) return;
     if (sending || ending) return;
@@ -157,7 +163,11 @@ export function Conversation({
         </div>
         <div className="flex items-center gap-3">
           {!isSubmission && (
-            <PracticeClock active={clockActive} onExpire={() => setExpired(true)} />
+            <PracticeClock
+              active={clockActive}
+              autoEndSeconds={meetingMinutes * 60}
+              onExpire={() => setExpired(true)}
+            />
           )}
           <button
             onClick={requestEnd}

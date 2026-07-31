@@ -21,6 +21,9 @@ type AssignmentRow = {
   // available_date is when the assignment unlocks for students (PD-3). Null
   // means available now, which is what every pre-PD-3 assignment has.
   available_date: string | null;
+  // duration_minutes is how long the role-play meeting runs (PD-4). Null means
+  // the standard 30 minutes, which is what every pre-PD-4 assignment has.
+  duration_minutes: number | null;
   instructions: string | null;
   scenarios: { title: string; persona_name: string } | null;
 };
@@ -46,7 +49,7 @@ export default async function InstructorAssignments() {
   // The assignments THIS instructor created.
   const { data: assignments } = await supabase
     .from("assignments")
-    .select("id, title, required_mode, due_at, available_date, instructions, scenarios ( title, persona_name )")
+    .select("id, title, required_mode, due_at, available_date, duration_minutes, instructions, scenarios ( title, persona_name )")
     .eq("created_by", user.id)
     .order("created_at", { ascending: false })
     .returns<AssignmentRow[]>();
@@ -107,6 +110,7 @@ export default async function InstructorAssignments() {
                       instructions: a.instructions,
                       due_at: a.due_at,
                       available_date: a.available_date,
+                      duration_minutes: a.duration_minutes,
                       required_mode: a.required_mode,
                       scenarioTitle: a.scenarios?.title ?? null,
                       personaName: a.scenarios?.persona_name ?? null,

@@ -1,40 +1,51 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { DEFAULT_MEETING_MINUTES } from "@/lib/meeting-length";
 
 // The count-up practice clock, shared by BOTH practice screens (the text
 // conversation and the voice+video call). It counts elapsed time up from 00:00,
-// warns with color at ten and fifteen minutes, and at thirty minutes stops and
-// asks the screen to auto-end (which reuses the student's normal End routine).
+// and when it reaches the assignment's meeting length it stops and asks the
+// screen to auto-end (which reuses the student's normal End routine).
 //
 // It is a PRACTICE-ONLY feature: the two screens only render it for a practice,
 // never for a graded submission.
 //
 // ---------------------------------------------------------------------------
-// TIME THRESHOLDS. These three numbers are the only place the timing lives, so
-// this is where the accessibility/contrast pass or any retuning happens.
-//   - YELLOW_AT_SECONDS: the clock text turns yellow at this elapsed time.
-//   - RED_AT_SECONDS:    the clock text turns red at this time and stays red.
-//   - AUTO_END_AT_SECONDS: the clock stops here and the practice auto-ends.
-// The fifteen-minute red mark warns the student around the intended meeting
-// length; the thirty-minute stop is a hard backstop, not a usage limit.
+// THE MEETING LENGTH IS PER ASSIGNMENT (PD-4). It arrives as the autoEndSeconds
+// prop, threaded down from the assignment's duration_minutes; an assignment with
+// no duration set reads as the standard 30 minutes. The allowed range and that
+// fallback live in one file, lib/meeting-length.ts.
+//
+// NO COLOR THRESHOLDS. The clock text is a single default color for the whole
+// meeting. The old yellow-at-10:00 and red-at-15:00 warnings were removed in
+// PD-4: with a meeting that can be 5 or 10 minutes long they would fire late or
+// never, so a warning that only works at one length is worse than none. The
+// clock instead shows its target ("03:12 / 05:00") so a short auto-end is never
+// a surprise.
 // ---------------------------------------------------------------------------
-const YELLOW_AT_SECONDS = 10 * 60; // 10:00
-const RED_AT_SECONDS = 15 * 60; // 15:00
-const AUTO_END_AT_SECONDS = 30 * 60; // 30:00
+
+// mm:ss for a whole number of seconds.
+function formatClock(totalSeconds: number): string {
+  const mm = Math.floor(totalSeconds / 60);
+  const ss = totalSeconds % 60;
+  return `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+}
 
 // The timer itself. It measures REAL elapsed time from wall-clock timestamps and
 // only advances while `active` is true, folding each running stretch into an
 // accumulator whenever it stops. Two upshots: it stays accurate even if the
 // browser tab is in the background (it catches up from the clock instead of
 // counting missed ticks), and it can be paused later just by flipping `active`
-// to false and back. It stops counting at AUTO_END_AT_SECONDS and calls
-// `onExpire` exactly once.
+// to false and back. It stops counting at `autoEndSeconds` and calls `onExpire`
+// exactly once.
 function useCountUp({
   active,
+  autoEndSeconds,
   onExpire,
 }: {
   active: boolean;
+  autoEndSeconds: number;
   onExpire: () => void;
 }): number {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -73,8 +84,8 @@ function useCountUp({
           : 0;
       const totalSeconds = Math.floor((countedMsRef.current + runningMs) / 1000);
 
-      if (totalSeconds >= AUTO_END_AT_SECONDS) {
-        setElapsedSeconds(AUTO_END_AT_SECONDS); // freeze at the hard stop
+      if (totalSeconds >= autoEndSeconds) {
+        setElapsedSeconds(autoEndSeconds); // freeze at the meeting length
         if (!firedRef.current) {
           firedRef.current = true;
           onExpireRef.current();
@@ -87,44 +98,40 @@ function useCountUp({
     tick(); // update immediately so the display never lags a (re)start
     const id = setInterval(tick, 500);
     return () => clearInterval(id);
-  }, [active]);
+  }, [active, autoEndSeconds]);
 
   return elapsedSeconds;
 }
 
-// The on-screen clock. Given whether it should be running and what to do when it
-// hits the hard stop, it shows mm:ss and colors itself by elapsed time.
+// The on-screen clock. Given whether it should be running and how long the
+// meeting is, it shows mm:ss counting up toward that length.
 export function PracticeClock({
   active,
+  autoEndSeconds = DEFAULT_MEETING_MINUTES * 60,
   onExpire,
 }: {
   // The SINGLE control point for whether the clock is advancing. Practice sets
   // this true while the conversation is live; Piece 6's pause will hold it false.
   active: boolean;
-  // Called once, when the clock reaches the thirty-minute hard stop.
+  // How long this assignment's meeting runs, in seconds. Defaults to the
+  // standard 30 minute meeting, which is what an assignment with no duration set
+  // (every assignment created before PD-4) uses.
+  autoEndSeconds?: number;
+  // Called once, when the clock reaches the meeting length.
   onExpire: () => void;
 }) {
-  const seconds = useCountUp({ active, onExpire });
+  const seconds = useCountUp({ active, autoEndSeconds, onExpire });
 
-  const mm = Math.floor(seconds / 60);
-  const ss = seconds % 60;
-  const label = `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
-
-  // Default (dark gray) before the yellow mark, yellow from the yellow mark, red
-  // from the red mark onward (and it stays red through the hard stop).
-  const color =
-    seconds >= RED_AT_SECONDS
-      ? "text-red-600"
-      : seconds >= YELLOW_AT_SECONDS
-        ? "text-yellow-600"
-        : "text-gray-700";
+  const label = formatClock(seconds);
+  const targetLabel = formatClock(autoEndSeconds);
 
   return (
     <span
-      aria-label={`Elapsed time ${label}`}
-      className={`font-mono text-base font-semibold tabular-nums ${color}`}
+      aria-label={`Elapsed time ${label} of a ${targetLabel} meeting`}
+      className="font-mono text-base font-semibold tabular-nums text-gray-700"
     >
       {label}
+      <span className="font-normal text-gray-400"> / {targetLabel}</span>
     </span>
   );
 }
