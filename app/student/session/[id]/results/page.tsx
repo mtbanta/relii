@@ -8,6 +8,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
 import { ResultsActions } from "@/components/results-actions";
 import { displayName, hasName } from "@/lib/name";
+import { dateTaken } from "@/lib/date-taken";
+import {
+  RECORDING_LENGTH_LABEL,
+  recordingLengthText,
+} from "@/lib/recording-length";
 import type { RubricItem, SessionScore, TranscriptTurn } from "@/lib/types";
 
 export default async function ResultsPage({
@@ -38,7 +43,9 @@ export default async function ResultsPage({
 
   const { data: session } = await supabase
     .from("sessions")
-    .select("id, kind, status, mode, scenario_id, transcript, score, score_total, video_path")
+    .select(
+      "id, kind, status, mode, scenario_id, transcript, score, score_total, video_path, recorded_seconds, submitted_at, created_at",
+    )
     .eq("id", id)
     .single();
 
@@ -101,6 +108,10 @@ export default async function ResultsPage({
   const rubricItems = (rubric?.items ?? []) as RubricItem[];
   const labelById = new Map(rubricItems.map((i) => [i.id, i]));
 
+  // PD-5: a submission shows the moment it was handed in (the same stamp the
+  // instructor view shows), a practice the moment it was started.
+  const takenOn = dateTaken(session);
+
   return (
     <main className="mx-auto max-w-5xl p-8">
       <header className="mb-6 flex items-center justify-between">
@@ -113,6 +124,20 @@ export default async function ResultsPage({
           <p className="mt-1 text-sm text-gray-500">
             {scenario?.title ?? "Practice session"}
           </p>
+          {/* PD-5: directly under the scenario title, the length of THIS one
+              session and the date it was taken. The length is the recording's
+              own length when the camera was on, and the elapsed conversation
+              time for a text session or a call with the camera off. The date
+              matches the one the instructor's submission view shows. */}
+          <p className="mt-1 text-xs text-gray-500">
+            {RECORDING_LENGTH_LABEL}:{" "}
+            <span className="tabular-nums">
+              {recordingLengthText(session.recorded_seconds)}
+            </span>
+          </p>
+          {takenOn && (
+            <p className="mt-0.5 text-xs text-gray-500">Date Taken: {takenOn}</p>
+          )}
         </div>
         <Link
           href="/student"

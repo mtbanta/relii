@@ -19,6 +19,10 @@ import type { ResetHistoryRow } from "@/components/reset-history";
 import { requireInstructor } from "@/lib/instructor-auth";
 import { isSubmissionLocked } from "@/lib/submission";
 import { displayName } from "@/lib/name";
+import {
+  RECORDING_LENGTH_LABEL,
+  recordingLengthText,
+} from "@/lib/recording-length";
 import type { SessionScore } from "@/lib/types";
 
 // Compact mode label for the submissions table (matches the mockup: "V+V").
@@ -44,6 +48,9 @@ type SubmissionRow = {
   score: SessionScore | null;
   video_path: string | null;
   created_at: string;
+  // PD-5: this ONE submission's recorded length, in seconds. Null on anything
+  // finished before PD-5 shipped, which shows as a dash.
+  recorded_seconds: number | null;
 };
 
 export default async function InstructorSubmissions({
@@ -102,7 +109,9 @@ export default async function InstructorSubmissions({
   if (selected) {
     const { data } = await admin
       .from("sessions")
-      .select("id, student_id, mode, status, score, video_path, created_at")
+      .select(
+        "id, student_id, mode, status, score, video_path, created_at, recorded_seconds",
+      )
       .eq("assignment_id", selected.id)
       .eq("kind", "submission")
       .returns<SubmissionRow[]>();
@@ -257,6 +266,11 @@ export default async function InstructorSubmissions({
                       <th className="p-3 font-medium">Student</th>
                       <th className="p-3 font-medium">Assignment</th>
                       <th className="p-3 font-medium">Mode</th>
+                      {/* PD-5. Sits next to Mode because the two are read
+                          together: "V+V, 12:34" is the shape of the attempt. */}
+                      <th className="p-3 font-medium">
+                        {RECORDING_LENGTH_LABEL}
+                      </th>
                       <th className="p-3 font-medium">Score</th>
                       <th className="p-3 font-medium">Status</th>
                       <th className="p-3 font-medium">Actions</th>
@@ -294,6 +308,11 @@ export default async function InstructorSubmissions({
                           </td>
                           <td className="p-3 text-gray-500">{selected.title}</td>
                           <td className="p-3">{modeShort(r.mode)}</td>
+                          {/* PD-5: how long this student's ONE submission ran.
+                              Never a total across their attempts. */}
+                          <td className="p-3 tabular-nums">
+                            {recordingLengthText(r.recorded_seconds)}
+                          </td>
                           <td className="p-3 tabular-nums">
                             {isScored
                               ? `${r.score!.total} / ${r.score!.max_total}`

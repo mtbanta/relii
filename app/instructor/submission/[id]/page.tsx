@@ -18,22 +18,17 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
 import { displayName, hasName } from "@/lib/name";
+// PD-5 moved this formatting into lib so the student's view of the same session
+// shows the same date, in the same shape, without a second copy of the code.
+import { formatDateTaken } from "@/lib/date-taken";
+import {
+  RECORDING_LENGTH_LABEL,
+  recordingLengthText,
+} from "@/lib/recording-length";
 import type { RubricItem, SessionScore, TranscriptTurn } from "@/lib/types";
 
 function modeLabel(mode: string): string {
   return mode === "voice_video" ? "Voice + video" : "Text";
-}
-
-// A stored timestamp shown as a plain date and time.
-function formatDateTime(value: string | null): string | null {
-  if (!value) return null;
-  return new Date(value).toLocaleString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }
 
 export default async function InstructorSubmissionPage({
@@ -64,7 +59,7 @@ export default async function InstructorSubmissionPage({
   const { data: session } = await admin
     .from("sessions")
     .select(
-      "id, kind, mode, status, student_id, assignment_id, scenario_id, transcript, score, video_path, submitted_at",
+      "id, kind, mode, status, student_id, assignment_id, scenario_id, transcript, score, video_path, submitted_at, recorded_seconds",
     )
     .eq("id", id)
     .eq("kind", "submission")
@@ -120,7 +115,7 @@ export default async function InstructorSubmissionPage({
     videoUrl = signed?.signedUrl ?? null;
   }
 
-  const submittedAt = formatDateTime(session.submitted_at);
+  const submittedAt = formatDateTaken(session.submitted_at);
 
   return (
     <main className="mx-auto max-w-5xl px-8 pb-12 pt-6">
@@ -158,6 +153,17 @@ export default async function InstructorSubmissionPage({
             <p className="mt-1 text-xs text-gray-500">
               {modeLabel(session.mode)}
               {submittedAt ? ` · submitted ${submittedAt}` : ""}
+            </p>
+            {/* PD-5: directly under the date taken. The length of THIS one
+                submission: the recording's own length for a voice + video
+                submission, and the elapsed conversation time for a text one or
+                one recorded with the camera off. It is never a total across the
+                student's attempts. */}
+            <p className="mt-0.5 text-xs text-gray-500">
+              {RECORDING_LENGTH_LABEL}:{" "}
+              <span className="tabular-nums">
+                {recordingLengthText(session.recorded_seconds)}
+              </span>
             </p>
           </div>
           <div className="text-right">

@@ -14,6 +14,10 @@ import { NameGate } from "@/components/name-gate";
 import { KEPT_PRACTICES } from "@/lib/practice";
 import { displayName, hasName } from "@/lib/name";
 import { isLockedUntil, formatAvailableDate } from "@/lib/available-date";
+import {
+  RECORDING_LENGTH_LABEL,
+  recordingLengthText,
+} from "@/lib/recording-length";
 import type { SessionScore } from "@/lib/types";
 
 // Friendly label for a stored mode value.
@@ -65,6 +69,9 @@ type SubmissionRow = {
   status: string;
   score_total: number | null;
   score: SessionScore | null;
+  // PD-5: how long THIS ONE session ran, in seconds. Null on anything finished
+  // before PD-5 shipped, which shows as a dash.
+  recorded_seconds: number | null;
 };
 
 type PracticeRow = {
@@ -79,6 +86,8 @@ type PracticeRow = {
   // submitted as the graded assignment.
   video_path: string | null;
   created_at: string;
+  // PD-5: this practice's own Recording Length, in seconds. Never a total.
+  recorded_seconds: number | null;
 };
 
 export default async function StudentHome() {
@@ -140,7 +149,7 @@ export default async function StudentHome() {
   // a student read only their own sessions.
   const { data: submissions } = await supabase
     .from("sessions")
-    .select("id, assignment_id, status, score_total, score")
+    .select("id, assignment_id, status, score_total, score, recorded_seconds")
     .eq("student_id", user.id)
     .eq("kind", "submission")
     .returns<SubmissionRow[]>();
@@ -162,7 +171,9 @@ export default async function StudentHome() {
   // must stay out of this list exactly as it does today.
   const { data: practices } = await supabase
     .from("sessions")
-    .select("id, assignment_id, mode, status, score_total, score, video_path, created_at")
+    .select(
+      "id, assignment_id, mode, status, score_total, score, video_path, created_at, recorded_seconds",
+    )
     .eq("student_id", user.id)
     .eq("kind", "practice")
     .in("status", ["scored", "completed"])
@@ -284,12 +295,19 @@ export default async function StudentHome() {
                     </p>
                   ) : submitted ? (
                     <div className="flex flex-wrap items-center gap-3">
+                      {/* PD-5: the submission's Recording Length rides on this
+                          summary line (this card shows the submission as a line,
+                          not as a table row). It is this one submission's own
+                          length, never a total across attempts. */}
                       <span className="text-sm text-green-700">
                         Submitted
                         {submission?.score_total != null &&
                         submission.score?.max_total != null
                           ? ` · ${submission.score_total} / ${submission.score.max_total}`
                           : ""}
+                        {` · ${RECORDING_LENGTH_LABEL} ${recordingLengthText(
+                          submission?.recorded_seconds,
+                        )}`}
                       </span>
                       <Link
                         href={`/student/session/${submission!.id}/results`}
@@ -367,6 +385,17 @@ export default async function StudentHome() {
                                   p.score?.max_total != null
                                 ? `${p.score_total} / ${p.score.max_total}`
                                 : "-"}
+                          </span>
+                          {/* PD-5: how long THIS practice ran. For a voice +
+                              video practice with the camera on that is the
+                              recording's length; for a text practice, or one
+                              where the camera was off, it is the elapsed
+                              conversation time. */}
+                          <span className="text-xs text-gray-500">
+                            {RECORDING_LENGTH_LABEL}{" "}
+                            <span className="tabular-nums">
+                              {recordingLengthText(p.recorded_seconds)}
+                            </span>
                           </span>
                           <span className="ml-auto flex items-center gap-3">
                             <Link

@@ -1,15 +1,23 @@
 // POST /api/session/end
-// Body: { sessionId }
+// Body: { sessionId, recordedSeconds? }
 // Ends the session, scores the transcript against the content rubric items for
 // this scenario's meeting (discovery or presentation) with a single
 // low-temperature pass, and saves the itemized score. Both the text and the
 // voice+video paths finish here. All writes use the server-only service role.
+//
+// PD-5: this is also where the session's Recording Length is stored, because it
+// is the one place BOTH screens and BOTH endings (scored, and conversation-only)
+// pass through. See recordedSecondsToStore below for where the number comes from.
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { scoreTranscriptContent } from "@/lib/scoring";
 import { isSubmissionLocked } from "@/lib/submission";
 import { prunePractices } from "@/lib/practice";
+import {
+  isUsableRecordedSeconds,
+  msToRecordedSeconds,
+} from "@/lib/recording-length";
 import { isMeetingType, type RubricItem, type TranscriptTurn } from "@/lib/types";
 
 export async function POST(request: Request) {
@@ -22,11 +30,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   }
 
-  // 2. Read input.
+  // 2. Read input. recordedSeconds is OPTIONAL: the voice screen measures the
+  //    length itself and sends it (see step 4a), the text screen does not send
+  //    one at all, and anything unusable is ignored in favor of the fallback.
   let sessionId: string | undefined;
+  let sentSeconds: unknown;
   try {
     const body = await request.json();
     sessionId = body?.sessionId;
+    sentSeconds = body?.recordedSeconds;
   } catch {
     // fall through
   }
@@ -39,7 +51,9 @@ export async function POST(request: Request) {
   // 3. Load the session; confirm ownership.
   const { data: session, error: sessionError } = await admin
     .from("sessions")
-    .select("id, student_id, scenario_id, assignment_id, status, kind, created_at, transcript")
+    .select(
+      "id, student_id, scenario_id, assignment_id, status, kind, created_at, recorded_seconds, transcript",
+    )
     .eq("id", sessionId)
     .single();
   if (sessionError || !session) {
@@ -64,11 +78,46 @@ export async function POST(request: Request) {
     );
   }
 
-  // 4. Mark completed (the conversation is over).
-  await admin
-    .from("sessions")
-    .update({ status: "completed" })
-    .eq("id", session.id);
+  // 4a. PD-5: work out the Recording Length to store for this session.
+  //
+  //     The browser sends a measured number when it has one. Only the VOICE
+  //     screen does: with the camera on it measures the recording itself (start
+  //     of the recorder to stop of the recorder), and with the camera off it
+  //     measures the live call, which is what the student's count-up clock was
+  //     showing them. Neither of those is knowable here on the server.
+  //
+  //     The TEXT screen deliberately sends nothing and lets the fallback below
+  //     do it. For text, "now minus created_at" IS the elapsed conversation time
+  //     (the row is created and the conversation screen opens a second later,
+  //     with no waiting screen in between), and unlike a timer in the browser it
+  //     survives a text session being reloaded and resumed part way through.
+  //
+  //     The same fallback covers a voice call that somehow sends no number. It
+  //     over-counts there, because a voice session's row is created when the
+  //     student clicks Practice and they then sit on the "Start call" screen for
+  //     as long as they like, but a slightly long number beats no number at all
+  //     on a path that should not happen.
+  //
+  //     WRITE ONCE. If a session already has a length, keep it. Ending can be
+  //     retried (a scoring failure drops the student back to the live screen so
+  //     they can click End again), and the FIRST measurement is the honest one:
+  //     re-deriving on the retry would count the time spent failing to score.
+  let recordedSecondsToStore: number | null = null;
+  if (session.recorded_seconds == null) {
+    recordedSecondsToStore = isUsableRecordedSeconds(sentSeconds)
+      ? Math.floor(sentSeconds)
+      : msToRecordedSeconds(Date.now() - new Date(session.created_at).getTime());
+  }
+
+  // 4b. Mark completed (the conversation is over), stamping the length with it.
+  //     This one update is on the path to BOTH endings, the scored one below and
+  //     the conversation-only one that stops at 'completed' and is never scored,
+  //     so both kinds of session end up with a length.
+  const completedUpdate: Record<string, unknown> = { status: "completed" };
+  if (recordedSecondsToStore != null) {
+    completedUpdate.recorded_seconds = recordedSecondsToStore;
+  }
+  await admin.from("sessions").update(completedUpdate).eq("id", session.id);
 
   // 5. Load this scenario: whether it has a rubric at all, which meeting it is,
   //    and who the persona is. The rubric decides whether there is anything to

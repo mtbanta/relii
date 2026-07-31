@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { PracticeClock } from "@/components/practice-clock";
 import { DEFAULT_MEETING_MINUTES } from "@/lib/meeting-length";
 import { OPENING_NUDGE } from "@/lib/persona";
+import { msToRecordedSeconds } from "@/lib/recording-length";
 import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
 import type { TranscriptTurn } from "@/lib/types";
@@ -170,6 +171,22 @@ export function VoiceConversation({
   const recordingEnabledRef = useRef(false); // was the camera on when we started?
   const recordingStartedRef = useRef(false); // guard so we only start once
 
+  // PD-5, the Recording Length of this one session. Two possible measurements,
+  // and which one we use is exactly the locked rule in lib/recording-length.ts:
+  //   - recordingMsRef: how long the RECORDER ran, so it is the recording's own
+  //     length. Only exists when the camera was on and a clip came out.
+  //   - callLiveMsRef: when the call went live, so "now minus this" is the
+  //     elapsed conversation time. This is the camera-off answer, and it is the
+  //     same moment the practice clock starts counting from (see clockActive
+  //     below), so the stored length matches the clock the student watched.
+  // The measured seconds are held in recordedSecondsRef so that ending TWICE
+  // (a scoring failure drops the student back to the live screen to retry) sends
+  // the same honest number both times instead of re-measuring a stopped call.
+  const recordingStartMsRef = useRef<number | null>(null);
+  const recordingMsRef = useRef<number | null>(null);
+  const callLiveMsRef = useRef<number | null>(null);
+  const recordedSecondsRef = useRef<number | null>(null);
+
   // A short status line shown while the call is wrapping up ("Saving your
   // recording...", then "Scoring...").
   const [endNote, setEndNote] = useState("");
@@ -300,6 +317,9 @@ export function VoiceConversation({
         if (ev.data && ev.data.size > 0) recordedChunksRef.current.push(ev.data);
       };
       recorder.start();
+      // PD-5: the recording's length is measured from here, not from the call
+      // connecting, because this is the first frame that ends up in the file.
+      recordingStartMsRef.current = Date.now();
       recorderRef.current = recorder;
       recordingStartedRef.current = true;
     } catch (err) {
@@ -320,6 +340,13 @@ export function VoiceConversation({
         if (!chunks.length) {
           resolve(null);
           return;
+        }
+        // PD-5: there IS a recording, so its length is the Recording Length.
+        // Noted only on this branch: no chunks means no clip came out, and an
+        // empty recording has no length to report, so that case falls through to
+        // the elapsed conversation time instead.
+        if (recordingStartMsRef.current !== null) {
+          recordingMsRef.current = Date.now() - recordingStartMsRef.current;
         }
         const blob = new Blob(chunks, {
           type: chunks[0].type || "video/webm",
@@ -596,6 +623,13 @@ export function VoiceConversation({
       const answerSdp = await sdpRes.text();
       await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
 
+      // PD-5: the conversation starts HERE, not when the session row was created.
+      // The student can sit on the "Start call" screen as long as they like, and
+      // that waiting is not part of the meeting. This is also the moment the
+      // practice clock starts counting from, so a camera-off call's stored
+      // Recording Length matches the clock the student was watching.
+      callLiveMsRef.current = Date.now();
+
       setStatus("live");
     } catch (err) {
       console.error("startCall failed:", err);
@@ -651,11 +685,31 @@ export function VoiceConversation({
     setError("");
     setStatus("ending");
 
+    // PD-5: the conversation ends the moment End is pressed (or the clock runs
+    // out), so take the time NOW, before the wrap-up work below. Uploading a
+    // recording and scoring can take several seconds, and none of that is part
+    // of the meeting.
+    const endedAtMs = Date.now();
+
     // Stop the recording first and grab the finished clip while the streams are
     // still alive, then tear down the call and make sure the transcript is saved.
     const blob = recordingEnabledRef.current ? await stopRecording() : null;
     cleanup();
     await saveTranscript();
+
+    // PD-5: settle this session's Recording Length, once. Prefer the recording's
+    // own length when there is a recording; otherwise it is the elapsed
+    // conversation time. Either way it describes THIS session only.
+    if (recordedSecondsRef.current === null) {
+      const measuredMs =
+        recordingMsRef.current ??
+        (callLiveMsRef.current !== null
+          ? endedAtMs - callLiveMsRef.current
+          : null);
+      if (measuredMs !== null) {
+        recordedSecondsRef.current = msToRecordedSeconds(measuredMs);
+      }
+    }
 
     // Upload the recording if we have one. A video problem must NEVER lose the
     // score: if the upload fails we just note it and carry on to scoring, leaving
@@ -678,7 +732,14 @@ export function VoiceConversation({
       const res = await fetch("/api/session/end", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId }),
+        body: JSON.stringify({
+          sessionId,
+          // PD-5. Left out entirely if we never got a measurement (the call
+          // never went live), in which case the server falls back on its own.
+          ...(recordedSecondsRef.current !== null
+            ? { recordedSeconds: recordedSecondsRef.current }
+            : {}),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
