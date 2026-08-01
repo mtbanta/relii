@@ -125,7 +125,7 @@ export default async function InstructorSubmissionPage({
           The back link returns to Submissions with this assignment selected. */}
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold">Submission</h2>
+          <h2 className="text-section font-semibold">Submission</h2>
           <p className="text-sm text-gray-700">Student: {studentName}</p>
           {student && hasName(student) && (
             <p className="text-xs text-gray-400">{student.email}</p>
@@ -225,7 +225,7 @@ export default async function InstructorSubmissionPage({
       {/* The recording (voice+video submissions only). */}
       {isVoice && (
         <section className="mb-6">
-          <h2 className="mb-3 text-lg font-medium">Recording</h2>
+          <h2 className="mb-3 text-subsection font-medium">Recording</h2>
           {videoUrl ? (
             <video
               src={videoUrl}
@@ -245,7 +245,7 @@ export default async function InstructorSubmissionPage({
         {/* The itemized rubric. PD-7 renamed this heading from "Itemized score"
             to "Rubric score", matching the student results page. */}
         <section>
-          <h2 className="mb-3 text-lg font-medium">Rubric score</h2>
+          <h2 className="mb-3 text-subsection font-medium">Rubric score</h2>
           {score && score.items.length > 0 ? (
             <ul className="space-y-3">
               {score.items.map((item) => {
@@ -282,7 +282,7 @@ export default async function InstructorSubmissionPage({
 
         {/* Transcript */}
         <section>
-          <h2 className="mb-3 text-lg font-medium">Transcript</h2>
+          <h2 className="mb-3 text-subsection font-medium">Transcript</h2>
           {transcript.length > 0 ? (
             <div className="space-y-3 rounded-lg border border-gray-200 p-4">
               {transcript.map((turn, i) => (

@@ -175,7 +175,9 @@ export default async function InstructorSubmissions({
     <main className="mx-auto max-w-5xl px-8 pb-12 pt-6">
       <section>
         <div className="mb-4">
-          <h2 className="font-medium">Submissions</h2>
+          <h2 className="text-section font-semibold text-content-primary">
+            Submissions
+          </h2>
           {selectorList.length > 0 && selected && (
             <div className="mt-3">
               {/* The dropdown is how an instructor moves between the sessions

@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { liveMarkerKey } from "@/lib/submission";
+import { Button } from "@/components/ui/button";
 
 export function StartAssignmentButton({
   assignmentId,
@@ -65,30 +66,25 @@ export function StartAssignmentButton({
   }
 
   // Disabled (Piece 4): a grayed, non-clickable button. No onClick, so the
-  // one-shot flow above cannot be reached from here.
+  // one-shot flow above cannot be reached from here. The shared Button already
+  // dims it and blocks the cursor when disabled, so that no longer needs its
+  // own classes here.
   if (disabled) {
     return (
-      <button
-        type="button"
-        disabled
-        aria-disabled="true"
-        className="cursor-not-allowed rounded-md bg-black px-4 py-2 text-sm text-white opacity-40"
-      >
+      <Button type="button" disabled aria-disabled="true">
         Start assignment
-      </button>
+      </Button>
     );
   }
 
   return (
     <>
-      <button
-        onClick={start}
-        disabled={loading}
-        className="rounded-md bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
-      >
+      <Button type="button" onClick={start} disabled={loading}>
         {loading ? "Starting..." : "Start assignment"}
-      </button>
-      {error && <p className="mt-2 w-full text-sm text-red-600">{error}</p>}
+      </Button>
+      {error && (
+        <p className="mt-2 w-full text-sm text-content-danger">{error}</p>
+      )}
     </>
   );
 }

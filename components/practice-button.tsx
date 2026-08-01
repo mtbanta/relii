@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 // Starts a new practice session for an assignment, then opens the conversation.
 // The student picks the mode each time, independent of what the assignment
@@ -44,17 +45,21 @@ export function PracticeButton({
     }
   }
 
-  const className =
-    mode === "voice"
-      ? "rounded-md border border-black px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
-      : "rounded-md bg-black px-4 py-2 text-sm text-white disabled:opacity-50";
-
+  // Text practice is the primary of the two; voice + video is the outlined one.
+  // That was the split before the shared Button existed, and it is kept.
   return (
     <>
-      <button onClick={start} disabled={loading} className={className}>
+      <Button
+        type="button"
+        variant={mode === "voice" ? "secondary" : "primary"}
+        onClick={start}
+        disabled={loading}
+      >
         {loading ? "Starting..." : label}
-      </button>
-      {error && <p className="mt-2 w-full text-sm text-red-600">{error}</p>}
+      </Button>
+      {error && (
+        <p className="mt-2 w-full text-sm text-content-danger">{error}</p>
+      )}
     </>
   );
 }

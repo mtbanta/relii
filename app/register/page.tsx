@@ -62,7 +62,7 @@ export default function RegisterPage() {
         className="w-full max-w-sm space-y-4 rounded-xl border border-gray-200 p-6 shadow-sm"
       >
         <div className="text-center">
-          <h1 className="text-2xl font-semibold">Relii</h1>
+          <h1 className="text-page-title font-semibold">Relii</h1>
           <p className="text-sm text-gray-500">Create your account</p>
         </div>
 

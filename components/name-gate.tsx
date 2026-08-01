@@ -58,7 +58,7 @@ export function NameGate({ email }: { email: string }) {
 
   return (
     <main className="mx-auto max-w-md p-8">
-      <h1 className="text-2xl font-semibold">Welcome to Relii</h1>
+      <h1 className="text-page-title font-semibold">Welcome to Relii</h1>
       <p className="mt-2 text-sm text-gray-600">
         Before you continue, please tell us your name. This is how your
         instructor will see your work. You only need to do this once.

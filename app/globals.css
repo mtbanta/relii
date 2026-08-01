@@ -2,22 +2,110 @@
 
 :root {
   /* The app always renders in light mode. The gray body and transcript text is
-     designed for a white background, so we do not follow the operating system's
+     designed for a light background, so we do not follow the operating system's
      dark mode (which would flip the page to black and wash that text out). */
   color-scheme: light;
-  --background: #ffffff;
-  --foreground: #171717;
+  /* The page background and default text colour. These are the shared surface
+     and text tokens below, restated as plain variables so the body rule (and
+     anything still using bg-background / text-foreground) keeps working. */
+  --background: #faf9f5;
+  --foreground: #2b2b29;
+}
+
+/* ---------------------------------------------------------------------------
+   THE SHARED DESIGN TOKENS (PD-8a).
+
+   Before this block every screen invented its own colours, spacing and heading
+   sizes, because there was nothing shared to be consistent with. These are the
+   values from docs/Relii-Core-Screen-Mockups.html, given names, so a screen can
+   say "surface secondary" instead of repeating a hex code.
+
+   This project is Tailwind v4, where theme values live in CSS (@theme), not in
+   a tailwind.config.js file. Each name below automatically becomes a utility
+   class: --color-surface-secondary gives bg-surface-secondary, and so on.
+   --------------------------------------------------------------------------- */
+@theme {
+  /* SURFACES: the background of a page, a card, or a status box.
+     primary   = a card sitting on the page (white)
+     secondary = a quieter panel, or a card that is switched off / locked
+     tertiary  = the page itself (a very light cream) */
+  --color-surface-primary: #ffffff;
+  --color-surface-secondary: #f3f2ec;
+  --color-surface-tertiary: #faf9f5;
+  --color-surface-info: #e6f1fb;
+  --color-surface-danger: #fcebeb;
+  --color-surface-success: #eaf3de;
+  --color-surface-warning: #faeeda;
+
+  /* TEXT. "content" rather than "text" so the class reads text-content-secondary
+     instead of text-text-secondary.
+     primary   = body copy and headings
+     secondary = supporting lines (a scenario name, a date, a description)
+     tertiary  = the quietest metadata (an email address, a small caption)
+     Contrast on the cream page background: secondary 6.2:1, tertiary 3.1:1,
+     both better than the grays they replace. */
+  --color-content-primary: #2b2b29;
+  --color-content-secondary: #5f5e5a;
+  --color-content-tertiary: #888780;
+  --color-content-info: #185fa5;
+  --color-content-danger: #a32d2d;
+  --color-content-success: #3b6d11;
+  --color-content-warning: #854f0b;
+
+  /* BORDERS.
+     tertiary  = the ordinary hairline around a card or between rows
+     secondary = a slightly stronger edge, for a control you can click */
+  --color-line-tertiary: rgba(0, 0, 0, 0.12);
+  --color-line-secondary: rgba(0, 0, 0, 0.22);
+
+  /* CORNERS. These two names already exist in Tailwind, so re-stating them here
+     re-points every rounded-md and rounded-lg already written anywhere in the
+     app at the mockup's radii, with no file needing to be edited. */
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* THE HEADING SCALE. Three sizes, by ROLE rather than by HTML tag, because a
+     page heading under the shared instructor header is an h2 (PD-1 demoted it)
+     while a standalone screen's heading is an h1.
+       page-title = the top heading of a standalone screen
+       section    = an instructor destination's title, under the shared header
+       subsection = a heading for one area inside a page
+     The values equal what the app already used most often (24 / 20 / 18px), so
+     applying the scale mostly changes only the headings that were out of step. */
+  --text-page-title: 1.5rem;
+  --text-page-title--line-height: 2rem;
+  --text-section: 1.25rem;
+  --text-section--line-height: 1.75rem;
+  --text-subsection: 1.125rem;
+  --text-subsection--line-height: 1.75rem;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* THE FONT. app/layout.tsx loads Geist and Geist Mono and hands them over as
+     these two variables. Until PD-8a a body rule below set Arial, which beat
+     them, so the app downloaded a font it never showed. The rule is gone and
+     these mappings are what the page now actually uses (Tailwind's own base
+     styles point the page at --font-sans). The generic families on the end are
+     the fallback for the moment before the web font arrives. */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo,
+    monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* PRINTING. Students print or save their results page to PDF, and a printed
+   page should be plain black on white: the cream page background is for the
+   screen. Browsers usually drop background colours when printing anyway, but
+   this says so outright so the printout cannot depend on that. */
+@media print {
+  body {
+    background: #ffffff;
+    color: #171717;
+  }
 }

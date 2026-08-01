@@ -51,7 +51,9 @@ export default async function InstructorRoster() {
 
   return (
     <main className="mx-auto max-w-5xl px-8 pb-12 pt-6">
-      <h2 className="mb-1 font-medium">Roster</h2>
+      <h2 className="mb-1 text-section font-semibold text-content-primary">
+        Roster
+      </h2>
       <p className="mb-4 text-sm text-gray-500">
         Everyone with access to Relii, grouped by status. Registered users have
         signed up; pending invites are on the invite list but have not registered

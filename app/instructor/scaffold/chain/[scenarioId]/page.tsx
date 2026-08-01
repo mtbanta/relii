@@ -55,7 +55,7 @@ export default async function ChainPage({
         </Link>
         {/* An h2, not an h1: the page title in the shared instructor header
             above is the h1. */}
-        <h2 className="text-xl font-semibold">Nothing to chain from</h2>
+        <h2 className="text-section font-semibold">Nothing to chain from</h2>
         <p className="text-sm text-gray-600">
           {gatekeeper.persona_name} is a decision maker, and a decision maker
           gates nobody, so there is no second meeting to build. The chain starts
@@ -71,7 +71,7 @@ export default async function ChainPage({
         <Link href="/instructor/scaffold" className="text-sm text-gray-500 underline">
           Back to Persona Scaffolding
         </Link>
-        <h2 className="text-xl font-semibold">Choose this gatekeeper first</h2>
+        <h2 className="text-section font-semibold">Choose this gatekeeper first</h2>
         <p className="text-sm text-gray-600">
           {gatekeeper.persona_name} is switched off, so it is not a case anyone
           has settled on yet. Choose it first, and then come back to build its
@@ -96,7 +96,7 @@ export default async function ChainPage({
         >
           Back to Persona Scaffolding
         </Link>
-        <h2 className="mt-2 text-xl font-semibold">
+        <h2 className="mt-2 text-section font-semibold">
           Build the decision maker for this case
         </h2>
         <p className="mt-1 text-sm text-gray-600">

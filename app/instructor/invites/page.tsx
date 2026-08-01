@@ -22,7 +22,9 @@ export default async function InstructorInvites() {
 
   return (
     <main className="mx-auto max-w-5xl px-8 pb-12 pt-6">
-      <h2 className="mb-1 font-medium">Invite Users</h2>
+      <h2 className="mb-1 text-section font-semibold text-content-primary">
+        Invite Users
+      </h2>
       <p className="mb-4 text-sm text-gray-500">
         Only invited email addresses can register. Add one person at a time, or
         upload a CSV file to invite a whole class at once. New invites appear on

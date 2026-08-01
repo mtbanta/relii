@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relii core screen mockups</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<style>
+:root{
+--color-background-primary:#ffffff;--color-background-secondary:#f3f2ec;--color-background-tertiary:#faf9f5;
+--color-background-info:#E6F1FB;--color-background-danger:#FCEBEB;--color-background-success:#EAF3DE;--color-background-warning:#FAEEDA;
+--color-text-primary:#2b2b29;--color-text-secondary:#5F5E5A;--color-text-tertiary:#888780;
+--color-text-info:#185FA5;--color-text-danger:#A32D2D;--color-text-success:#3B6D11;--color-text-warning:#854F0B;
+--color-border-tertiary:rgba(0,0,0,0.12);--color-border-secondary:rgba(0,0,0,0.22);
+--border-radius-md:8px;--border-radius-lg:12px;--font-mono:ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#ecebe5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--color-text-primary);padding:24px}
+.page{max-width:720px;margin:0 auto}
+.page-h{font-size:22px;font-weight:500;margin:0 0 2px}
+.page-sub{font-size:13px;color:var(--color-text-secondary);margin:0 0 20px}
+.rl-stack{display:flex;flex-direction:column;gap:1.5rem}
+.rl-frame{background:var(--color-background-secondary);border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);overflow:hidden}
+.rl-chrome{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.rl-dot{width:10px;height:10px;border-radius:50%;background:var(--color-border-secondary)}
+.rl-url{margin-left:8px;font-size:12px;color:var(--color-text-tertiary);font-family:var(--font-mono)}
+.rl-screen{background:var(--color-background-tertiary);padding:14px 16px}
+.rl-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.rl-logo{font-size:18px;font-weight:500;color:var(--color-text-info)}
+.rl-av{width:30px;height:30px;border-radius:50%;background:var(--color-background-info);color:var(--color-text-info);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500}
+.rl-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px}
+.rl-label{font-size:13px;color:var(--color-text-secondary);margin:0 0 8px}
+.rl-pill{font-size:11px;padding:3px 9px;border-radius:var(--border-radius-md);font-weight:500;display:inline-flex;align-items:center;gap:4px}
+.rl-btn{font-size:13px;padding:6px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer}
+.rl-btn-pri{font-size:13px;padding:6px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-text-info);background:var(--color-background-info);color:var(--color-text-info);font-weight:500;cursor:pointer}
+.rl-msg{max-width:78%;padding:9px 12px;border-radius:var(--border-radius-lg);font-size:13px;line-height:1.5}
+.rl-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:0.5px solid var(--color-border-tertiary)}
+.rl-bars{display:flex;align-items:flex-end;gap:3px;height:34px}
+.rl-bars span{width:4px;background:var(--color-text-info);border-radius:2px}
+.rl-th{font-size:11px;color:var(--color-text-tertiary);text-align:left;font-weight:500;padding:6px 6px}
+.rl-td{font-size:12px;padding:8px 6px;border-top:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary)}
+.rl-catrow{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-top:0.5px solid var(--color-border-tertiary)}
+.rl-chip{font-size:11px;padding:4px 9px;border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-secondary);white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="page">
+<h1 class="page-h">Relii core screen mockups</h1>
+<p class="page-sub">Concept layouts for v1, for discussion. Sample content uses the Bunzl case and the Alex discovery call. Visual style is a starting point and can change.</p>
+<div class="rl-stack">
+
+  <div class="rl-frame">
+    <div class="rl-chrome"><span class="rl-dot"></span><span class="rl-dot"></span><span class="rl-dot"></span><span class="rl-url">relii.app/home</span></div>
+    <div class="rl-screen">
+      <div class="rl-bar">
+        <span class="rl-logo">Relii</span>
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:13px;color:var(--color-text-secondary)">Michael B.</span><span class="rl-av">MB</span></div>
+      </div>
+      <p class="rl-label">Your assignments</p>
+      <div class="rl-card" style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+          <div>
+            <p style="margin:0;font-size:14px;font-weight:500">Bunzl: discovery call with Alex</p>
+            <p style="margin:3px 0 0;font-size:12px;color:var(--color-text-secondary)"><i class="ti ti-user"></i> Procurement director &middot; voice + video required &middot; due Aug 14</p>
+          </div>
+          <span class="rl-pill" style="background:var(--color-background-warning);color:var(--color-text-warning)">Practiced 2 of 3</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px"><button class="rl-btn">Practice</button><button class="rl-btn-pri">Start assignment</button></div>
+      </div>
+      <div class="rl-card" style="opacity:0.6">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <p style="margin:0;font-size:14px;font-weight:500">Bunzl: trial-order close with Jordan</p>
+            <p style="margin:3px 0 0;font-size:12px;color:var(--color-text-secondary)"><i class="ti ti-lock"></i> Unlocks after the discovery call</p>
+          </div>
+          <span class="rl-pill" style="background:var(--color-background-secondary);color:var(--color-text-tertiary)">Locked</span>
+        </div>
+      </div>
+      <p class="rl-label" style="margin-top:16px">Saved practices: 2 of 3</p>
+      <div class="rl-card" style="padding:4px 14px">
+        <div class="rl-row" style="border-top:none">
+          <i class="ti ti-message" style="color:var(--color-text-secondary)"></i>
+          <span style="flex:1;font-size:13px">Discovery with Alex &middot; text</span>
+          <span style="font-size:12px;color:var(--color-text-tertiary)">Jun 9</span>
+          <span class="rl-pill" style="background:var(--color-background-secondary);color:var(--color-text-secondary)">188 / 240</span>
+          <i class="ti ti-trash" style="color:var(--color-text-tertiary)"></i>
+        </div>
+        <div class="rl-row">
+          <i class="ti ti-video" style="color:var(--color-text-secondary)"></i>
+          <span style="flex:1;font-size:13px">Discovery with Alex &middot; voice + video</span>
+          <span style="font-size:12px;color:var(--color-text-tertiary)">Jun 10</span>
+          <span class="rl-pill" style="background:var(--color-background-secondary);color:var(--color-text-secondary)">214 / 290</span>
+          <i class="ti ti-trash" style="color:var(--color-text-tertiary)"></i>
+        </div>
+      </div>
+      <p style="margin:8px 2px 0;font-size:11px;color:var(--color-text-tertiary)">You can keep up to 3 practice recordings. Record a 4th and your oldest is replaced. All practices are cleared once you submit the assignment.</p>
+    </div>
+  </div>
+
+  <div class="rl-frame">
+    <div class="rl-chrome"><span class="rl-dot"></span><span class="rl-dot"></span><span class="rl-dot"></span><span class="rl-url">relii.app/session &middot; text mode</span></div>
+    <div class="rl-screen">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px"><span class="rl-av">A</span><div><p style="margin:0;font-size:13px;font-weight:500">Alex &middot; discovery call</p><p style="margin:0;font-size:11px;color:var(--color-text-tertiary)">Practice &middot; text mode</p></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:13px;color:var(--color-text-secondary)"><i class="ti ti-clock"></i> 08:24</span><button class="rl-btn" style="color:var(--color-text-danger)">End session</button></div>
+      </div>
+      <div class="rl-card">
+        <div style="display:flex;gap:8px;margin-bottom:12px"><span class="rl-av" style="width:26px;height:26px;font-size:11px">A</span><div class="rl-msg" style="background:var(--color-background-secondary);color:var(--color-text-primary)">Thanks for making time. I have got about fifteen minutes. What did you want to cover today?</div></div>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px"><div class="rl-msg" style="background:var(--color-background-info);color:var(--color-text-info)">Hi Alex, I am Michael Banta with Bunzl. I wanted to understand how your current packaging film is working for the plant before I suggest anything.</div></div>
+        <div style="display:flex;gap:8px"><span class="rl-av" style="width:26px;height:26px;font-size:11px">A</span><div class="rl-msg" style="background:var(--color-background-secondary);color:var(--color-text-primary)">Fair enough. We have run the same supplier for years. It is fine, though we had a late delivery last quarter that gave us a scare.</div></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+        <div style="flex:1;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:9px 12px;font-size:13px;color:var(--color-text-tertiary)">Type your response&hellip;</div>
+        <button class="rl-btn-pri"><i class="ti ti-send"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="rl-frame">
+    <div class="rl-chrome"><span class="rl-dot"></span><span class="rl-dot"></span><span class="rl-dot"></span><span class="rl-url">relii.app/session &middot; voice + video mode</span></div>
+    <div class="rl-screen">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div><p style="margin:0;font-size:13px;font-weight:500">Alex &middot; discovery call</p><p style="margin:0;font-size:11px;color:var(--color-text-tertiary)">Assignment &middot; voice + video</p></div>
+        <div style="display:flex;align-items:center;gap:10px"><span class="rl-pill" style="background:var(--color-background-danger);color:var(--color-text-danger)"><i class="ti ti-circle-filled" style="font-size:9px"></i> Recording</span><span style="font-size:13px;color:var(--color-text-secondary)"><i class="ti ti-clock"></i> 04:11</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="rl-card" style="background:var(--color-background-secondary);display:flex;flex-direction:column;align-items:center;justify-content:center;height:150px;position:relative">
+          <i class="ti ti-user" style="font-size:40px;color:var(--color-text-tertiary)"></i>
+          <span class="rl-pill" style="position:absolute;bottom:8px;left:8px;background:var(--color-background-primary);color:var(--color-text-secondary)">You</span>
+        </div>
+        <div class="rl-card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:150px;gap:12px">
+          <span class="rl-av" style="width:46px;height:46px;font-size:17px">A</span>
+          <div class="rl-bars"><span style="height:40%"></span><span style="height:80%"></span><span style="height:55%"></span><span style="height:95%"></span><span style="height:60%"></span><span style="height:30%"></span></div>
+          <span style="font-size:12px;color:var(--color-text-secondary)">Alex is speaking&hellip;</span>
+        </div>
+      </div>
+      <div class="rl-card" style="margin-top:10px;padding:10px 14px">
+        <p style="margin:0;font-size:11px;color:var(--color-text-tertiary)">Live transcript</p>
+        <p style="margin:4px 0 0;font-size:13px;color:var(--color-text-primary)">&ldquo;&hellip;honestly, price matters, but if the line stops because film did not show up, that costs me far more than a few cents a roll.&rdquo;</p>
+      </div>
+      <div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-top:12px">
+        <button class="rl-btn"><i class="ti ti-microphone"></i> Mute</button>
+        <button class="rl-btn"><i class="ti ti-video"></i> Camera on</button>
+        <button class="rl-btn" style="color:var(--color-text-danger)"><i class="ti ti-player-stop"></i> End session</button>
+      </div>
+      <p style="margin:8px 0 0;text-align:center;font-size:11px;color:var(--color-text-tertiary)"><i class="ti ti-lock"></i> Camera stays on for graded assignments. It can be turned off in practice.</p>
+    </div>
+  </div>
+
+  <div class="rl-frame">
+    <div class="rl-chrome"><span class="rl-dot"></span><span class="rl-dot"></span><span class="rl-dot"></span><span class="rl-url">relii.app/session/214/results</span></div>
+    <div class="rl-screen">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;font-size:12px;color:var(--color-text-info)"><i class="ti ti-arrow-left"></i> Back to home</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div><p style="margin:0;font-size:15px;font-weight:500">Discovery with Alex</p><p style="margin:3px 0 0;font-size:12px;color:var(--color-text-secondary)"><span class="rl-pill" style="background:var(--color-background-info);color:var(--color-text-info)">Voice + video</span> Submitted Jun 11</p></div>
+        <div style="text-align:right"><p style="margin:0;font-size:24px;font-weight:500">214 <span style="font-size:14px;color:var(--color-text-tertiary)">/ 290</span></p><p style="margin:0;font-size:12px;color:var(--color-text-success)">74%</p></div>
+      </div>
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:12px;margin-bottom:12px">
+        <div class="rl-card" style="width:120px;height:74px;display:flex;align-items:center;justify-content:center;background:var(--color-background-secondary)"><i class="ti ti-player-play" style="font-size:26px;color:var(--color-text-secondary)"></i></div>
+        <div class="rl-card" style="padding:10px 12px"><p style="margin:0;font-size:11px;color:var(--color-text-tertiary)">Transcript</p><p style="margin:3px 0 0;font-size:12px;color:var(--color-text-secondary)">Replay the recording alongside the full transcript, turn by turn.</p></div>
+      </div>
+      <p class="rl-label">Rubric breakdown &middot; jump to a category</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        <span class="rl-chip">Intro 26/30</span><span class="rl-chip">Facts 24/30</span><span class="rl-chip">Needs 31/40</span><span class="rl-chip">Presentation 44/60</span><span class="rl-chip">Closing 49/70</span><span class="rl-chip">Style 40/60</span>
+      </div>
+      <div class="rl-card" style="padding:2px 14px">
+        <div class="rl-catrow" style="border-top:none">
+          <span style="font-size:13px;font-weight:500"><i class="ti ti-chevron-up"></i> Introduction / approach</span><span style="font-size:13px;color:var(--color-text-success)">26 / 30</span>
+        </div>
+        <div style="padding:6px 0 9px 18px">
+          <div style="display:flex;justify-content:space-between"><span style="font-size:12px">Professional opening</span><span style="font-size:12px;color:var(--color-text-warning)">6 / 10</span></div>
+          <p style="margin:3px 0 0;font-size:11px;color:var(--color-text-tertiary);font-style:italic">&ldquo;Did not state last name. Greeting and purpose were clear.&rdquo;</p>
+        </div>
+        <div style="padding:0 0 9px 18px">
+          <div style="display:flex;justify-content:space-between"><span style="font-size:12px">Uncovers the purchasing process</span><span style="font-size:12px;color:var(--color-text-success)">10 / 10</span></div>
+          <p style="margin:3px 0 0;font-size:11px;color:var(--color-text-tertiary);font-style:italic">&ldquo;Asked about approval steps, budget cycle, and timing.&rdquo;</p>
+        </div>
+        <div class="rl-catrow"><span style="font-size:13px;font-weight:500"><i class="ti ti-chevron-down"></i> Confirming &amp; uncovering facts</span><span style="font-size:13px;color:var(--color-text-secondary)">24 / 30</span></div>
+        <div class="rl-catrow"><span style="font-size:13px;font-weight:500"><i class="ti ti-chevron-down"></i> Identifying needs &amp; opportunities</span><span style="font-size:13px;color:var(--color-text-secondary)">31 / 40</span></div>
+        <div class="rl-catrow"><span style="font-size:13px;font-weight:500"><i class="ti ti-chevron-down"></i> Product / service presentation</span><span style="font-size:13px;color:var(--color-text-secondary)">44 / 60</span></div>
+        <div class="rl-catrow"><span style="font-size:13px;font-weight:500"><i class="ti ti-chevron-down"></i> Soliciting feedback &amp; closing</span><span style="font-size:13px;color:var(--color-text-secondary)">49 / 70</span></div>
+        <div class="rl-catrow"><span style="font-size:13px;font-weight:500"><i class="ti ti-chevron-down"></i> Sales style</span><span style="font-size:13px;color:var(--color-text-secondary)">40 / 60</span></div>
+        <div style="display:flex;align-items:center;gap:6px;padding:10px 0;border-top:0.5px solid var(--color-border-tertiary)">
+          <i class="ti ti-flag" style="font-size:14px;color:var(--color-text-warning)"></i><span style="font-size:12px;color:var(--color-text-secondary)">Emotional impact flagged for professor review</span>
+        </div>
+      </div>
+      <p style="margin:8px 2px 0;font-size:11px;color:var(--color-text-tertiary)">Students see this read-only. Instructors get the same breakdown plus downloads and the place to add the emotional-impact critique and confirm the grade.</p>
+    </div>
+  </div>
+
+  <div class="rl-frame">
+    <div class="rl-chrome"><span class="rl-dot"></span><span class="rl-dot"></span><span class="rl-dot"></span><span class="rl-url">relii.app/instructor</span></div>
+    <div class="rl-screen">
+      <div class="rl-bar">
+        <span class="rl-logo">Relii <span style="font-size:12px;color:var(--color-text-tertiary);font-weight:400">instructor</span></span>
+        <div style="display:flex;gap:8px"><button class="rl-btn"><i class="ti ti-users"></i> Roster</button><button class="rl-btn-pri"><i class="ti ti-plus"></i> Invite</button></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+        <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px"><p style="margin:0;font-size:12px;color:var(--color-text-secondary)">Submissions</p><p style="margin:2px 0 0;font-size:22px;font-weight:500">18 <span style="font-size:13px;color:var(--color-text-tertiary)">/ 24</span></p><p style="margin:1px 0 0;font-size:11px;color:var(--color-text-tertiary)">of 24 enrolled</p></div>
+        <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px"><p style="margin:0;font-size:12px;color:var(--color-text-secondary)">Average score</p><p style="margin:2px 0 0;font-size:22px;font-weight:500">214 <span style="font-size:12px;color:var(--color-text-tertiary)">/290</span></p><p style="margin:1px 0 0;font-size:11px;color:var(--color-text-tertiary)">graded so far</p></div>
+        <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px"><p style="margin:0;font-size:12px;color:var(--color-text-secondary)">Awaiting review</p><p style="margin:2px 0 0;font-size:22px;font-weight:500">4</p><p style="margin:1px 0 0;font-size:11px;color:var(--color-text-tertiary)">need finalizing</p></div>
+      </div>
+      <div class="rl-card" style="padding:4px 12px">
+        <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+          <tr><th class="rl-th" style="width:24%">Student</th><th class="rl-th" style="width:22%">Assignment</th><th class="rl-th" style="width:13%">Mode</th><th class="rl-th" style="width:12%">Score</th><th class="rl-th" style="width:13%">Status</th><th class="rl-th" style="width:16%">Actions</th></tr>
+          <tr><td class="rl-td">Jordan Lee</td><td class="rl-td" style="color:var(--color-text-secondary)">Alex discovery</td><td class="rl-td"><i class="ti ti-video"></i> V+V</td><td class="rl-td">232</td><td class="rl-td" style="color:var(--color-text-success)">Reviewed</td><td class="rl-td"><i class="ti ti-eye"></i> <i class="ti ti-download" style="margin-left:8px"></i></td></tr>
+          <tr><td class="rl-td">Sam Ortiz</td><td class="rl-td" style="color:var(--color-text-secondary)">Alex discovery</td><td class="rl-td"><i class="ti ti-video"></i> V+V</td><td class="rl-td">198</td><td class="rl-td" style="color:var(--color-text-warning)">To review</td><td class="rl-td"><i class="ti ti-eye"></i> <i class="ti ti-download" style="margin-left:8px"></i></td></tr>
+          <tr><td class="rl-td">Priya Nair</td><td class="rl-td" style="color:var(--color-text-secondary)">Alex discovery</td><td class="rl-td"><i class="ti ti-video"></i> V+V</td><td class="rl-td">221</td><td class="rl-td" style="color:var(--color-text-success)">Reviewed</td><td class="rl-td"><i class="ti ti-eye"></i> <i class="ti ti-download" style="margin-left:8px"></i></td></tr>
+          <tr><td class="rl-td" style="border-bottom:none">Dana Cole</td><td class="rl-td" style="color:var(--color-text-secondary);border-bottom:none">Alex discovery</td><td class="rl-td" style="border-bottom:none"><i class="ti ti-video"></i> V+V</td><td class="rl-td" style="border-bottom:none">205</td><td class="rl-td" style="color:var(--color-text-warning);border-bottom:none">To review</td><td class="rl-td" style="border-bottom:none"><i class="ti ti-eye"></i> <i class="ti ti-download" style="margin-left:8px"></i></td></tr>
+        </table>
+      </div>
+      <p style="margin:10px 2px 0;font-size:11px;color:var(--color-text-tertiary)">Actions: view opens the submission and rubric breakdown; download gives the video, transcript, and a CSV of scores. Practice sessions never appear here.</p>
+    </div>
+  </div>
+
+</div>
+</div>
+</body>
+</html>

@@ -11,6 +11,7 @@ import { CreateAssignmentForm } from "@/components/create-assignment-form";
 import { EditAssignmentForm } from "@/components/edit-assignment-form";
 import { DeleteAssignmentButton } from "@/components/delete-assignment-button";
 import { requireInstructor } from "@/lib/instructor-auth";
+import { Card } from "@/components/ui/card";
 
 // One assignment as read for the management list (this instructor's own).
 type AssignmentRow = {
@@ -84,8 +85,10 @@ export default async function InstructorAssignments() {
 
   return (
     <main className="mx-auto max-w-5xl px-8 pb-12 pt-6">
-      <h2 className="mb-1 font-medium">Manage Assignments</h2>
-      <p className="mb-3 text-sm text-gray-500">
+      <h2 className="mb-1 text-section font-semibold text-content-primary">
+        Manage Assignments
+      </h2>
+      <p className="mb-3 text-sm text-content-secondary">
         Create an assignment for a scenario and pick the mode the graded
         submission must use. Each student can submit an assignment once.
       </p>
@@ -102,7 +105,7 @@ export default async function InstructorAssignments() {
               };
               const inUse = counts.submissions + counts.practices > 0;
               return (
-                <li key={a.id} className="rounded-lg border border-gray-200 p-3">
+                <Card key={a.id} as="li" padding="md">
                   <EditAssignmentForm
                     assignment={{
                       id: a.id,
@@ -116,8 +119,8 @@ export default async function InstructorAssignments() {
                       personaName: a.scenarios?.persona_name ?? null,
                     }}
                   />
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-2">
-                    <span className="text-xs text-gray-400">
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line-tertiary pt-2">
+                    <span className="text-xs text-content-tertiary">
                       {inUse
                         ? `In use: ${counts.submissions} submission${counts.submissions === 1 ? "" : "s"}, ${counts.practices} practice${counts.practices === 1 ? "" : "s"}`
                         : "Not in use (no student work)"}
@@ -129,12 +132,12 @@ export default async function InstructorAssignments() {
                       practicesCount={counts.practices}
                     />
                   </div>
-                </li>
+                </Card>
               );
             })}
           </ul>
         ) : (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-content-secondary">
             You have not created any assignments yet.
           </p>
         )}

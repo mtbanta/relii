@@ -35,7 +35,10 @@ export function InstructorNav() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Instructor sections" className="mt-4 border-b border-gray-200">
+    <nav
+      aria-label="Instructor sections"
+      className="mt-4 border-b border-line-tertiary"
+    >
       <ul className="flex flex-wrap gap-x-6 gap-y-1">
         {DESTINATIONS.map((d) => {
           const current = isCurrent(pathname, d.href);
@@ -46,8 +49,8 @@ export function InstructorNav() {
                 aria-current={current ? "page" : undefined}
                 className={
                   current
-                    ? "-mb-px inline-block border-b-2 border-black py-2 text-sm font-medium text-black"
-                    : "-mb-px inline-block border-b-2 border-transparent py-2 text-sm text-gray-500 hover:text-black"
+                    ? "-mb-px inline-block border-b-2 border-content-primary py-2 text-sm font-medium text-content-primary"
+                    : "-mb-px inline-block border-b-2 border-transparent py-2 text-sm text-content-secondary hover:text-content-primary"
                 }
               >
                 {d.label}

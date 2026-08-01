@@ -37,11 +37,13 @@ export default async function InstructorLayout({
       <div className="mx-auto max-w-5xl px-8 pt-8">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold">Instructor dashboard</h1>
-            <p className="text-sm text-gray-700">
+            <h1 className="text-page-title font-semibold text-content-primary">
+              Instructor dashboard
+            </h1>
+            <p className="text-sm text-content-secondary">
               {displayName({ ...profile, email: user.email ?? "" })}
             </p>
-            <p className="text-xs text-gray-400">{user.email}</p>
+            <p className="text-xs text-content-tertiary">{user.email}</p>
           </div>
           <SignOutButton />
         </header>

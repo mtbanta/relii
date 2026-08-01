@@ -182,7 +182,7 @@ export default async function CompareCandidatesPage({
         </Link>
         {/* An h2, not an h1: the page title in the shared instructor header
             above is the h1. */}
-        <h2 className="mt-2 text-xl font-semibold">
+        <h2 className="mt-2 text-section font-semibold">
           {decided ? "The chosen persona" : "Compare the candidates"}
         </h2>
         <p className="mt-1 text-sm text-gray-600">
@@ -362,7 +362,9 @@ export default async function CompareCandidatesPage({
           doc), so they are repeated here next to each other, because the whole
           question is which of the two is carrying the argument. */}
       <div className="rounded-lg border border-gray-200 p-4">
-        <h2 className="font-medium">Where the argument landed</h2>
+        <h2 className="text-subsection font-medium">
+          Where the argument landed
+        </h2>
         <p className="mt-1 text-sm text-gray-600">
           The win condition is read by the STUDENT in their briefing. What earns
           the win is hidden and is what actually gates the close. If the
@@ -402,7 +404,9 @@ export default async function CompareCandidatesPage({
       {/* The assembled text: what would actually drive the role-play. Collapsed
           by default so it does not bury the comparison above. */}
       <div className="space-y-3">
-        <h2 className="font-medium">The assembled scenario text</h2>
+        <h2 className="text-subsection font-medium">
+          The assembled scenario text
+        </h2>
         <p className="text-sm text-gray-600">
           Built from the fields above by the fixed template, so the case you
           compare and the persona a student would meet cannot drift apart.

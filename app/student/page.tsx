@@ -11,6 +11,8 @@ import { StartAssignmentButton } from "@/components/start-assignment-button";
 import { SubmitPracticeButton } from "@/components/submit-practice-button";
 import { DeletePracticeButton } from "@/components/delete-practice-button";
 import { NameGate } from "@/components/name-gate";
+import { Card, cardClasses } from "@/components/ui/card";
+import { buttonClasses } from "@/components/ui/button";
 import { KEPT_PRACTICES } from "@/lib/practice";
 import { displayName, hasName } from "@/lib/name";
 import { isLockedUntil, formatAvailableDate } from "@/lib/available-date";
@@ -203,19 +205,23 @@ export default async function StudentHome() {
     <main className="mx-auto max-w-2xl p-8">
       <header className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Student home</h1>
-          <p className="text-sm text-gray-700">
+          <h1 className="text-page-title font-semibold text-content-primary">
+            Student home
+          </h1>
+          <p className="text-sm text-content-secondary">
             {displayName({ ...profile, email: user.email ?? "" })}
           </p>
-          <p className="text-xs text-gray-400">{user.email}</p>
+          <p className="text-xs text-content-tertiary">{user.email}</p>
         </div>
         <SignOutButton />
       </header>
 
-      <h2 className="mb-3 text-lg font-medium">Your assignments</h2>
+      <h2 className="mb-3 text-subsection font-medium text-content-primary">
+        Your assignments
+      </h2>
 
       {!assignments || assignments.length === 0 ? (
-        <p className="text-gray-600">
+        <p className="text-content-secondary">
           You have no assignments yet. They will appear here once your instructor
           creates one.
         </p>
@@ -226,7 +232,13 @@ export default async function StudentHome() {
               their video, transcript, or score straight away knows it is still
               being processed and is not lost. Static text only: nothing here
               measures or waits on the real processing. */}
-          <p className="mb-4 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+          <p
+            className={cardClasses({
+              tone: "muted",
+              padding: "sm",
+              className: "mb-4 text-sm text-content-secondary",
+            })}
+          >
             After you finish a practice or a submission, video and transcript
             processing may take up to three minutes.
           </p>
@@ -267,15 +279,19 @@ export default async function StudentHome() {
             const meetingMinutes = resolveMeetingMinutes(a.duration_minutes);
 
             return (
-              <li
+              <Card
                 key={a.id}
-                className={`rounded-lg border border-gray-200 p-5 ${locked ? "bg-gray-50" : ""}`}
+                as="li"
+                padding="lg"
+                tone={locked ? "muted" : "default"}
               >
-                <h3 className={`font-semibold ${locked ? "text-gray-400" : ""}`}>
+                <h3
+                  className={`font-semibold ${locked ? "text-content-tertiary" : "text-content-primary"}`}
+                >
                   {a.title}
                 </h3>
                 <p
-                  className={`mt-0.5 text-sm ${locked ? "text-gray-400" : "text-gray-500"}`}
+                  className={`mt-0.5 text-sm ${locked ? "text-content-tertiary" : "text-content-secondary"}`}
                 >
                   {a.scenarios?.title ?? "Scenario"}
                   {a.scenarios?.persona_name
@@ -290,7 +306,7 @@ export default async function StudentHome() {
                 </p>
                 {a.instructions && (
                   <p
-                    className={`mt-3 text-sm leading-relaxed ${locked ? "text-gray-400" : "text-gray-700"}`}
+                    className={`mt-3 text-sm leading-relaxed ${locked ? "text-content-tertiary" : "text-content-secondary"}`}
                   >
                     {a.instructions}
                   </p>
@@ -309,11 +325,16 @@ export default async function StudentHome() {
                     submitting; it never hides work already done. */}
                 <div className="mt-4">
                   {locked && !hasSubmission ? (
-                    <p className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-500">
+                    <p
+                      className={cardClasses({
+                        padding: "sm",
+                        className: "text-sm font-medium text-content-secondary",
+                      })}
+                    >
                       Locked. Available on {availableOn}.
                     </p>
                   ) : practiceOnly ? (
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-content-secondary">
                       This one is for conversation practice only. There is
                       nothing to submit and no score.
                     </p>
@@ -323,7 +344,7 @@ export default async function StudentHome() {
                           summary line (this card shows the submission as a line,
                           not as a table row). It is this one submission's own
                           length, never a total across attempts. */}
-                      <span className="text-sm text-green-700">
+                      <span className="text-sm text-content-success">
                         Submitted
                         {submission?.score_total != null &&
                         submission.score?.max_total != null
@@ -335,13 +356,13 @@ export default async function StudentHome() {
                       </span>
                       <Link
                         href={`/student/session/${submission!.id}/results`}
-                        className="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
+                        className={buttonClasses({ variant: "secondary" })}
                       >
                         View result
                       </Link>
                     </div>
                   ) : interrupted ? (
-                    <p className="text-sm text-amber-800">
+                    <p className="text-sm text-content-warning">
                       Your submission was interrupted. A graded submission is a
                       one-time attempt and cannot be resumed. Please contact your
                       instructor to have it reset.
@@ -353,7 +374,7 @@ export default async function StudentHome() {
                           graded submission is now made by submitting a completed
                           voice + video practice from the list below. */}
                       <StartAssignmentButton assignmentId={a.id} disabled />
-                      <p className="mt-2 text-xs text-gray-400">
+                      <p className="mt-2 text-xs text-content-tertiary">
                         Start assignment is temporarily disabled.
                       </p>
                     </>
@@ -365,9 +386,11 @@ export default async function StudentHome() {
                     each time. PD-3: on a locked assignment the practice buttons
                     are not rendered at all, so there is nothing to click. */}
                 {!submitted && !locked && (
-                  <div className="mt-5 border-t border-gray-100 pt-4">
-                    <p className="text-sm font-medium">Practice this assignment</p>
-                    <p className="mt-0.5 text-xs text-gray-500">
+                  <div className="mt-5 border-t border-line-tertiary pt-4">
+                    <p className="text-sm font-medium text-content-primary">
+                      Practice this assignment
+                    </p>
+                    <p className="mt-0.5 text-xs text-content-secondary">
                       Practice as many times as you like. We keep your last{" "}
                       {KEPT_PRACTICES}.
                     </p>
@@ -385,24 +408,24 @@ export default async function StudentHome() {
                     a normal locked card reads clean and no existing work is ever
                     hidden from the student who did it. */}
                 {(!locked || kept.length > 0) && (
-                <div className="mt-5 border-t border-gray-100 pt-4">
-                  <p className="text-sm text-gray-600">
+                <div className="mt-5 border-t border-line-tertiary pt-4">
+                  <p className="text-sm text-content-secondary">
                     Saved practices: {kept.length} of {KEPT_PRACTICES}
                   </p>
                   {kept.length > 0 && (
-                    <ul className="mt-2 divide-y divide-gray-100 rounded-md border border-gray-200">
+                    <ul className="mt-2 divide-y divide-line-tertiary rounded-md border border-line-tertiary">
                       {kept.map((p) => (
                         <li
                           key={p.id}
                           className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm"
                         >
-                          <span className="text-gray-700">
+                          <span className="text-content-primary">
                             {modeLabel(p.mode)}
                           </span>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-content-tertiary">
                             {formatShortDate(p.created_at)}
                           </span>
-                          <span className="tabular-nums text-gray-600">
+                          <span className="tabular-nums text-content-secondary">
                             {practiceOnly
                               ? "no score"
                               : p.score_total != null &&
@@ -415,7 +438,7 @@ export default async function StudentHome() {
                               recording's length; for a text practice, or one
                               where the camera was off, it is the elapsed
                               conversation time. */}
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-content-secondary">
                             {RECORDING_LENGTH_LABEL}{" "}
                             <span className="tabular-nums">
                               {recordingLengthText(p.recorded_seconds)}
@@ -424,7 +447,7 @@ export default async function StudentHome() {
                           <span className="ml-auto flex items-center gap-3">
                             <Link
                               href={`/student/session/${p.id}/results`}
-                              className="text-xs text-gray-600 hover:underline"
+                              className="text-xs text-content-secondary hover:underline"
                             >
                               Review
                             </Link>
@@ -451,7 +474,7 @@ export default async function StudentHome() {
                                     scoreMax={p.score?.max_total ?? null}
                                   />
                                 ) : (
-                                  <p className="text-red-600">
+                                  <p className="text-content-danger">
                                     Camera must be toggled on in order to be
                                     eligible for submission.
                                   </p>
@@ -464,7 +487,7 @@ export default async function StudentHome() {
                   )}
                 </div>
                 )}
-              </li>
+              </Card>
             );
           })}
           </ul>

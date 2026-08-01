@@ -46,7 +46,7 @@ function Blocked({
       </Link>
       {/* An h2, not an h1: the page title in the shared instructor header above
           is the h1. */}
-      <h2 className="text-xl font-semibold">{heading}</h2>
+      <h2 className="text-section font-semibold">{heading}</h2>
       <div className="space-y-3 text-sm text-gray-600">{children}</div>
       {groupId && (
         <Link
@@ -126,7 +126,7 @@ export default async function EditCandidatePage({
         >
           Back to the comparison
         </Link>
-        <h2 className="mt-2 text-xl font-semibold">
+        <h2 className="mt-2 text-section font-semibold">
           Customise {candidate.persona_name}
         </h2>
         <p className="mt-1 text-sm text-gray-600">

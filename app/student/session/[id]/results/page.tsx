@@ -116,7 +116,7 @@ export default async function ResultsPage({
     <main className="mx-auto max-w-5xl p-8">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Your results</h1>
+          <h1 className="text-page-title font-semibold">Your results</h1>
           <p className="mt-0.5 text-sm text-gray-700">{displayName(student)}</p>
           {hasName(student) && (
             <p className="text-xs text-gray-400">{user.email}</p>
@@ -194,7 +194,7 @@ export default async function ResultsPage({
           so the saved PDF is a clean score-and-transcript sheet. */}
       {isVoice && (
         <section className="mb-6 print:hidden">
-          <h2 className="mb-3 text-lg font-medium">Your recording</h2>
+          <h2 className="mb-3 text-subsection font-medium">Your recording</h2>
           {videoUrl ? (
             <video
               src={videoUrl}
@@ -229,7 +229,7 @@ export default async function ResultsPage({
             instructor call the same list of items by the same name. */}
         {score && (
         <section>
-          <h2 className="mb-3 text-lg font-medium">Rubric score</h2>
+          <h2 className="mb-3 text-subsection font-medium">Rubric score</h2>
           <ul className="space-y-3">
             {score.items.map((item) => {
               const meta = labelById.get(item.id);
@@ -261,7 +261,7 @@ export default async function ResultsPage({
 
         {/* Transcript */}
         <section>
-          <h2 className="mb-3 text-lg font-medium">Transcript</h2>
+          <h2 className="mb-3 text-subsection font-medium">Transcript</h2>
           <div className="space-y-3 rounded-lg border border-gray-200 p-4">
             {transcript.map((turn, i) => (
               <div key={i}>
