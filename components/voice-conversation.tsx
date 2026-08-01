@@ -947,20 +947,27 @@ export function VoiceConversation({
       {/* During and after the call: the live transcript. */}
       {(status === "live" || status === "ending" || status === "ended") && (
         <>
-          <div className="mb-2 flex items-center justify-between gap-3 text-xs text-gray-500">
-            <span className="flex items-center gap-2">
-              <span className="inline-block h-2 w-2 rounded-full bg-red-500" />
-              {status === "live"
-                ? "Live. Speak naturally; pause when you finish a thought."
-                : status === "ending"
-                  ? endNote || "Finishing..."
-                  : "Call ended."}
+          <div className="mb-2 flex items-center gap-2 text-xs text-gray-500">
+            <span className="inline-block h-2 w-2 rounded-full bg-red-500" />
+            {status === "live"
+              ? "Live. Speak naturally; pause when you finish a thought."
+              : status === "ending"
+                ? endNote || "Finishing..."
+                : "Call ended."}
+          </div>
+
+          {/* PD-6: the transcript's own labeled bar, carrying the show/hide
+              control. It is deliberately a full-size button matching the End
+              session button, so the student can actually find it. The toggle is
+              SCREEN ONLY; see the transcriptShown comment above. */}
+          <div className="mb-2 flex items-center justify-between gap-3 border-t border-gray-200 pt-2">
+            <span className="text-sm font-medium text-gray-700">
+              Live transcript
             </span>
-            {/* PD-6: show/hide the transcript. Screen only; see transcriptShown. */}
             <button
               type="button"
               onClick={() => setTranscriptShown((shown) => !shown)}
-              className="shrink-0 rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+              className="shrink-0 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
             >
               {transcriptShown ? "Hide transcript" : "Show transcript"}
             </button>
