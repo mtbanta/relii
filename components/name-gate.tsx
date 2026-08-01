@@ -11,6 +11,8 @@
 // renders the real dashboard, so the gate does not return on later visits.
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
 
 export function NameGate({ email }: { email: string }) {
   const [firstName, setFirstName] = useState("");
@@ -59,25 +61,24 @@ export function NameGate({ email }: { email: string }) {
   return (
     <main className="mx-auto max-w-md p-8">
       <h1 className="text-page-title font-semibold">Welcome to Relii</h1>
-      <p className="mt-2 text-sm text-gray-600">
+      <p className="mt-2 text-sm text-content-secondary">
         Before you continue, please tell us your name. This is how your
         instructor will see your work. You only need to do this once.
       </p>
-      <p className="mt-1 text-xs text-gray-400">Signed in as {email}</p>
+      <p className="mt-1 text-xs text-content-tertiary">Signed in as {email}</p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div>
           <label className="block text-sm font-medium" htmlFor="first-name">
             First name
           </label>
-          <input
+          <Input
             id="first-name"
             type="text"
             required
             autoFocus
             value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2"
+            onChange={(e) => setFirstName(e.target.value)} className="mt-1"
           />
         </div>
 
@@ -85,25 +86,23 @@ export function NameGate({ email }: { email: string }) {
           <label className="block text-sm font-medium" htmlFor="last-name">
             Last name
           </label>
-          <input
+          <Input
             id="last-name"
             type="text"
             required
             value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2"
+            onChange={(e) => setLastName(e.target.value)} className="mt-1"
           />
         </div>
 
-        <button
+        <Button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
         >
           {loading ? "Saving..." : "Save and continue"}
-        </button>
+        </Button>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-content-danger">{error}</p>}
       </form>
     </main>
   );

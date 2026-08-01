@@ -9,6 +9,8 @@
 // refreshes the roster so the new pending invites appear.
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { FileInput } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
 
 type SkippedRow = { value: string; reason: string };
 type Result = {
@@ -64,48 +66,42 @@ export function BulkInviteForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mt-4 space-y-3 rounded-lg border border-gray-200 p-4"
+      className="mt-4 space-y-3 rounded-lg border border-line-tertiary p-4"
     >
       <h2 className="font-medium">Bulk invite (CSV)</h2>
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-content-secondary">
         Upload a .csv with two columns, email and role. A header row (email,role)
         is fine. Role must be student or instructor. Rows with a problem are
         skipped and listed below with a reason; the rest are added.
       </p>
 
-      <input
-        ref={fileRef}
-        type="file"
-        accept=".csv,text/csv"
-        className="block w-full text-sm text-gray-700 file:mr-3 file:rounded-md file:border file:border-gray-300 file:bg-white file:px-3 file:py-1.5 file:text-sm"
-      />
+      <FileInput ref={fileRef} accept=".csv,text/csv" />
 
-      <button
+      <Button
         type="submit"
         disabled={loading}
-        className="rounded-md bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
       >
         {loading ? "Importing..." : "Import CSV"}
-      </button>
+      </Button>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-content-danger">{error}</p>}
 
       {result && (
-        <div className="space-y-2 border-t border-gray-100 pt-3 text-sm">
-          <p className="text-green-700">
+        <div className="space-y-2 border-t border-line-tertiary pt-3 text-sm">
+          <p className="text-content-success">
             Added {result.addedCount}. Skipped {result.skippedCount}.
           </p>
 
           {result.skipped.length > 0 && (
             <div>
-              <p className="mb-1 font-medium text-gray-700">Skipped rows</p>
+              <p className="mb-1 font-medium text-content-primary">Skipped rows</p>
               <ul className="space-y-1">
                 {result.skipped.map((s, i) => (
-                  <li key={i} className="flex flex-wrap gap-x-2 text-gray-600">
-                    <span className="font-mono text-xs text-gray-500">
+                  <li key={i} className="flex flex-wrap gap-x-2 text-content-secondary">
+                    <span className="font-mono text-xs text-content-secondary">
                       {s.value}
                     </span>
-                    <span className="text-gray-300">|</span>
+                    <span className="text-content-tertiary">|</span>
                     <span>{s.reason}</span>
                   </li>
                 ))}

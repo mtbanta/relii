@@ -26,6 +26,8 @@ import {
   recordingLengthText,
 } from "@/lib/recording-length";
 import type { RubricItem, SessionScore, TranscriptTurn } from "@/lib/types";
+import { buttonClasses } from "@/components/ui/button";
+import { cardClasses } from "@/components/ui/card";
 
 function modeLabel(mode: string): string {
   return mode === "voice_video" ? "Voice + video" : "Text";
@@ -126,31 +128,31 @@ export default async function InstructorSubmissionPage({
       <header className="mb-6 flex items-center justify-between">
         <div>
           <h2 className="text-section font-semibold">Submission</h2>
-          <p className="text-sm text-gray-700">Student: {studentName}</p>
+          <p className="text-sm text-content-primary">Student: {studentName}</p>
           {student && hasName(student) && (
-            <p className="text-xs text-gray-400">{student.email}</p>
+            <p className="text-xs text-content-tertiary">{student.email}</p>
           )}
         </div>
         <Link
           href={`/instructor?assignment=${session.assignment_id}`}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
+          className={buttonClasses({ variant: "secondary", size: "sm" })}
         >
           Back to Submissions
         </Link>
       </header>
 
       {/* Header block: who, what, and the total score. */}
-      <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-5">
+      <div className={cardClasses({ tone: "muted", padding: "lg", className: "mb-6" })}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm font-medium">
               {assignment?.title ?? "Assignment"}
             </p>
-            <p className="mt-0.5 text-sm text-gray-600">
+            <p className="mt-0.5 text-sm text-content-secondary">
               {scenario?.title ?? "Scenario"}
               {scenario?.persona_name ? ` (with ${scenario.persona_name})` : ""}
             </p>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-content-secondary">
               {modeLabel(session.mode)}
               {submittedAt ? ` · submitted ${submittedAt}` : ""}
             </p>
@@ -159,7 +161,7 @@ export default async function InstructorSubmissionPage({
                 submission, and the elapsed conversation time for a text one or
                 one recorded with the camera off. It is never a total across the
                 student's attempts. */}
-            <p className="mt-0.5 text-xs text-gray-500">
+            <p className="mt-0.5 text-xs text-content-secondary">
               {RECORDING_LENGTH_LABEL}:{" "}
               <span className="tabular-nums">
                 {recordingLengthText(session.recorded_seconds)}
@@ -170,13 +172,13 @@ export default async function InstructorSubmissionPage({
             {score ? (
               <p className="text-3xl font-semibold tabular-nums">
                 {score.total}
-                <span className="text-lg font-normal text-gray-500">
+                <span className="text-lg font-normal text-content-secondary">
                   {" "}
                   / {score.max_total}
                 </span>
               </p>
             ) : (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-content-secondary">
                 Not scored (interrupted submission)
               </p>
             )}
@@ -188,18 +190,18 @@ export default async function InstructorSubmissionPage({
           the submission with the admin client and streams the file back. The
           video link redirects to a short-lived signed download link; the
           transcript and CSV are built server-side. */}
-      <section className="mb-6 rounded-lg border border-gray-200 p-4">
+      <section className="mb-6 rounded-lg border border-line-tertiary p-4">
         <p className="mb-3 text-sm font-medium">Downloads</p>
         <div className="flex flex-wrap items-center gap-3">
           {session.video_path ? (
             <a
               href={`/api/instructor/submission/${session.id}/video`}
-              className="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
+              className={buttonClasses({ variant: "secondary" })}
             >
               Download video
             </a>
           ) : (
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-content-secondary">
               {isVoice
                 ? "No recording to download."
                 : "No recording (text submission)."}
@@ -208,14 +210,14 @@ export default async function InstructorSubmissionPage({
 
           <a
             href={`/api/instructor/submission/${session.id}/transcript`}
-            className="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
+            className={buttonClasses({ variant: "secondary" })}
           >
             Download transcript
           </a>
 
           <a
             href={`/api/instructor/submission/${session.id}/csv`}
-            className="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
+            className={buttonClasses({ variant: "secondary" })}
           >
             Download scores (CSV)
           </a>
@@ -231,10 +233,10 @@ export default async function InstructorSubmissionPage({
               src={videoUrl}
               controls
               playsInline
-              className="w-full max-w-2xl rounded-lg border border-gray-200 bg-black"
+              className="w-full max-w-2xl rounded-lg border border-line-tertiary bg-black"
             />
           ) : (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-content-secondary">
               No recording is attached to this submission.
             </p>
           )}
@@ -253,7 +255,7 @@ export default async function InstructorSubmissionPage({
                 return (
                   <li
                     key={item.id}
-                    className="rounded-lg border border-gray-200 p-4"
+                    className={cardClasses()}
                   >
                     <div className="flex items-baseline justify-between gap-3">
                       <h3 className="text-sm font-medium">
@@ -264,17 +266,17 @@ export default async function InstructorSubmissionPage({
                       </span>
                     </div>
                     {meta?.category && (
-                      <p className="mt-0.5 text-xs text-gray-400">
+                      <p className="mt-0.5 text-xs text-content-tertiary">
                         {meta.category}
                       </p>
                     )}
-                    <p className="mt-2 text-sm text-gray-600">{item.comment}</p>
+                    <p className="mt-2 text-sm text-content-secondary">{item.comment}</p>
                   </li>
                 );
               })}
             </ul>
           ) : (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-content-secondary">
               This submission has no itemized score.
             </p>
           )}
@@ -284,22 +286,22 @@ export default async function InstructorSubmissionPage({
         <section>
           <h2 className="mb-3 text-subsection font-medium">Transcript</h2>
           {transcript.length > 0 ? (
-            <div className="space-y-3 rounded-lg border border-gray-200 p-4">
+            <div className={cardClasses({ className: "space-y-3" })}>
               {transcript.map((turn, i) => (
                 <div key={i}>
-                  <p className="text-xs font-medium text-gray-400">
+                  <p className="text-xs font-medium text-content-tertiary">
                     {turn.role === "student"
                       ? studentName
                       : scenario?.persona_name ?? "Customer"}
                   </p>
-                  <p className="text-sm whitespace-pre-wrap text-gray-700">
+                  <p className="text-sm whitespace-pre-wrap text-content-primary">
                     {turn.text}
                   </p>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-content-secondary">
               This submission has no transcript.
             </p>
           )}

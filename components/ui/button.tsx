@@ -17,8 +17,9 @@
 // it should still look identical.
 import type { ButtonHTMLAttributes } from "react";
 
-// primary     the main action on a screen (was bg-black)
-// secondary   an outlined, lower-emphasis action (was border-gray-300)
+// primary     the main action on a screen (the solid accent fill; PD-8a shipped
+//             this as a near-black button, see the note in app/globals.css)
+// secondary   an outlined, lower-emphasis action (was a gray-300 outline)
 // destructive removes something permanently (was bg-red-600)
 // caution     reversible but consequential, e.g. resetting a submission so a
 //             student can retake it (was bg-amber-600)
@@ -50,7 +51,7 @@ const BASE =
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary:
-    "bg-content-primary text-white border border-content-primary hover:bg-black",
+    "bg-accent-solid text-white border border-accent-solid hover:bg-accent-solid-hover hover:border-accent-solid-hover",
   secondary:
     "bg-surface-primary text-content-primary border border-line-secondary hover:bg-surface-secondary",
   destructive:

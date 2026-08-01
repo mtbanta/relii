@@ -10,6 +10,7 @@
 // decides what to show and collects the confirmation.
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export function SubmitPracticeButton({
   sessionId,
@@ -53,18 +54,18 @@ export function SubmitPracticeButton({
 
   if (!confirming) {
     return (
-      <button
+      <Button
+        size="xs"
         onClick={() => setConfirming(true)}
-        className="rounded-md bg-black px-3 py-1 text-xs text-white hover:bg-gray-800"
       >
         Submit as graded assignment
-      </button>
+      </Button>
     );
   }
 
   return (
-    <div className="mt-1 w-full rounded-md border border-amber-300 bg-amber-50 p-3 text-xs">
-      <p className="text-amber-900">
+    <div className="mt-1 w-full rounded-md border border-amber-300 bg-surface-warning p-3 text-xs">
+      <p className="text-content-warning">
         Submit this practice as your graded assignment? It becomes your official
         submission
         {hasScore ? ` and keeps its score (${scoreTotal} / ${scoreMax})` : ""}.
@@ -72,25 +73,26 @@ export function SubmitPracticeButton({
         allows a retake.
       </p>
       <div className="mt-2 flex items-center gap-2">
-        <button
+        <Button
+          variant="secondary"
+          size="xs"
           onClick={() => {
             setConfirming(false);
             setError("");
           }}
           disabled={loading}
-          className="rounded-md border border-gray-300 px-2 py-0.5 disabled:opacity-50"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
+          size="xs"
           onClick={submit}
           disabled={loading}
-          className="rounded-md bg-black px-2 py-0.5 text-white disabled:opacity-50"
         >
           {loading ? "Submitting..." : "Submit for a grade"}
-        </button>
+        </Button>
       </div>
-      {error && <p className="mt-2 text-red-700">{error}</p>}
+      {error && <p className="mt-2 text-content-danger">{error}</p>}
     </div>
   );
 }

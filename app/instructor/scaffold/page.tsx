@@ -34,7 +34,7 @@ export default async function ScaffoldPage() {
           because the page title in the shared header is the h1. */}
       <div>
         <h2 className="text-section font-semibold">Persona Scaffolding</h2>
-        <p className="mt-1 text-sm text-gray-600">
+        <p className="mt-1 text-sm text-content-secondary">
           Describe a sales case and the AI writes two candidate buyer personas
           in the same style as Alex and Jordan. Both are saved turned OFF, so no
           student can be given one, and you compare them side by side before
@@ -49,12 +49,12 @@ export default async function ScaffoldPage() {
       <div className="space-y-2">
         <h3 className="font-medium">Recent generations</h3>
         {recent.length === 0 ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-content-secondary">
             Nothing generated yet. Your saved candidate pairs will be listed
             here.
           </p>
         ) : (
-          <ul className="divide-y divide-gray-200 rounded-lg border border-gray-200">
+          <ul className="divide-y divide-line-tertiary rounded-lg border border-line-tertiary">
             {recent.map((generation) => (
               <li
                 key={generation.groupId}
@@ -64,10 +64,10 @@ export default async function ScaffoldPage() {
                   <span className="font-medium">
                     {generation.personaNames.join(" and ")}
                   </span>
-                  <span className="text-gray-600">
+                  <span className="text-content-secondary">
                     {generation.industry ? `, ${generation.industry}` : ""}
                   </span>
-                  <span className="mt-0.5 block text-xs text-gray-500">
+                  <span className="mt-0.5 block text-xs text-content-secondary">
                     {chainRoleLabel(generation.chainRole)}, generated{" "}
                     {new Date(generation.createdAt).toLocaleString()}
                   </span>
@@ -90,9 +90,9 @@ export default async function ScaffoldPage() {
 
       {/* The bulk tidy-up, kept at the bottom and away from everything else,
           because it is the one control here that can delete a lot at once. */}
-      <div className="space-y-2 border-t border-gray-200 pt-6">
+      <div className="space-y-2 border-t border-line-tertiary pt-6">
         <h3 className="font-medium">Clean up</h3>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-content-secondary">
           Testing leaves candidate pairs behind. This removes every generated
           persona that is switched off and has never been used. It cannot touch
           Alex, Jordan, a chosen persona that is switched on, or anything a

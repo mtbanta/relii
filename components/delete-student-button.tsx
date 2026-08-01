@@ -7,6 +7,7 @@
 // student drops off the roster.
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export function DeleteStudentButton({
   studentId,
@@ -60,12 +61,12 @@ export function DeleteStudentButton({
         <span className="min-w-0">
           <span className="block text-sm">{name || email}</span>
           {hasRealName && (
-            <span className="block text-xs text-gray-400">{email}</span>
+            <span className="block text-xs text-content-tertiary">{email}</span>
           )}
         </span>
         <button
           onClick={() => setConfirming(true)}
-          className="shrink-0 rounded-md border border-red-300 px-3 py-1 text-sm text-red-700 hover:bg-red-50"
+          className="shrink-0 rounded-md border border-red-300 px-3 py-1 text-sm text-content-danger hover:bg-surface-danger"
         >
           Delete
         </button>
@@ -76,31 +77,33 @@ export function DeleteStudentButton({
   // Confirmation state: spell out what gets removed, require a second click.
   return (
     <div className="text-sm">
-      <p className="mb-2 text-red-800">
+      <p className="mb-2 text-content-danger">
         Delete <span className="font-medium">{label}</span>? This permanently
         removes their account, all of their sessions, all of their recorded
         videos, and their invite-list entry. This cannot be undone.
       </p>
       <div className="flex items-center gap-2">
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => {
             setConfirming(false);
             setError("");
           }}
           disabled={loading}
-          className="rounded-md border border-gray-300 px-3 py-1 disabled:opacity-50"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="destructive"
+          size="sm"
           onClick={handleDelete}
           disabled={loading}
-          className="rounded-md bg-red-600 px-3 py-1 text-white hover:bg-red-700 disabled:opacity-50"
         >
           {loading ? "Deleting..." : "Yes, permanently delete"}
-        </button>
+        </Button>
       </div>
-      {error && <p className="mt-2 text-red-700">{error}</p>}
+      {error && <p className="mt-2 text-content-danger">{error}</p>}
     </div>
   );
 }

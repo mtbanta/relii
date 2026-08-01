@@ -5,6 +5,7 @@
 // page so the tiles and table below reflect the chosen assignment. This is the
 // only client-side piece of the dashboard; everything else is read on the server.
 import { useRouter } from "next/navigation";
+import { Select } from "@/components/ui/field";
 
 export function AssignmentSelector({
   assignments,
@@ -19,10 +20,11 @@ export function AssignmentSelector({
   // Submissions page, which is where its name now comes from (it used to carry
   // an aria-label instead, when it had no visible label).
   return (
-    <select
+    <Select
       value={selectedId}
       onChange={(e) => router.push(`/instructor?assignment=${e.target.value}`)}
-      className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm"
+      size="sm"
+      fullWidth={false}
       id="assignment-selector"
     >
       {assignments.map((a) => (
@@ -30,6 +32,6 @@ export function AssignmentSelector({
           {a.label}
         </option>
       ))}
-    </select>
+    </Select>
   );
 }

@@ -13,8 +13,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-const inputClass = "w-full rounded-md border border-gray-300 px-3 py-2";
-const labelClass = "mb-1 block text-sm text-gray-600";
+import { controlClasses, labelClasses } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
+import { cardClasses } from "@/components/ui/card";
+
+// This form styled its own controls before the shared layer existed. The two
+// names stay, so every use site below is unchanged; they now hand the work to
+// the shared form primitives.
+const inputClass = controlClasses();
+const labelClass = labelClasses("mb-1");
 
 export function ScaffoldForm() {
   const router = useRouter();
@@ -81,7 +88,7 @@ export function ScaffoldForm() {
     <div className="space-y-8">
       <form
         onSubmit={handleSubmit}
-        className="space-y-3 rounded-lg border border-gray-200 p-4"
+        className={cardClasses({ className: "space-y-3" })}
       >
         <h2 className="font-medium">Case inputs</h2>
 
@@ -153,7 +160,7 @@ export function ScaffoldForm() {
               Decision maker (presentation and close)
             </option>
           </select>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-content-secondary">
             {chainPosition === "gatekeeper"
               ? "A discovery meeting, like Alex. This persona controls access to someone else."
               : "A presentation and close, like Jordan. This persona can decide themselves."}
@@ -201,31 +208,30 @@ export function ScaffoldForm() {
           />
         </div>
 
-        <button
+        <Button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
         >
           {loading ? "Generating..." : "Generate two candidates"}
-        </button>
+        </Button>
 
         {loading && (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-content-secondary">
             Writing two personas. This usually takes twenty to sixty seconds,
             so please leave this page open.
           </p>
         )}
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-content-danger">{error}</p>}
       </form>
 
       {/* Normally the redirect above has already happened by now. This is the
           fallback link, so a slow or blocked navigation never strands the
           instructor on a page with no way to reach what was just saved. */}
       {savedGroupId && (
-        <div className="rounded-lg border border-gray-200 p-4">
+        <div className={cardClasses()}>
           <h2 className="font-medium">Two candidates saved</h2>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-content-secondary">
             <Link
               href={`/instructor/scaffold/compare/${savedGroupId}`}
               className="underline"

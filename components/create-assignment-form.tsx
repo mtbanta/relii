@@ -14,6 +14,9 @@ import {
   MAX_MEETING_MINUTES,
   MIN_MEETING_MINUTES,
 } from "@/lib/meeting-length";
+import { Input, Label, Select, Textarea } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
+import { cardClasses } from "@/components/ui/card";
 
 type ScenarioOption = {
   id: string;
@@ -49,9 +52,9 @@ export function CreateAssignmentForm({
   // No scenarios means there is nothing to point an assignment at yet.
   if (scenarios.length === 0) {
     return (
-      <div className="rounded-lg border border-gray-200 p-4">
+      <div className={cardClasses()}>
         <h2 className="mb-1 font-medium">Create assignment</h2>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-content-secondary">
           There are no scenarios to assign yet. A scenario (such as the Alex
           discovery call) must exist first.
         </p>
@@ -131,61 +134,58 @@ export function CreateAssignmentForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-3 rounded-lg border border-gray-200 p-4"
+      className={cardClasses({ className: "space-y-3" })}
     >
       <h2 className="font-medium">Create assignment</h2>
 
       <div>
-        <label className="mb-1 block text-sm text-gray-600">Title</label>
-        <input
+        <Label className="mb-1">Title</Label>
+        <Input
           type="text"
           required
           placeholder="Bunzl: discovery call with Alex"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full rounded-md border border-gray-300 px-3 py-2"
         />
       </div>
 
       <div>
-        <label className="mb-1 block text-sm text-gray-600">Scenario</label>
-        <select
+        <Label className="mb-1">Scenario</Label>
+        <Select
           value={scenarioId}
           onChange={(e) => setScenarioId(e.target.value)}
-          className="w-full rounded-md border border-gray-300 px-3 py-2"
         >
           {scenarios.map((s) => (
             <option key={s.id} value={s.id}>
               {s.title} (with {s.persona_name})
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div>
-        <label className="mb-1 block text-sm text-gray-600">
+        <Label className="mb-1">
           Required mode
-        </label>
-        <select
+        </Label>
+        <Select
           value={requiredMode}
           onChange={(e) =>
             setRequiredMode(e.target.value as "text" | "voice_video")
           }
-          className="w-full rounded-md border border-gray-300 px-3 py-2"
         >
           <option value="voice_video">Voice + video</option>
           <option value="text">Text</option>
-        </select>
-        <p className="mt-1 text-xs text-gray-400">
+        </Select>
+        <p className="mt-1 text-xs text-content-tertiary">
           The mode the graded submission must be done in.
         </p>
       </div>
 
       <div>
-        <label className="mb-1 block text-sm text-gray-600">
+        <Label className="mb-1">
           Meeting length (optional)
-        </label>
-        <input
+        </Label>
+        <Input
           type="number"
           inputMode="numeric"
           min={MIN_MEETING_MINUTES}
@@ -194,9 +194,8 @@ export function CreateAssignmentForm({
           placeholder={String(DEFAULT_MEETING_MINUTES)}
           value={durationMinutes}
           onChange={(e) => setDurationMinutes(e.target.value)}
-          className="w-full rounded-md border border-gray-300 px-3 py-2"
         />
-        <p className="mt-1 text-xs text-gray-400">
+        <p className="mt-1 text-xs text-content-tertiary">
           How long the role-play runs, from {MIN_MEETING_MINUTES} to{" "}
           {MAX_MEETING_MINUTES} minutes. The practice clock counts up and the
           practice ends automatically at this length. Leave blank for{" "}
@@ -205,56 +204,52 @@ export function CreateAssignmentForm({
       </div>
 
       <div>
-        <label className="mb-1 block text-sm text-gray-600">
+        <Label className="mb-1">
           Instructions (optional)
-        </label>
-        <textarea
+        </Label>
+        <Textarea
           value={instructions}
           onChange={(e) => setInstructions(e.target.value)}
           rows={3}
           placeholder="Anything the student should know before they start."
-          className="w-full rounded-md border border-gray-300 px-3 py-2"
         />
       </div>
 
       <div>
-        <label className="mb-1 block text-sm text-gray-600">
+        <Label className="mb-1">
           Available date (optional)
-        </label>
-        <input
+        </Label>
+        <Input
           type="date"
           value={availableDate}
           onChange={(e) => setAvailableDate(e.target.value)}
-          className="w-full rounded-md border border-gray-300 px-3 py-2"
         />
-        <p className="mt-1 text-xs text-gray-400">
+        <p className="mt-1 text-xs text-content-tertiary">
           Students see this assignment listed but locked until this date. Leave
           blank to make it available now.
         </p>
       </div>
 
       <div>
-        <label className="mb-1 block text-sm text-gray-600">
+        <Label className="mb-1">
           Due date (optional)
-        </label>
-        <input
+        </Label>
+        <Input
           type="date"
           value={dueAt}
           onChange={(e) => setDueAt(e.target.value)}
-          className="w-full rounded-md border border-gray-300 px-3 py-2"
         />
       </div>
 
-      <button
+      <Button
         type="submit"
         disabled={loading}
-        className="rounded-md bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
       >
         {loading ? "Creating..." : "Create assignment"}
-      </button>
+      </Button>
 
       {message && (
-        <p className={`text-sm ${isError ? "text-red-600" : "text-green-700"}`}>
+        <p className={`text-sm ${isError ? "text-content-danger" : "text-content-success"}`}>
           {message}
         </p>
       )}

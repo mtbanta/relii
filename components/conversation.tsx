@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { PracticeClock } from "@/components/practice-clock";
 import { DEFAULT_MEETING_MINUTES } from "@/lib/meeting-length";
 import type { TranscriptTurn } from "@/lib/types";
+import { controlClasses } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
 
 // PD-6: how tall the message box is allowed to grow before it starts scrolling
 // inside itself. Roughly six lines of text, which is enough to see a full
@@ -193,10 +195,10 @@ export function Conversation({
 
   return (
     <div className="flex h-[calc(100vh-2rem)] flex-col">
-      <header className="mb-4 flex items-center justify-between border-b border-gray-200 pb-3">
+      <header className="mb-4 flex items-center justify-between border-b border-line-tertiary pb-3">
         <div>
           <h1 className="text-lg font-semibold">{scenarioTitle}</h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-content-secondary">
             {isSubmission ? "Graded submission with " : "Speaking with "}
             {personaName}
           </p>
@@ -209,10 +211,11 @@ export function Conversation({
               onExpire={() => setExpired(true)}
             />
           )}
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={requestEnd}
             disabled={ending || sending || expired}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
           >
             {ending
               ? conversationOnly
@@ -221,7 +224,7 @@ export function Conversation({
               : isSubmission
                 ? "Submit assignment"
                 : "End session"}
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -235,7 +238,7 @@ export function Conversation({
               className={
                 turn.role === "student"
                   ? "max-w-[80%] rounded-2xl bg-black px-4 py-2 text-sm text-white"
-                  : "max-w-[80%] rounded-2xl bg-gray-100 px-4 py-2 text-sm text-gray-900"
+                  : "max-w-[80%] rounded-2xl bg-surface-secondary px-4 py-2 text-sm text-content-primary"
               }
             >
               <p className="mb-0.5 text-xs font-medium opacity-70">
@@ -247,7 +250,7 @@ export function Conversation({
         ))}
         {sending && (
           <div className="flex justify-start">
-            <div className="max-w-[80%] rounded-2xl bg-gray-100 px-4 py-2 text-sm text-gray-500">
+            <div className="max-w-[80%] rounded-2xl bg-surface-secondary px-4 py-2 text-sm text-content-secondary">
               {personaName} is typing...
             </div>
           </div>
@@ -255,36 +258,37 @@ export function Conversation({
         <div ref={bottomRef} />
       </div>
 
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-sm text-content-danger">{error}</p>}
 
       {expired && (
-        <p className="mt-2 text-sm text-red-600">
+        <p className="mt-2 text-sm text-content-danger">
           Time is up. Ending your practice...
         </p>
       )}
 
       {/* Graded submission: the explicit submit-and-score step. */}
       {isSubmission && confirming && (
-        <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm">
-          <p className="text-amber-900">
+        <div className="mt-3 rounded-lg border border-amber-300 bg-surface-warning p-4 text-sm">
+          <p className="text-content-warning">
             Submit this graded assignment for scoring? This is your one official
             attempt and cannot be redone.
           </p>
           <div className="mt-3 flex items-center gap-2">
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setConfirming(false)}
               disabled={ending}
-              className="rounded-md border border-gray-300 px-3 py-1.5 disabled:opacity-50"
             >
               Keep talking
-            </button>
-            <button
+            </Button>
+            <Button
+              size="sm"
               onClick={doEnd}
               disabled={ending}
-              className="rounded-md bg-black px-3 py-1.5 text-white disabled:opacity-50"
             >
               {ending ? "Scoring..." : "Submit and score"}
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -296,8 +300,12 @@ export function Conversation({
           Send button level with the bottom of the box as it grows. */}
       <form
         onSubmit={send}
-        className="mt-3 flex items-end gap-2 border-t border-gray-200 pt-3"
+        className="mt-3 flex items-end gap-2 border-t border-line-tertiary pt-3"
       >
+        {/* PD-8b: the LOOK comes from the shared control primitive, through its
+            classes() export rather than the <Textarea> component, so the ref,
+            the keydown handler and the auto-grow effect above are untouched.
+            fullWidth is off because this box flexes to fill the row instead. */}
         <textarea
           ref={inputRef}
           rows={1}
@@ -307,15 +315,17 @@ export function Conversation({
           placeholder={`Type your message to ${personaName}...`}
           disabled={ending || expired}
           style={{ maxHeight: `${MAX_INPUT_HEIGHT_PX}px` }}
-          className="flex-1 resize-none overflow-y-auto rounded-md border border-gray-300 px-3 py-2 text-sm disabled:opacity-50"
+          className={controlClasses({
+            fullWidth: false,
+            className: "flex-1 resize-none overflow-y-auto text-sm",
+          })}
         />
-        <button
+        <Button
           type="submit"
           disabled={sending || ending || expired || !input.trim()}
-          className="rounded-md bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
         >
           Send
-        </button>
+        </Button>
       </form>
     </div>
   );

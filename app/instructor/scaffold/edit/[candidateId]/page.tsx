@@ -24,6 +24,7 @@ import {
   meetingTypeLabel,
 } from "@/lib/scaffold-candidates";
 import { EditCandidateForm } from "@/components/edit-candidate-form";
+import { cardClasses } from "@/components/ui/card";
 
 // The two states worth explaining rather than 404ing, because the instructor can
 // act on both. Same shape as the chain page's refusals.
@@ -40,14 +41,14 @@ function Blocked({
     <main className="mx-auto max-w-3xl space-y-4 px-8 pb-12 pt-6">
       <Link
         href="/instructor/scaffold"
-        className="text-sm text-gray-500 underline"
+        className="text-sm text-content-secondary underline"
       >
         Back to Persona Scaffolding
       </Link>
       {/* An h2, not an h1: the page title in the shared instructor header above
           is the h1. */}
       <h2 className="text-section font-semibold">{heading}</h2>
-      <div className="space-y-3 text-sm text-gray-600">{children}</div>
+      <div className="space-y-3 text-sm text-content-secondary">{children}</div>
       {groupId && (
         <Link
           href={`/instructor/scaffold/compare/${groupId}`}
@@ -122,14 +123,14 @@ export default async function EditCandidatePage({
       <div>
         <Link
           href={`/instructor/scaffold/compare/${row.generation_group_id}`}
-          className="text-sm text-gray-500 underline"
+          className="text-sm text-content-secondary underline"
         >
           Back to the comparison
         </Link>
         <h2 className="mt-2 text-section font-semibold">
           Customise {candidate.persona_name}
         </h2>
-        <p className="mt-1 text-sm text-gray-600">
+        <p className="mt-1 text-sm text-content-secondary">
           Change what this buyer is like, and the briefing and the persona
           instructions are rebuilt from your edits by the same fixed template
           that wrote them in the first place. Nothing is re-invented and no AI is
@@ -141,17 +142,17 @@ export default async function EditCandidatePage({
       {/* The three locked pairs, shown so it is clear they are structural rather
           than missing. The save route never reads them from the browser, so
           this panel is a description of the case, not a disabled input. */}
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm">
-        <h3 className="font-medium text-gray-900">
+      <div className={cardClasses({ tone: "muted", className: "text-sm" })}>
+        <h3 className="font-medium text-content-primary">
           Fixed for this case, and not editable here
         </h3>
-        <p className="mt-1 text-gray-600">
+        <p className="mt-1 text-content-secondary">
           These three are structural: the rest of the case, and the second
           meeting if this one has one, are all built on them.
         </p>
-        <dl className="mt-3 space-y-3 text-gray-800">
+        <dl className="mt-3 space-y-3 text-content-primary">
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            <dt className="text-xs font-medium uppercase tracking-wide text-content-secondary">
               Meeting type and chain position
             </dt>
             <dd>
@@ -164,13 +165,13 @@ export default async function EditCandidatePage({
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            <dt className="text-xs font-medium uppercase tracking-wide text-content-secondary">
               Win condition and close terms
             </dt>
             <dd>{candidate.win_condition}</dd>
           </div>
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            <dt className="text-xs font-medium uppercase tracking-wide text-content-secondary">
               Company (type and size)
             </dt>
             <dd>

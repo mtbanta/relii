@@ -22,6 +22,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { GenerationRowSummary } from "@/lib/scaffold-candidates";
+import { Button } from "@/components/ui/button";
 
 export function GenerationActions({
   groupId,
@@ -69,51 +70,53 @@ export function GenerationActions({
     if (confirming !== "disable") {
       return (
         <div className="shrink-0 text-right">
-          <span className="mb-1 block text-xs font-medium text-green-700">
+          <span className="mb-1 block text-xs font-medium text-content-success">
             Chosen and ON
           </span>
-          <button
+          <Button
+            variant="secondary"
+            size="xs"
             onClick={() => setConfirming("disable")}
-            className="rounded-md border border-gray-300 px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-50"
           >
             Turn off
-          </button>
-          {error && <p className="mt-1 text-xs text-red-700">{error}</p>}
+          </Button>
+          {error && <p className="mt-1 text-xs text-content-danger">{error}</p>}
         </div>
       );
     }
     return (
-      <div className="w-64 shrink-0 rounded-md border border-gray-200 bg-gray-50 p-2 text-xs">
-        <p className="mb-2 text-gray-700">
+      <div className="w-64 shrink-0 rounded-md border border-line-tertiary bg-surface-secondary p-2 text-xs">
+        <p className="mb-2 text-content-primary">
           Turn <span className="font-medium">{liveRow.personaName}</span> off? It
           leaves the create-assignment list and no new session can be started
           with it. Existing sessions and their transcripts are untouched, and you
           can turn it back on by choosing it again.
         </p>
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="secondary"
+            size="xs"
             onClick={() => {
               setConfirming(null);
               setError("");
             }}
             disabled={loading}
-            className="rounded-md border border-gray-300 px-2 py-0.5 disabled:opacity-50"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            size="xs"
             onClick={() =>
               post("/api/instructor/scaffold/disable", {
                 scenarioId: liveRow.id,
               })
             }
             disabled={loading}
-            className="rounded-md bg-gray-800 px-2 py-0.5 text-white hover:bg-black disabled:opacity-50"
           >
             {loading ? "Turning off..." : "Yes, turn off"}
-          </button>
+          </Button>
         </div>
-        {error && <p className="mt-2 text-red-700">{error}</p>}
+        {error && <p className="mt-2 text-content-danger">{error}</p>}
       </div>
     );
   }
@@ -121,7 +124,7 @@ export function GenerationActions({
   // ---- ROLE-PLAYED: no delete is possible ---------------------------------
   if (usedRow) {
     return (
-      <span className="w-40 shrink-0 text-right text-xs text-gray-500">
+      <span className="w-40 shrink-0 text-right text-xs text-content-secondary">
         Role-played, so it cannot be deleted. It is already switched off.
       </span>
     );
@@ -131,19 +134,20 @@ export function GenerationActions({
   if (confirming !== "discard") {
     return (
       <div className="shrink-0 text-right">
-        <button
+        <Button
+          variant="secondary"
+          size="xs"
           onClick={() => setConfirming("discard")}
-          className="rounded-md border border-gray-300 px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-50"
         >
           Discard
-        </button>
-        {error && <p className="mt-1 text-xs text-red-700">{error}</p>}
+        </Button>
+        {error && <p className="mt-1 text-xs text-content-danger">{error}</p>}
       </div>
     );
   }
   return (
-    <div className="w-64 shrink-0 rounded-md border border-gray-200 bg-gray-50 p-2 text-xs">
-      <p className="mb-2 text-gray-700">
+    <div className="w-64 shrink-0 rounded-md border border-line-tertiary bg-surface-secondary p-2 text-xs">
+      <p className="mb-2 text-content-primary">
         Permanently delete{" "}
         <span className="font-medium">
           {rows.map((row) => row.personaName).join(" and ")}
@@ -152,25 +156,26 @@ export function GenerationActions({
         undone.
       </p>
       <div className="flex items-center gap-2">
-        <button
+        <Button
+          variant="secondary"
+          size="xs"
           onClick={() => {
             setConfirming(null);
             setError("");
           }}
           disabled={loading}
-          className="rounded-md border border-gray-300 px-2 py-0.5 disabled:opacity-50"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
+          size="xs"
           onClick={() => post("/api/instructor/scaffold/discard", { groupId })}
           disabled={loading}
-          className="rounded-md bg-gray-800 px-2 py-0.5 text-white hover:bg-black disabled:opacity-50"
         >
           {loading ? "Discarding..." : "Yes, discard"}
-        </button>
+        </Button>
       </div>
-      {error && <p className="mt-2 text-red-700">{error}</p>}
+      {error && <p className="mt-2 text-content-danger">{error}</p>}
     </div>
   );
 }

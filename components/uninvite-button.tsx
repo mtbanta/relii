@@ -9,6 +9,7 @@
 // invite drops off the roster.
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export function UninviteButton({
   email,
@@ -51,16 +52,18 @@ export function UninviteButton({
   if (!confirming) {
     return (
       <div className="flex items-center gap-2 text-sm">
-        <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+        <span className="rounded bg-surface-secondary px-2 py-0.5 text-xs text-content-secondary">
           {roleLabel}
         </span>
         <span className="flex-1">{email}</span>
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
+          className="shrink-0"
           onClick={() => setConfirming(true)}
-          className="shrink-0 rounded-md border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
         >
           Un-invite
-        </button>
+        </Button>
       </div>
     );
   }
@@ -68,30 +71,31 @@ export function UninviteButton({
   // Confirmation state: name the email, require one more click.
   return (
     <div className="text-sm">
-      <p className="mb-2 text-gray-700">
+      <p className="mb-2 text-content-primary">
         Remove <span className="font-medium">{email}</span> from the invite list?
         They will no longer be able to register.
       </p>
       <div className="flex items-center gap-2">
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => {
             setConfirming(false);
             setError("");
           }}
           disabled={loading}
-          className="rounded-md border border-gray-300 px-3 py-1 disabled:opacity-50"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
+          size="sm"
           onClick={handleUninvite}
           disabled={loading}
-          className="rounded-md bg-gray-800 px-3 py-1 text-white hover:bg-gray-900 disabled:opacity-50"
         >
           {loading ? "Removing..." : "Yes, un-invite"}
-        </button>
+        </Button>
       </div>
-      {error && <p className="mt-2 text-red-700">{error}</p>}
+      {error && <p className="mt-2 text-content-danger">{error}</p>}
     </div>
   );
 }

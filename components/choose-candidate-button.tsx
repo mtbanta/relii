@@ -13,6 +13,7 @@
 // candidate had to be kept because something was using it.
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export function ChooseCandidateButton({
   candidateId,
@@ -54,21 +55,21 @@ export function ChooseCandidateButton({
 
   if (!confirming) {
     return (
-      <button
+      <Button
+        fullWidth
         onClick={() => setConfirming(true)}
-        className="w-full rounded-md bg-black px-3 py-2 text-sm text-white hover:bg-gray-800"
       >
         Choose this one
-      </button>
+      </Button>
     );
   }
 
   return (
-    <div className="rounded-md border border-gray-300 bg-white p-3 text-xs">
-      <p className="mb-2 font-medium text-gray-900">
+    <div className="rounded-md border border-line-secondary bg-white p-3 text-xs">
+      <p className="mb-2 font-medium text-content-primary">
         Choose {personaName}?
       </p>
-      <ul className="mb-3 list-disc space-y-1 pl-4 text-gray-700">
+      <ul className="mb-3 list-disc space-y-1 pl-4 text-content-primary">
         <li>
           <span className="font-medium">{personaName}</span> is switched on and
           becomes assignable as a conversation-only case (no score).
@@ -82,25 +83,26 @@ export function ChooseCandidateButton({
         <li>Nothing else changes. Alex and Jordan are untouched.</li>
       </ul>
       <div className="flex items-center gap-2">
-        <button
+        <Button
+          variant="secondary"
+          size="xs"
           onClick={() => {
             setConfirming(false);
             setError("");
           }}
           disabled={loading}
-          className="rounded-md border border-gray-300 px-2 py-1 disabled:opacity-50"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
+          size="xs"
           onClick={handleChoose}
           disabled={loading}
-          className="rounded-md bg-black px-2 py-1 text-white hover:bg-gray-800 disabled:opacity-50"
         >
           {loading ? "Choosing..." : `Yes, choose ${personaName}`}
-        </button>
+        </Button>
       </div>
-      {error && <p className="mt-2 text-red-700">{error}</p>}
+      {error && <p className="mt-2 text-content-danger">{error}</p>}
     </div>
   );
 }

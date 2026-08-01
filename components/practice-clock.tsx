@@ -128,10 +128,10 @@ export function PracticeClock({
   return (
     <span
       aria-label={`Elapsed time ${label} of a ${targetLabel} meeting`}
-      className="font-mono text-base font-semibold tabular-nums text-gray-700"
+      className="font-mono text-base font-semibold tabular-nums text-content-primary"
     >
       {label}
-      <span className="font-normal text-gray-400"> / {targetLabel}</span>
+      <span className="font-normal text-content-tertiary"> / {targetLabel}</span>
     </span>
   );
 }

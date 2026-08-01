@@ -14,6 +14,8 @@ import {
   recordingLengthText,
 } from "@/lib/recording-length";
 import type { RubricItem, SessionScore, TranscriptTurn } from "@/lib/types";
+import { buttonClasses } from "@/components/ui/button";
+import { cardClasses } from "@/components/ui/card";
 
 export default async function ResultsPage({
   params,
@@ -117,11 +119,11 @@ export default async function ResultsPage({
       <header className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-page-title font-semibold">Your results</h1>
-          <p className="mt-0.5 text-sm text-gray-700">{displayName(student)}</p>
+          <p className="mt-0.5 text-sm text-content-primary">{displayName(student)}</p>
           {hasName(student) && (
-            <p className="text-xs text-gray-400">{user.email}</p>
+            <p className="text-xs text-content-tertiary">{user.email}</p>
           )}
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-content-secondary">
             {scenario?.title ?? "Practice session"}
           </p>
           {/* PD-5: directly under the scenario title, the length of THIS one
@@ -129,19 +131,19 @@ export default async function ResultsPage({
               own length when the camera was on, and the elapsed conversation
               time for a text session or a call with the camera off. The date
               matches the one the instructor's submission view shows. */}
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-content-secondary">
             {RECORDING_LENGTH_LABEL}:{" "}
             <span className="tabular-nums">
               {recordingLengthText(session.recorded_seconds)}
             </span>
           </p>
           {takenOn && (
-            <p className="mt-0.5 text-xs text-gray-500">Date Taken: {takenOn}</p>
+            <p className="mt-0.5 text-xs text-content-secondary">Date Taken: {takenOn}</p>
           )}
         </div>
         <Link
           href="/student"
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 print:hidden"
+          className={buttonClasses({ variant: "secondary", size: "sm", className: "print:hidden" })}
         >
           Back to home
         </Link>
@@ -151,29 +153,29 @@ export default async function ResultsPage({
         // A conversation-only case has no rubric behind it, so there is nothing
         // to score. Say so plainly, so an unscored result never looks like a
         // score that failed to load.
-        <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-5">
+        <div className={cardClasses({ tone: "muted", padding: "lg", className: "mb-6" })}>
           <p className="text-sm font-medium">
             Conversation-only practice, no score
           </p>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-content-secondary">
             This case is for practising the conversation itself, so it is not
             graded and no score is given. Your full transcript
             {isVoice ? " and recording are" : " is"} saved below.
           </p>
         </div>
       ) : (
-        <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-5">
-          <p className="text-sm text-gray-600">
+        <div className={cardClasses({ tone: "muted", padding: "lg", className: "mb-6" })}>
+          <p className="text-sm text-content-secondary">
             Content score ({isVoice ? "voice" : "text"} role-play)
           </p>
           <p className="text-3xl font-semibold">
             {score.total}
-            <span className="text-lg font-normal text-gray-500">
+            <span className="text-lg font-normal text-content-secondary">
               {" "}
               / {score.max_total}
             </span>
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-content-secondary">
             Scored by AI on the discovery content items. Delivery items (tone,
             pace, and other spoken-only points) are added in a later stage.
           </p>
@@ -200,16 +202,16 @@ export default async function ResultsPage({
               src={videoUrl}
               controls
               playsInline
-              className="w-full max-w-2xl rounded-lg border border-gray-200 bg-black"
+              className="w-full max-w-2xl rounded-lg border border-line-tertiary bg-black"
             />
           ) : videoError === "1" ? (
-            <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+            <p className="rounded-md border border-amber-300 bg-surface-warning p-3 text-sm text-content-warning">
               Your recording could not be saved this time, but your{" "}
               {conversationOnly ? "transcript" : "score"} below was saved. You
               can run another practice if you want a recording.
             </p>
           ) : (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-content-secondary">
               No recording was saved for this session (the camera was off).
             </p>
           )}
@@ -236,7 +238,7 @@ export default async function ResultsPage({
               return (
                 <li
                   key={item.id}
-                  className="rounded-lg border border-gray-200 p-4"
+                  className={cardClasses()}
                 >
                   <div className="flex items-baseline justify-between gap-3">
                     <h3 className="text-sm font-medium">
@@ -247,11 +249,11 @@ export default async function ResultsPage({
                     </span>
                   </div>
                   {meta?.category && (
-                    <p className="mt-0.5 text-xs text-gray-400">
+                    <p className="mt-0.5 text-xs text-content-tertiary">
                       {meta.category}
                     </p>
                   )}
-                  <p className="mt-2 text-sm text-gray-600">{item.comment}</p>
+                  <p className="mt-2 text-sm text-content-secondary">{item.comment}</p>
                 </li>
               );
             })}
@@ -262,15 +264,15 @@ export default async function ResultsPage({
         {/* Transcript */}
         <section>
           <h2 className="mb-3 text-subsection font-medium">Transcript</h2>
-          <div className="space-y-3 rounded-lg border border-gray-200 p-4">
+          <div className={cardClasses({ className: "space-y-3" })}>
             {transcript.map((turn, i) => (
               <div key={i}>
-                <p className="text-xs font-medium text-gray-400">
+                <p className="text-xs font-medium text-content-tertiary">
                   {turn.role === "student"
                     ? "You"
                     : (scenario?.persona_name ?? "Customer")}
                 </p>
-                <p className="text-sm whitespace-pre-wrap text-gray-700">
+                <p className="text-sm whitespace-pre-wrap text-content-primary">
                   {turn.text}
                 </p>
               </div>

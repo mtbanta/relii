@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { Input, Label } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -59,50 +61,48 @@ export default function RegisterPage() {
     <main className="flex min-h-screen items-center justify-center p-6">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-4 rounded-xl border border-gray-200 p-6 shadow-sm"
+        className="w-full max-w-sm space-y-4 rounded-xl border border-line-tertiary p-6 shadow-sm"
       >
         <div className="text-center">
           <h1 className="text-page-title font-semibold">Relii</h1>
-          <p className="text-sm text-gray-500">Create your account</p>
+          <p className="text-sm text-content-secondary">Create your account</p>
         </div>
 
-        <label className="block text-sm font-medium">
+        <Label>
           Email
-          <input
+          <Input
             type="email"
             required
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2"
+            onChange={(e) => setEmail(e.target.value)} className="mt-1"
           />
-        </label>
+        </Label>
 
-        <label className="block text-sm font-medium">
+        <Label>
           Password
-          <input
+          <Input
             type="password"
             required
             minLength={6}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2"
+            onChange={(e) => setPassword(e.target.value)} className="mt-1"
           />
-          <span className="mt-1 block text-xs font-normal text-gray-400">
+          <span className="mt-1 block text-xs font-normal text-content-tertiary">
             At least 6 characters.
           </span>
-        </label>
+        </Label>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-content-danger">{error}</p>}
 
-        <button
+        <Button
+          fullWidth
           type="submit"
           disabled={loading}
-          className="w-full rounded-md bg-black px-4 py-2 text-white disabled:opacity-50"
         >
           {loading ? "Creating account..." : "Create account"}
-        </button>
+        </Button>
 
-        <p className="text-center text-sm text-gray-500">
+        <p className="text-center text-sm text-content-secondary">
           Already have an account?{" "}
           <Link href="/login" className="underline">
             Sign in

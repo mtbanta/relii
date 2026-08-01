@@ -10,6 +10,8 @@
 //
 // The whole bar is hidden when printing (print:hidden), so the saved PDF shows
 // only the score and transcript, not these buttons.
+import { Button } from "@/components/ui/button";
+import { cardClasses } from "@/components/ui/card";
 
 // Two zeros wide, e.g. 9 -> "09". Used to build the download timestamp.
 function pad(n: number): string {
@@ -66,34 +68,34 @@ export function ResultsActions({
   }
 
   return (
-    <section className="mb-6 rounded-lg border border-gray-200 p-4 print:hidden">
+    <section className={cardClasses({ className: "mb-6 print:hidden" })}>
       <p className="mb-3 text-sm font-medium">Save a copy for your records</p>
 
       <div className="flex flex-wrap items-center gap-3">
         {downloadUrl ? (
-          <button
+          <Button
+            variant="secondary"
             onClick={downloadVideo}
-            className="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
           >
             Download video
-          </button>
+          </Button>
         ) : (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-content-secondary">
             {isVoice
               ? "No recording was saved for this session, so there is nothing to download."
               : "There is no recording for a text practice."}
           </p>
         )}
 
-        <button
+        <Button
+          variant="secondary"
           onClick={() => window.print()}
-          className="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
         >
           Print / Save results
-        </button>
+        </Button>
       </div>
 
-      <p className="mt-2 text-xs text-gray-500">
+      <p className="mt-2 text-xs text-content-secondary">
         Opens your browser&apos;s print window. Choose &quot;Save as PDF&quot; to
         download your {conversationOnly ? "transcript" : "score and transcript"}.
       </p>

@@ -25,6 +25,8 @@ import {
   MIN_MEETING_MINUTES,
   resolveMeetingMinutes,
 } from "@/lib/meeting-length";
+import { Input, Label, Textarea } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
 
 type Assignment = {
   id: string;
@@ -192,7 +194,7 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-medium">{assignment.title}</p>
-          <p className="mt-0.5 text-xs text-gray-500">
+          <p className="mt-0.5 text-xs text-content-secondary">
             {assignment.scenarioTitle ?? "Scenario"}
             {assignment.personaName ? ` (with ${assignment.personaName})` : ""}{" "}
             &middot; {modeLabel(assignment.required_mode)}
@@ -201,17 +203,19 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
             {due ? ` · due ${due}` : ""}
           </p>
           {assignment.instructions && (
-            <p className="mt-1.5 text-sm text-gray-600">
+            <p className="mt-1.5 text-sm text-content-secondary">
               {assignment.instructions}
             </p>
           )}
         </div>
-        <button
+        <Button
+          variant="secondary"
+          size="xs"
+          className="shrink-0"
           onClick={startEditing}
-          className="shrink-0 rounded-md border border-gray-300 px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-50"
         >
           Edit
-        </button>
+        </Button>
       </div>
     );
   }
@@ -220,34 +224,32 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
   return (
     <form onSubmit={handleSave} className="space-y-3">
       <div>
-        <label className="mb-1 block text-sm text-gray-600">Title</label>
-        <input
+        <Label className="mb-1">Title</Label>
+        <Input
           type="text"
           required
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full rounded-md border border-gray-300 px-3 py-2"
         />
       </div>
 
       <div>
-        <label className="mb-1 block text-sm text-gray-600">
+        <Label className="mb-1">
           Instructions (optional)
-        </label>
-        <textarea
+        </Label>
+        <Textarea
           value={instructions}
           onChange={(e) => setInstructions(e.target.value)}
           rows={3}
           placeholder="Anything the student should know before they start."
-          className="w-full rounded-md border border-gray-300 px-3 py-2"
         />
       </div>
 
       <div>
-        <label className="mb-1 block text-sm text-gray-600">
+        <Label className="mb-1">
           Meeting length (optional)
-        </label>
-        <input
+        </Label>
+        <Input
           type="number"
           inputMode="numeric"
           min={MIN_MEETING_MINUTES}
@@ -256,9 +258,8 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
           placeholder={String(DEFAULT_MEETING_MINUTES)}
           value={durationMinutes}
           onChange={(e) => setDurationMinutes(e.target.value)}
-          className="w-full rounded-md border border-gray-300 px-3 py-2"
         />
-        <p className="mt-1 text-xs text-gray-400">
+        <p className="mt-1 text-xs text-content-tertiary">
           How long the role-play runs, from {MIN_MEETING_MINUTES} to{" "}
           {MAX_MEETING_MINUTES} minutes. The practice clock counts up and the
           practice ends automatically at this length. Leave blank for{" "}
@@ -267,44 +268,42 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
       </div>
 
       <div>
-        <label className="mb-1 block text-sm text-gray-600">
+        <Label className="mb-1">
           Available date (optional)
-        </label>
-        <input
+        </Label>
+        <Input
           type="date"
           value={availableDate}
           onChange={(e) => setAvailableDate(e.target.value)}
-          className="w-full rounded-md border border-gray-300 px-3 py-2"
         />
-        <p className="mt-1 text-xs text-gray-400">
+        <p className="mt-1 text-xs text-content-tertiary">
           Students see this assignment listed but locked until this date. Leave
           blank to make it available now.
         </p>
       </div>
 
       <div>
-        <label className="mb-1 block text-sm text-gray-600">
+        <Label className="mb-1">
           Due date (optional)
-        </label>
-        <input
+        </Label>
+        <Input
           type="date"
           value={dueAt}
           onChange={(e) => setDueAt(e.target.value)}
-          className="w-full rounded-md border border-gray-300 px-3 py-2"
         />
       </div>
 
       {/* Scenario and mode are fixed. They are shown here read-only so the
           instructor can see them, but there is no way to change them: existing
           sessions and scores were graded under them. */}
-      <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-xs text-gray-500">
+      <div className="rounded-md border border-line-tertiary bg-surface-secondary p-3 text-xs text-content-secondary">
         <p>
-          <span className="font-medium text-gray-600">Scenario:</span>{" "}
+          <span className="font-medium text-content-secondary">Scenario:</span>{" "}
           {assignment.scenarioTitle ?? "Scenario"}
           {assignment.personaName ? ` (with ${assignment.personaName})` : ""}
         </p>
         <p className="mt-1">
-          <span className="font-medium text-gray-600">Required mode:</span>{" "}
+          <span className="font-medium text-content-secondary">Required mode:</span>{" "}
           {modeLabel(assignment.required_mode)}
         </p>
         <p className="mt-1.5">
@@ -314,25 +313,25 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
       </div>
 
       <div className="flex items-center gap-2">
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           type="button"
           onClick={cancelEditing}
           disabled={loading}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm disabled:opacity-50"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-black px-4 py-1.5 text-sm text-white disabled:opacity-50"
         >
           {loading ? "Saving..." : "Save changes"}
-        </button>
+        </Button>
       </div>
 
       {message && (
-        <p className={`text-sm ${isError ? "text-red-600" : "text-green-700"}`}>
+        <p className={`text-sm ${isError ? "text-content-danger" : "text-content-success"}`}>
           {message}
         </p>
       )}

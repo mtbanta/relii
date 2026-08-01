@@ -31,6 +31,8 @@ import {
 import { ChooseCandidateButton } from "@/components/choose-candidate-button";
 import type { CandidateRow } from "@/lib/scaffold-candidates";
 import type { PersonaCandidate } from "@/lib/persona-scaffold";
+import { buttonClasses } from "@/components/ui/button";
+import { cardClasses } from "@/components/ui/card";
 
 // One row of the comparison table.
 type FieldRow = {
@@ -54,7 +56,7 @@ function Bullets({ items }: { items: string[] | undefined }) {
 // Shown when a field is somehow absent. It should never appear on a normally
 // generated pair; it exists so a hand-edited row cannot blank the page.
 function Missing() {
-  return <span className="text-gray-400">Not recorded</span>;
+  return <span className="text-content-tertiary">Not recorded</span>;
 }
 
 const FIELD_ROWS: FieldRow[] = [
@@ -176,7 +178,7 @@ export default async function CompareCandidatesPage({
       <div>
         <Link
           href="/instructor/scaffold"
-          className="text-sm text-gray-500 underline"
+          className="text-sm text-content-secondary underline"
         >
           Back to Persona Scaffolding
         </Link>
@@ -185,7 +187,7 @@ export default async function CompareCandidatesPage({
         <h2 className="mt-2 text-section font-semibold">
           {decided ? "The chosen persona" : "Compare the candidates"}
         </h2>
-        <p className="mt-1 text-sm text-gray-600">
+        <p className="mt-1 text-sm text-content-secondary">
           {decided
             ? "You have already picked a winner from this generation. The comparison is kept below for reference."
             : "Two candidate buyer personas built from the same case. Read them field by field and decide which one is the more real, more teachable buyer."}
@@ -194,7 +196,7 @@ export default async function CompareCandidatesPage({
 
       {/* What state these rows are in, said plainly. */}
       {decided ? (
-        <div className="rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-900">
+        <div className="rounded-lg border border-green-300 bg-surface-success p-4 text-sm text-content-success">
           <p>
             <span className="font-medium">
               {winner.persona_name} is switched ON.
@@ -210,7 +212,7 @@ export default async function CompareCandidatesPage({
             coherent; only a conversation shows how the persona actually behaves.
           </p>
           {retainedLosers.length > 0 && (
-            <p className="mt-2 rounded-md bg-amber-50 p-2 text-amber-900">
+            <p className="mt-2 rounded-md bg-surface-warning p-2 text-content-warning">
               The other candidate (
               {retainedLosers.map((row) => row.persona_name).join(", ")}) could
               not be deleted, because a session or an assignment is using it. It
@@ -222,11 +224,11 @@ export default async function CompareCandidatesPage({
               access to somebody, so only a gatekeeper has a second meeting to
               build. */}
           {winner.chain_role === "gatekeeper" && (
-            <div className="mt-4 rounded-md border border-gray-300 bg-white p-3 text-gray-800">
-              <p className="font-medium text-gray-900">
+            <div className="mt-4 rounded-md border border-line-secondary bg-white p-3 text-content-primary">
+              <p className="font-medium text-content-primary">
                 Build the second meeting for this case
               </p>
-              <p className="mt-1 text-gray-700">
+              <p className="mt-1 text-content-primary">
                 {winner.persona_name} is a gatekeeper, so this case has a second
                 meeting in it: the decision maker they control access to. The
                 shared details carry over, so you only choose who that person is
@@ -235,7 +237,7 @@ export default async function CompareCandidatesPage({
               </p>
               <Link
                 href={`/instructor/scaffold/chain/${winner.id}`}
-                className="mt-3 inline-block rounded-md bg-black px-3 py-1.5 text-white hover:bg-gray-800"
+                className={buttonClasses({ size: "sm", className: "mt-3" })}
               >
                 Generate the decision maker
               </Link>
@@ -243,13 +245,13 @@ export default async function CompareCandidatesPage({
           )}
         </div>
       ) : (
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+        <div className={cardClasses({ tone: "muted", className: "text-sm text-content-primary" })}>
           <p>
             <span className="font-medium">Both are saved and turned OFF.</span>{" "}
             Neither can be assigned to a student or started by one, and neither
             is scored (these are conversation-only cases with no rubric).
           </p>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-2 text-content-secondary">
             Choosing one switches it on and permanently deletes the other. Before
             you choose, you can customise either candidate: your edits rebuild
             its briefing and persona instructions from the same fixed template,
@@ -260,7 +262,7 @@ export default async function CompareCandidatesPage({
       )}
 
       {!decided && rows.length !== 2 && (
-        <p className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+        <p className="rounded-lg border border-amber-300 bg-surface-warning p-4 text-sm text-content-warning">
           This generation has {rows.length} candidate
           {rows.length === 1 ? "" : "s"} saved rather than the usual two.
         </p>
@@ -270,21 +272,21 @@ export default async function CompareCandidatesPage({
       <div className="overflow-x-auto">
         <table className="w-full table-fixed border-collapse text-sm">
           <thead>
-            <tr className="border-b border-gray-300">
-              <th className="w-52 p-3 text-left align-bottom text-xs font-medium uppercase tracking-wide text-gray-500">
+            <tr className="border-b border-line-secondary">
+              <th className="w-52 p-3 text-left align-bottom text-xs font-medium uppercase tracking-wide text-content-secondary">
                 Field
               </th>
               {rows.map((row, i) => (
                 <th key={row.id} className="p-3 text-left align-bottom">
-                  <span className="block text-xs font-medium uppercase tracking-wide text-gray-500">
+                  <span className="block text-xs font-medium uppercase tracking-wide text-content-secondary">
                     Candidate {i + 1}
                     {decided && row.enabled && (
-                      <span className="ml-2 rounded bg-green-100 px-1.5 py-0.5 text-green-800">
+                      <span className="ml-2 rounded bg-surface-success px-1.5 py-0.5 text-content-success">
                         Chosen
                       </span>
                     )}
                   </span>
-                  <span className="block text-base font-semibold text-gray-900">
+                  <span className="block text-base font-semibold text-content-primary">
                     {row.persona_name}
                   </span>
                 </th>
@@ -297,20 +299,20 @@ export default async function CompareCandidatesPage({
                 key={field.label}
                 className={
                   fieldIndex % 2 === 1
-                    ? "border-b border-gray-200 bg-gray-50"
-                    : "border-b border-gray-200"
+                    ? "border-b border-line-tertiary bg-surface-secondary"
+                    : "border-b border-line-tertiary"
                 }
               >
-                <th className="p-3 text-left align-top font-medium text-gray-700">
+                <th className="p-3 text-left align-top font-medium text-content-primary">
                   {field.label}
                   {field.hint && (
-                    <span className="mt-1 block text-xs font-normal text-gray-500">
+                    <span className="mt-1 block text-xs font-normal text-content-secondary">
                       {field.hint}
                     </span>
                   )}
                 </th>
                 {rows.map((row) => (
-                  <td key={row.id} className="p-3 align-top text-gray-800">
+                  <td key={row.id} className="p-3 align-top text-content-primary">
                     {row.generation_fields?.candidate ? (
                       field.render(row.generation_fields.candidate, row)
                     ) : (
@@ -337,7 +339,7 @@ export default async function CompareCandidatesPage({
                   <td key={row.id} className="space-y-2 p-3 align-top">
                     <Link
                       href={`/instructor/scaffold/edit/${row.id}`}
-                      className="block w-full rounded-md border border-gray-300 px-3 py-2 text-center text-sm hover:bg-gray-50"
+                      className={buttonClasses({ variant: "secondary", fullWidth: true })}
                     >
                       Customise {row.persona_name}
                     </Link>
@@ -361,11 +363,11 @@ export default async function CompareCandidatesPage({
           these two fields sit far apart (the field order is fixed by the design
           doc), so they are repeated here next to each other, because the whole
           question is which of the two is carrying the argument. */}
-      <div className="rounded-lg border border-gray-200 p-4">
+      <div className={cardClasses()}>
         <h2 className="text-subsection font-medium">
           Where the argument landed
         </h2>
-        <p className="mt-1 text-sm text-gray-600">
+        <p className="mt-1 text-sm text-content-secondary">
           The win condition is read by the STUDENT in their briefing. What earns
           the win is hidden and is what actually gates the close. If the
           persuasive argument sits in the win condition, the student is handed
@@ -375,23 +377,23 @@ export default async function CompareCandidatesPage({
           {rows.map((row, i) => {
             const candidate = row.generation_fields?.candidate;
             return (
-              <div key={row.id} className="space-y-3 rounded-md bg-gray-50 p-3">
+              <div key={row.id} className="space-y-3 rounded-md bg-surface-secondary p-3">
                 <h3 className="text-sm font-semibold">
                   Candidate {i + 1}: {row.persona_name}
                 </h3>
                 <div>
-                  <h4 className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  <h4 className="text-xs font-medium uppercase tracking-wide text-content-secondary">
                     Win condition (shown to the student)
                   </h4>
-                  <p className="mt-1 text-sm text-gray-800">
+                  <p className="mt-1 text-sm text-content-primary">
                     {candidate?.win_condition || <Missing />}
                   </p>
                 </div>
                 <div>
-                  <h4 className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  <h4 className="text-xs font-medium uppercase tracking-wide text-content-secondary">
                     What earns the win (hidden)
                   </h4>
-                  <div className="mt-1 text-sm text-gray-800">
+                  <div className="mt-1 text-sm text-content-primary">
                     <Bullets items={candidate?.earns_win} />
                   </div>
                 </div>
@@ -407,32 +409,32 @@ export default async function CompareCandidatesPage({
         <h2 className="text-subsection font-medium">
           The assembled scenario text
         </h2>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-content-secondary">
           Built from the fields above by the fixed template, so the case you
           compare and the persona a student would meet cannot drift apart.
         </p>
         {rows.map((row, i) => (
           <details
             key={row.id}
-            className="rounded-lg border border-gray-200 p-4"
+            className={cardClasses()}
           >
             <summary className="cursor-pointer text-sm font-medium">
               Candidate {i + 1}: {row.persona_name}
             </summary>
             <div className="mt-4 space-y-4">
               <div>
-                <h3 className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-content-secondary">
                   Scenario context (what the student is briefed on)
                 </h3>
-                <p className="mt-1 whitespace-pre-wrap rounded-md bg-gray-50 p-3 text-sm">
+                <p className="mt-1 whitespace-pre-wrap rounded-md bg-surface-secondary p-3 text-sm">
                   {row.scenario_context}
                 </p>
               </div>
               <div>
-                <h3 className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-content-secondary">
                   Persona system prompt (what the AI is told to be)
                 </h3>
-                <p className="mt-1 whitespace-pre-wrap rounded-md bg-gray-50 p-3 text-sm">
+                <p className="mt-1 whitespace-pre-wrap rounded-md bg-surface-secondary p-3 text-sm">
                   {row.persona_system_prompt}
                 </p>
               </div>

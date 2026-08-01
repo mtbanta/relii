@@ -21,6 +21,8 @@
 // the page refreshes so the assignment disappears.
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
 
 // "1 submission" / "2 submissions", etc.
 function plural(n: number, word: string): string {
@@ -83,37 +85,39 @@ export function DeleteAssignmentButton({
   if (!inUse) {
     if (!confirming) {
       return (
-        <button
+        <Button
+          variant="secondary"
+          size="xs"
           onClick={() => setConfirming(true)}
-          className="rounded-md border border-gray-300 px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-50"
         >
           Delete
-        </button>
+        </Button>
       );
     }
     return (
-      <div className="mt-1 rounded-md border border-gray-200 bg-gray-50 p-2 text-xs">
-        <p className="mb-2 text-gray-700">
+      <div className="mt-1 rounded-md border border-line-tertiary bg-surface-secondary p-2 text-xs">
+        <p className="mb-2 text-content-primary">
           Delete the assignment <span className="font-medium">{title}</span>? It
           has no student submissions or practices, so nothing else is removed.
         </p>
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="secondary"
+            size="xs"
             onClick={cancel}
             disabled={loading}
-            className="rounded-md border border-gray-300 px-2 py-0.5 disabled:opacity-50"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            size="xs"
             onClick={handleDelete}
             disabled={loading}
-            className="rounded-md bg-gray-800 px-2 py-0.5 text-white hover:bg-black disabled:opacity-50"
           >
             {loading ? "Deleting..." : "Yes, delete"}
-          </button>
+          </Button>
         </div>
-        {error && <p className="mt-2 text-red-700">{error}</p>}
+        {error && <p className="mt-2 text-content-danger">{error}</p>}
       </div>
     );
   }
@@ -123,18 +127,18 @@ export function DeleteAssignmentButton({
     return (
       <button
         onClick={() => setConfirming(true)}
-        className="rounded-md border border-red-300 px-2 py-0.5 text-xs text-red-700 hover:bg-red-50"
+        className="rounded-md border border-red-300 px-2 py-0.5 text-xs text-content-danger hover:bg-surface-danger"
       >
         Delete
       </button>
     );
   }
   return (
-    <div className="mt-1 rounded-md border-2 border-red-300 bg-red-50 p-2 text-xs">
-      <p className="mb-1 font-semibold text-red-800">
+    <div className="mt-1 rounded-md border-2 border-red-300 bg-surface-danger p-2 text-xs">
+      <p className="mb-1 font-semibold text-content-danger">
         Permanently delete an assignment with student work
       </p>
-      <p className="mb-2 text-red-800">
+      <p className="mb-2 text-content-danger">
         This deletes the assignment <span className="font-medium">{title}</span>{" "}
         AND every student&apos;s work under it:{" "}
         <span className="font-medium">
@@ -146,38 +150,43 @@ export function DeleteAssignmentButton({
         </span>
         , including their recordings. This cannot be undone.
       </p>
-      <p className="mb-2 text-red-700">
+      <p className="mb-2 text-content-danger">
         If you want to keep any submission, download its Video, Transcript, or CSV
         from the Submissions table above BEFORE you continue.
       </p>
-      <label className="mb-2 block text-red-800">
+      <label className="mb-2 block text-content-danger">
         Type <span className="font-mono font-semibold">DELETE</span> to confirm:
-        <input
+        <Input
           type="text"
           value={typed}
           onChange={(e) => setTyped(e.target.value)}
-          className="mt-1 block w-32 rounded-md border border-red-300 bg-white px-2 py-0.5 font-mono"
+          size="xs"
+          tone="danger"
+          fullWidth={false}
+          className="mt-1 block w-32 font-mono"
           autoComplete="off"
           spellCheck={false}
         />
       </label>
       <div className="flex items-center gap-2">
-        <button
+        <Button
+          variant="secondary"
+          size="xs"
           onClick={cancel}
           disabled={loading}
-          className="rounded-md border border-gray-300 px-2 py-0.5 disabled:opacity-50"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="destructive"
+          size="xs"
           onClick={handleDelete}
           disabled={loading || typed !== "DELETE"}
-          className="rounded-md bg-red-600 px-2 py-0.5 text-white hover:bg-red-700 disabled:opacity-50"
         >
           {loading ? "Deleting..." : "Permanently delete assignment and all work"}
-        </button>
+        </Button>
       </div>
-      {error && <p className="mt-2 text-red-700">{error}</p>}
+      {error && <p className="mt-2 text-content-danger">{error}</p>}
     </div>
   );
 }

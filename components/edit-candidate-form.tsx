@@ -19,8 +19,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PersonaCandidate, HiddenFact } from "@/lib/persona-scaffold";
 
-const INPUT_CLASS =
-  "mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm";
+import { controlClasses } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
+
+// The name stays, so every use site below is unchanged; it now hands the work
+// to the shared form primitive.
+const INPUT_CLASS = controlClasses({ className: "mt-1 text-sm" });
 
 function Field({
   label,
@@ -33,10 +37,10 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-900">
+      <label className="block text-sm font-medium text-content-primary">
         {label}
         {hint && (
-          <span className="mt-0.5 block text-xs font-normal text-gray-500">
+          <span className="mt-0.5 block text-xs font-normal text-content-secondary">
             {hint}
           </span>
         )}
@@ -191,10 +195,10 @@ export function EditCandidateForm({
       {/* Hidden facts are the meat of the case, and the one field that is a pair
           rather than a line, so it gets rows instead of a textarea. */}
       <div>
-        <p className="text-sm font-medium text-gray-900">
+        <p className="text-sm font-medium text-content-primary">
           Hidden facts and incumbent shortfalls
         </p>
-        <p className="mt-0.5 text-xs text-gray-500">
+        <p className="mt-0.5 text-xs text-content-secondary">
           Hidden from the student and revealed only to good, specific questions.
           At least three are required. The fact is the shortfall; the detail is
           the concrete number or specific behind it.
@@ -203,10 +207,10 @@ export function EditCandidateForm({
           {hiddenFacts.map((fact, index) => (
             <div
               key={index}
-              className="space-y-2 rounded-md border border-gray-200 p-3"
+              className="space-y-2 rounded-md border border-line-tertiary p-3"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                <span className="text-xs font-medium uppercase tracking-wide text-content-secondary">
                   Fact {index + 1}
                 </span>
                 <button
@@ -216,7 +220,7 @@ export function EditCandidateForm({
                       facts.filter((_, i) => i !== index),
                     )
                   }
-                  className="text-xs text-gray-500 underline"
+                  className="text-xs text-content-secondary underline"
                 >
                   Remove
                 </button>
@@ -225,27 +229,29 @@ export function EditCandidateForm({
                 value={fact.fact}
                 onChange={(e) => updateFact(index, "fact", e.target.value)}
                 placeholder="The shortfall or pressure"
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                className={controlClasses({ className: "text-sm" })}
               />
               <textarea
                 value={fact.detail}
                 onChange={(e) => updateFact(index, "detail", e.target.value)}
                 placeholder="The concrete detail or number"
                 rows={2}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                className={controlClasses({ className: "text-sm" })}
               />
             </div>
           ))}
         </div>
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
+          className="mt-2"
           type="button"
           onClick={() =>
             setHiddenFacts((facts) => [...facts, { fact: "", detail: "" }])
           }
-          className="mt-2 rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
         >
           Add a hidden fact
-        </button>
+        </Button>
       </div>
 
       <ListField
@@ -273,7 +279,7 @@ export function EditCandidateForm({
       />
 
       {error && (
-        <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+        <div className="rounded-md border border-red-300 bg-surface-danger p-3 text-sm text-content-danger">
           <p>{error}</p>
           {problems.length > 0 && (
             <ul className="mt-2 list-disc space-y-1 pl-4">
@@ -285,24 +291,23 @@ export function EditCandidateForm({
         </div>
       )}
 
-      <div className="flex items-center gap-3 border-t border-gray-200 pt-4">
-        <button
+      <div className="flex items-center gap-3 border-t border-line-tertiary pt-4">
+        <Button
           onClick={handleSave}
           disabled={saving}
-          className="rounded-md bg-black px-4 py-2 text-sm text-white hover:bg-gray-800 disabled:opacity-50"
         >
           {saving ? "Saving..." : "Save and rebuild"}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="secondary"
           type="button"
           onClick={() =>
             router.push(`/instructor/scaffold/compare/${groupId}`)
           }
           disabled={saving}
-          className="rounded-md border border-gray-300 px-4 py-2 text-sm disabled:opacity-50"
         >
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );

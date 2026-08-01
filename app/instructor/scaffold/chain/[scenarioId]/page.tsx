@@ -13,6 +13,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loadCandidateById } from "@/lib/scaffold-candidates";
 import { ChainForm } from "@/components/chain-form";
+import { cardClasses } from "@/components/ui/card";
 
 export default async function ChainPage({
   params,
@@ -50,13 +51,13 @@ export default async function ChainPage({
   if (gatekeeper.chain_role !== "gatekeeper") {
     return (
       <main className="mx-auto max-w-3xl space-y-4 px-8 pb-12 pt-6">
-        <Link href="/instructor/scaffold" className="text-sm text-gray-500 underline">
+        <Link href="/instructor/scaffold" className="text-sm text-content-secondary underline">
           Back to Persona Scaffolding
         </Link>
         {/* An h2, not an h1: the page title in the shared instructor header
             above is the h1. */}
         <h2 className="text-section font-semibold">Nothing to chain from</h2>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-content-secondary">
           {gatekeeper.persona_name} is a decision maker, and a decision maker
           gates nobody, so there is no second meeting to build. The chain starts
           from a gatekeeper.
@@ -68,11 +69,11 @@ export default async function ChainPage({
   if (!gatekeeper.enabled) {
     return (
       <main className="mx-auto max-w-3xl space-y-4 px-8 pb-12 pt-6">
-        <Link href="/instructor/scaffold" className="text-sm text-gray-500 underline">
+        <Link href="/instructor/scaffold" className="text-sm text-content-secondary underline">
           Back to Persona Scaffolding
         </Link>
         <h2 className="text-section font-semibold">Choose this gatekeeper first</h2>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-content-secondary">
           {gatekeeper.persona_name} is switched off, so it is not a case anyone
           has settled on yet. Choose it first, and then come back to build its
           decision maker.
@@ -92,26 +93,26 @@ export default async function ChainPage({
       <div>
         <Link
           href="/instructor/scaffold"
-          className="text-sm text-gray-500 underline"
+          className="text-sm text-content-secondary underline"
         >
           Back to Persona Scaffolding
         </Link>
         <h2 className="mt-2 text-section font-semibold">
           Build the decision maker for this case
         </h2>
-        <p className="mt-1 text-sm text-gray-600">
+        <p className="mt-1 text-sm text-content-secondary">
           {gatekeeper.persona_name} is the gatekeeper. This builds the person
           they gate access to: the second meeting, where the seller presents and
           closes. It is the same shape as Jordan following Alex.
         </p>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+      <div className={cardClasses({ tone: "muted", className: "text-sm text-content-primary" })}>
         <p>
           You will get two candidates to compare and pick from, exactly as
           before, and both are saved switched OFF.
         </p>
-        <p className="mt-2 text-gray-600">
+        <p className="mt-2 text-content-secondary">
           The two cases stay <span className="font-medium">independent</span>.
           The decision maker&apos;s briefing will mention the meeting with{" "}
           {gatekeeper.persona_name} the way Jordan&apos;s mentions Alex, but that

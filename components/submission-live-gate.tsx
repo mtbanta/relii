@@ -89,7 +89,7 @@ export function SubmissionLiveGate({
   }, [allowed, lockOnReload, sessionId]);
 
   if (allowed === null) {
-    return <div className="py-16 text-center text-sm text-gray-400">Loading...</div>;
+    return <div className="py-16 text-center text-sm text-content-tertiary">Loading...</div>;
   }
   if (!allowed) {
     return <LockedSubmission assignmentTitle={assignmentTitle} />;

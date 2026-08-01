@@ -16,6 +16,8 @@
 // whenever the page happened to be rendered.
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
 
 type Preview = {
   deletable: number;
@@ -94,27 +96,27 @@ export function DiscardAllGenerations() {
       <div>
         <button
           onClick={openPanel}
-          className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50"
+          className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-content-danger hover:bg-surface-danger"
         >
           Discard all unused test generations
         </button>
-        {done && <p className="mt-2 text-sm text-green-700">{done}</p>}
-        {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
+        {done && <p className="mt-2 text-sm text-content-success">{done}</p>}
+        {error && <p className="mt-2 text-sm text-content-danger">{error}</p>}
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border-2 border-red-300 bg-red-50 p-4 text-sm">
-      <p className="mb-2 font-semibold text-red-800">
+    <div className="rounded-lg border-2 border-red-300 bg-surface-danger p-4 text-sm">
+      <p className="mb-2 font-semibold text-content-danger">
         Permanently delete every unused generated persona
       </p>
 
-      {loading && !preview && <p className="text-red-800">Counting...</p>}
+      {loading && !preview && <p className="text-content-danger">Counting...</p>}
 
       {preview && (
         <>
-          <p className="mb-2 text-red-800">
+          <p className="mb-2 text-content-danger">
             This will permanently delete{" "}
             <span className="font-semibold">
               {preview.deletable} candidate persona
@@ -123,15 +125,15 @@ export function DiscardAllGenerations() {
             . This cannot be undone.
           </p>
           {preview.names.length > 0 && (
-            <p className="mb-2 text-xs text-red-700">
+            <p className="mb-2 text-xs text-content-danger">
               To be deleted: {preview.names.join(", ")}.
             </p>
           )}
 
           {/* Said explicitly, because "delete everything unused" is exactly the
               kind of action where an admin needs to see what it will NOT do. */}
-          <div className="mb-3 rounded-md bg-white p-2 text-xs text-gray-700">
-            <p className="font-medium text-gray-900">What is NOT touched:</p>
+          <div className="mb-3 rounded-md bg-white p-2 text-xs text-content-primary">
+            <p className="font-medium text-content-primary">What is NOT touched:</p>
             <ul className="mt-1 list-disc space-y-0.5 pl-4">
               <li>Alex, Jordan, and every hand-written scenario.</li>
               <li>
@@ -151,14 +153,17 @@ export function DiscardAllGenerations() {
             </ul>
           </div>
 
-          <label className="mb-2 block text-red-800">
+          <label className="mb-2 block text-content-danger">
             Type <span className="font-mono font-semibold">DISCARD</span> to
             confirm:
-            <input
+            <Input
               type="text"
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
-              className="mt-1 block w-36 rounded-md border border-red-300 bg-white px-2 py-0.5 font-mono"
+              size="xs"
+              tone="danger"
+              fullWidth={false}
+              className="mt-1 block w-36 font-mono"
               autoComplete="off"
               spellCheck={false}
             />
@@ -167,35 +172,37 @@ export function DiscardAllGenerations() {
       )}
 
       <div className="flex items-center gap-2">
-        <button
+        <Button
+          variant="secondary"
+          size="xs"
           onClick={() => {
             setOpen(false);
             setError("");
           }}
           disabled={loading}
-          className="rounded-md border border-gray-300 bg-white px-2 py-1 disabled:opacity-50"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="destructive"
+          size="xs"
           onClick={handleDiscard}
           disabled={
             loading || !preview || preview.deletable === 0 || typed !== "DISCARD"
           }
-          className="rounded-md bg-red-600 px-2 py-1 text-white hover:bg-red-700 disabled:opacity-50"
         >
           {loading
             ? "Discarding..."
             : `Permanently delete ${preview?.deletable ?? 0}`}
-        </button>
+        </Button>
       </div>
 
       {preview?.deletable === 0 && (
-        <p className="mt-2 text-red-800">
+        <p className="mt-2 text-content-danger">
           There is nothing unused to discard right now.
         </p>
       )}
-      {error && <p className="mt-2 text-red-700">{error}</p>}
+      {error && <p className="mt-2 text-content-danger">{error}</p>}
     </div>
   );
 }

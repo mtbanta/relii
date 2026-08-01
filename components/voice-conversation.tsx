@@ -9,6 +9,7 @@ import { msToRecordedSeconds } from "@/lib/recording-length";
 import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
 import type { TranscriptTurn } from "@/lib/types";
+import { Button } from "@/components/ui/button";
 
 // The live VOICE conversation with the persona (Alex), over the OpenAI Realtime
 // API via WebRTC, with optional WEBCAM RECORDING (Stage 5).
@@ -792,10 +793,10 @@ export function VoiceConversation({
     <div className="flex h-[calc(100vh-2rem)] flex-col">
       <audio ref={audioRef} autoPlay hidden />
 
-      <header className="mb-4 flex items-center justify-between border-b border-gray-200 pb-3">
+      <header className="mb-4 flex items-center justify-between border-b border-line-tertiary pb-3">
         <div>
           <h1 className="text-lg font-semibold">{scenarioTitle}</h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-content-secondary">
             {isSubmission ? "Graded submission with " : "Voice call with "}
             {personaName}
           </p>
@@ -811,46 +812,48 @@ export function VoiceConversation({
                 onExpire={() => setExpired(true)}
               />
             )}
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={requestEndCall}
             disabled={!canEnd}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
           >
             {status === "ending"
               ? "Finishing..."
               : isSubmission
                 ? "Submit assignment"
                 : "End session"}
-          </button>
+          </Button>
         </div>
       </header>
 
       {/* Graded submission: the explicit submit-and-score step. */}
       {isSubmission && confirming && (
-        <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm">
-          <p className="text-amber-900">
+        <div className="mb-3 rounded-lg border border-amber-300 bg-surface-warning p-4 text-sm">
+          <p className="text-content-warning">
             Submit this graded assignment for scoring? This ends the call and is
             your one official attempt; it cannot be redone.
           </p>
           <div className="mt-3 flex items-center gap-2">
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setConfirming(false)}
-              className="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50"
             >
               Keep talking
-            </button>
-            <button
+            </Button>
+            <Button
+              size="sm"
               onClick={endCall}
-              className="rounded-md bg-black px-3 py-1.5 text-white"
             >
               Submit and score
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {expired && (
-        <p className="mb-3 text-sm text-red-600">
+        <p className="mb-3 text-sm text-content-danger">
           Time is up. Ending your practice...
         </p>
       )}
@@ -863,9 +866,9 @@ export function VoiceConversation({
             autoPlay
             muted
             playsInline
-            className="h-28 w-40 rounded-md border border-gray-200 bg-black object-cover"
+            className="h-28 w-40 rounded-md border border-line-tertiary bg-black object-cover"
           />
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-content-secondary">
             Your camera is on and recording.
           </p>
         </div>
@@ -875,7 +878,7 @@ export function VoiceConversation({
           button. Starting from a click also lets the browser play Alex's audio. */}
       {status === "idle" && (
         <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <p className="max-w-md text-gray-600">
+          <p className="max-w-md text-content-secondary">
             You are about to start{" "}
             {isSubmission
               ? "your graded voice submission"
@@ -898,18 +901,18 @@ export function VoiceConversation({
 
           {cameraLocked ? (
             // Graded submission: the camera is required and locked on. No toggle.
-            <div className="mt-5 max-w-md rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-center">
-              <p className="text-sm text-gray-700">
+            <div className="mt-5 max-w-md rounded-md border border-line-tertiary bg-surface-secondary px-3 py-2 text-center">
+              <p className="text-sm text-content-primary">
                 Your camera will stay on for this graded submission.
               </p>
-              <p className="mt-1 text-xs text-gray-400">
+              <p className="mt-1 text-xs text-content-tertiary">
                 Camera stays on for graded assignments. It can be turned off in
                 practice. Tip: wear headphones to avoid echo in the recording.
               </p>
             </div>
           ) : (
             <>
-              <label className="mt-5 flex items-center gap-2 text-sm text-gray-700">
+              <label className="mt-5 flex items-center gap-2 text-sm text-content-primary">
                 <input
                   type="checkbox"
                   checked={cameraOn}
@@ -918,7 +921,7 @@ export function VoiceConversation({
                 />
                 Record my camera during this practice
               </label>
-              <p className="mt-1 max-w-md text-xs text-gray-400">
+              <p className="mt-1 max-w-md text-xs text-content-tertiary">
                 {cameraOn
                   ? "Your webcam will record (video plus your voice and Alex's voice). Tip: wear headphones to avoid echo in the recording."
                   : "Camera off: nothing will be recorded for this practice."}
@@ -926,19 +929,19 @@ export function VoiceConversation({
             </>
           )}
 
-          <button
+          <Button
+            className="mt-6"
             onClick={startCall}
-            className="mt-6 rounded-md bg-black px-5 py-2.5 text-sm text-white"
           >
             Start call
-          </button>
-          {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+          </Button>
+          {error && <p className="mt-4 text-sm text-content-danger">{error}</p>}
         </div>
       )}
 
       {status === "connecting" && (
         <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <p className="text-gray-600">
+          <p className="text-content-secondary">
             Connecting... allow camera and microphone access if your browser asks.
           </p>
         </div>
@@ -947,7 +950,7 @@ export function VoiceConversation({
       {/* During and after the call: the live transcript. */}
       {(status === "live" || status === "ending" || status === "ended") && (
         <>
-          <div className="mb-2 flex items-center gap-2 text-xs text-gray-500">
+          <div className="mb-2 flex items-center gap-2 text-xs text-content-secondary">
             <span className="inline-block h-2 w-2 rounded-full bg-red-500" />
             {status === "live"
               ? "Live. Speak naturally; pause when you finish a thought."
@@ -960,22 +963,24 @@ export function VoiceConversation({
               control. It is deliberately a full-size button matching the End
               session button, so the student can actually find it. The toggle is
               SCREEN ONLY; see the transcriptShown comment above. */}
-          <div className="mb-2 flex items-center justify-between gap-3 border-t border-gray-200 pt-2">
-            <span className="text-sm font-medium text-gray-700">
+          <div className="mb-2 flex items-center justify-between gap-3 border-t border-line-tertiary pt-2">
+            <span className="text-sm font-medium text-content-primary">
               Live transcript
             </span>
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
+              className="shrink-0"
               type="button"
               onClick={() => setTranscriptShown((shown) => !shown)}
-              className="shrink-0 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
             >
               {transcriptShown ? "Hide transcript" : "Show transcript"}
-            </button>
+            </Button>
           </div>
 
           {!transcriptShown && (
             <div className="flex flex-1 items-center justify-center">
-              <p className="max-w-sm text-center text-sm text-gray-400">
+              <p className="max-w-sm text-center text-sm text-content-tertiary">
                 The transcript is hidden. Your conversation is still being
                 captured and saved, and your score is not affected. Click Show
                 transcript to read along again.
@@ -991,7 +996,7 @@ export function VoiceConversation({
             }
           >
             {turns.length === 0 && (
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-content-tertiary">
                 {personaName} will speak first. The conversation will appear here
                 as you talk.
               </p>
@@ -1007,7 +1012,7 @@ export function VoiceConversation({
                   className={
                     turn.role === "student"
                       ? "max-w-[80%] rounded-2xl bg-black px-4 py-2 text-sm text-white"
-                      : "max-w-[80%] rounded-2xl bg-gray-100 px-4 py-2 text-sm text-gray-900"
+                      : "max-w-[80%] rounded-2xl bg-surface-secondary px-4 py-2 text-sm text-content-primary"
                   }
                 >
                   <p className="mb-0.5 text-xs font-medium opacity-70">
@@ -1022,7 +1027,7 @@ export function VoiceConversation({
             <div ref={bottomRef} />
           </div>
 
-          {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+          {error && <p className="mt-2 text-sm text-content-danger">{error}</p>}
         </>
       )}
     </div>

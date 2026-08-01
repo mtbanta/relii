@@ -41,14 +41,14 @@ export function DeletePracticeButton({ sessionId }: { sessionId: string }) {
           <button
             onClick={remove}
             disabled={busy}
-            className="text-red-600 hover:underline disabled:opacity-50"
+            className="text-content-danger hover:underline disabled:opacity-50"
           >
             {busy ? "Deleting..." : "Confirm delete"}
           </button>
           <button
             onClick={() => setConfirming(false)}
             disabled={busy}
-            className="text-gray-400 hover:underline disabled:opacity-50"
+            className="text-content-tertiary hover:underline disabled:opacity-50"
           >
             Cancel
           </button>
@@ -56,12 +56,12 @@ export function DeletePracticeButton({ sessionId }: { sessionId: string }) {
       ) : (
         <button
           onClick={() => setConfirming(true)}
-          className="text-gray-400 hover:text-red-600"
+          className="text-content-tertiary hover:text-content-danger"
         >
           Delete
         </button>
       )}
-      {error && <span className="text-red-600">{error}</span>}
+      {error && <span className="text-content-danger">{error}</span>}
     </span>
   );
 }

@@ -20,6 +20,7 @@
 // success the page refreshes so the row updates.
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export function SubmissionResetButton({
   sessionId,
@@ -78,37 +79,39 @@ export function SubmissionResetButton({
       return (
         <button
           onClick={() => setConfirming(true)}
-          className="rounded-md border border-amber-300 px-2 py-0.5 text-xs text-amber-700 hover:bg-amber-50"
+          className="rounded-md border border-amber-300 px-2 py-0.5 text-xs text-content-warning hover:bg-surface-warning"
         >
           Reset
         </button>
       );
     }
     return (
-      <div className="mt-1 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs">
-        <p className="mb-2 text-amber-900">
+      <div className="mt-1 rounded-md border border-amber-200 bg-surface-warning p-2 text-xs">
+        <p className="mb-2 text-content-warning">
           Reset the interrupted attempt for{" "}
           <span className="font-medium">{studentEmail}</span> on{" "}
           <span className="font-medium">{assignmentTitle}</span>? This deletes
           their stuck attempt so they can start the assignment over.
         </p>
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="secondary"
+            size="xs"
             onClick={cancel}
             disabled={loading}
-            className="rounded-md border border-gray-300 px-2 py-0.5 disabled:opacity-50"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="caution"
+            size="xs"
             onClick={handleReset}
             disabled={loading}
-            className="rounded-md bg-amber-600 px-2 py-0.5 text-white hover:bg-amber-700 disabled:opacity-50"
           >
             {loading ? "Resetting..." : "Yes, reset attempt"}
-          </button>
+          </Button>
         </div>
-        {error && <p className="mt-2 text-red-700">{error}</p>}
+        {error && <p className="mt-2 text-content-danger">{error}</p>}
       </div>
     );
   }
@@ -124,15 +127,15 @@ export function SubmissionResetButton({
     return (
       <button
         onClick={() => setConfirming(true)}
-        className="rounded-md border border-amber-300 px-2 py-0.5 text-xs text-amber-700 hover:bg-amber-50"
+        className="rounded-md border border-amber-300 px-2 py-0.5 text-xs text-content-warning hover:bg-surface-warning"
       >
         Allow retake
       </button>
     );
   }
   return (
-    <div className="mt-1 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs">
-      <p className="mb-2 text-amber-900">
+    <div className="mt-1 rounded-md border border-amber-200 bg-surface-warning p-2 text-xs">
+      <p className="mb-2 text-content-warning">
         Allow <span className="font-medium">{studentEmail}</span> to retake{" "}
         <span className="font-medium">{assignmentTitle}</span>? This returns their
         submission{hadScore ? ` (${priorScoreTotal} / ${priorScoreMax})` : ""} to
@@ -140,22 +143,24 @@ export function SubmissionResetButton({
         are kept; nothing is deleted. This is recorded in the reset history.
       </p>
       <div className="flex items-center gap-2">
-        <button
+        <Button
+          variant="secondary"
+          size="xs"
           onClick={cancel}
           disabled={loading}
-          className="rounded-md border border-gray-300 px-2 py-0.5 disabled:opacity-50"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="caution"
+          size="xs"
           onClick={handleReset}
           disabled={loading}
-          className="rounded-md bg-amber-600 px-2 py-0.5 text-white hover:bg-amber-700 disabled:opacity-50"
         >
           {loading ? "Returning..." : "Allow retake"}
-        </button>
+        </Button>
       </div>
-      {error && <p className="mt-2 text-red-700">{error}</p>}
+      {error && <p className="mt-2 text-content-danger">{error}</p>}
     </div>
   );
 }

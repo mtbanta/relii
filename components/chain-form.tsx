@@ -17,10 +17,18 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-const inputClass = "w-full rounded-md border border-gray-300 px-3 py-2";
-const labelClass = "mb-1 block text-sm text-gray-600";
+import { controlClasses, labelClasses } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
+import { cardClasses } from "@/components/ui/card";
+
+// The two control names stay, so every use site below is unchanged; they now
+// hand the work to the shared form primitives. carriedClass is not a control at
+// all: it is the read-only box showing what was carried over from the
+// gatekeeper, so it keeps the quieter panel surface.
+const inputClass = controlClasses();
+const labelClass = labelClasses("mb-1");
 const carriedClass =
-  "rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700";
+  "rounded-md border border-line-tertiary bg-surface-secondary px-3 py-2 text-sm text-content-secondary";
 
 export function ChainForm({
   gatekeeperId,
@@ -94,12 +102,12 @@ export function ChainForm({
     <div className="space-y-8">
       <form
         onSubmit={handleSubmit}
-        className="space-y-4 rounded-lg border border-gray-200 p-4"
+        className={cardClasses({ className: "space-y-4" })}
       >
         {/* What carries over, shown so the admin can see the case is shared. */}
         <div>
           <h2 className="font-medium">Carried over from {gatekeeperName}</h2>
-          <p className="mt-1 mb-3 text-sm text-gray-600">
+          <p className="mt-1 mb-3 text-sm text-content-secondary">
             These are reused so both meetings are one coherent case at one
             company. They cannot be edited here.
           </p>
@@ -130,9 +138,9 @@ export function ChainForm({
           </div>
         </div>
 
-        <div className="border-t border-gray-200 pt-4">
+        <div className="border-t border-line-tertiary pt-4">
           <h2 className="font-medium">The decision maker</h2>
-          <p className="mt-1 mb-3 text-sm text-gray-600">
+          <p className="mt-1 mb-3 text-sm text-content-secondary">
             The two things that are about this second meeting.
           </p>
 
@@ -146,7 +154,7 @@ export function ChainForm({
                 onChange={(e) => setPersonaRole(e.target.value)}
                 className={inputClass}
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-content-secondary">
                 Pre-filled from who {gatekeeperName} gates access to. Trim it to
                 a job title if it reads as a description.
               </p>
@@ -164,7 +172,7 @@ export function ChainForm({
                 onChange={(e) => setWinCondition(e.target.value)}
                 className={inputClass}
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-content-secondary">
                 This is the real close, not another meeting. The first meeting
                 already earned the introduction.
               </p>
@@ -172,30 +180,29 @@ export function ChainForm({
           </div>
         </div>
 
-        <button
+        <Button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
         >
           {loading ? "Generating..." : "Generate two decision makers"}
-        </button>
+        </Button>
 
         {loading && (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-content-secondary">
             Writing two personas. This usually takes twenty to sixty seconds, so
             please leave this page open.
           </p>
         )}
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-content-danger">{error}</p>}
       </form>
 
       {/* Fallback, so a slow or blocked navigation never strands the instructor
           on a page with no way to reach what was just saved. */}
       {savedGroupId && (
-        <div className="rounded-lg border border-gray-200 p-4">
+        <div className={cardClasses()}>
           <h2 className="font-medium">Two candidates saved</h2>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-content-secondary">
             <Link
               href={`/instructor/scaffold/compare/${savedGroupId}`}
               className="underline"

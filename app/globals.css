@@ -42,15 +42,36 @@
      primary   = body copy and headings
      secondary = supporting lines (a scenario name, a date, a description)
      tertiary  = the quietest metadata (an email address, a small caption)
-     Contrast on the cream page background: secondary 6.2:1, tertiary 3.1:1,
-     both better than the grays they replace. */
+
+     CONTRAST, measured against all three surfaces (panel / page / card), because
+     Relii goes into a public university where WCAG 2.1 AA is a procurement
+     requirement, not a preference. AA asks for 4.5:1 on body-size text.
+       primary   #2b2b29   14.5 / 15.4 / 16.3
+       secondary #5f5e5a    5.8 /  6.2 /  6.5
+       tertiary  #6e6d66    4.6 /  4.9 /  5.2
+     PD-8b changed tertiary from #888780, which measured 3.2 / 3.4 / 3.6 and so
+     FAILED AA on every surface. #6e6d66 is the first value darkening along the
+     token's own hue that clears 4.5:1 everywhere, so the palette keeps its
+     warmth. Every other token in this block already passed. */
   --color-content-primary: #2b2b29;
   --color-content-secondary: #5f5e5a;
-  --color-content-tertiary: #888780;
+  --color-content-tertiary: #6e6d66;
   --color-content-info: #185fa5;
   --color-content-danger: #a32d2d;
   --color-content-success: #3b6d11;
   --color-content-warning: #854f0b;
+
+  /* THE ACCENT, used as a SOLID FILL: the primary button, and the focus ring on
+     a form control. Same blue as content-info above, named separately because
+     its job here is a background that white text sits on rather than a text
+     colour, and because the hover shade belongs in the layer rather than inside
+     the button variant. White on the fill measures 6.52:1, and on the hover
+     8.77:1, so both clear AA.
+     PD-8a shipped a near-black primary button as a deliberate stopgap while only
+     the chrome was converted; PD-8b converts everything, so this is the moment
+     the accent takes over. */
+  --color-accent-solid: #185fa5;
+  --color-accent-solid-hover: #134c84;
 
   /* BORDERS.
      tertiary  = the ordinary hairline around a card or between rows

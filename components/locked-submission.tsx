@@ -4,6 +4,7 @@
 // retake. This is a plain presentational component (no client hooks), so it can
 // render on the server page or inside the client gate.
 import Link from "next/link";
+import { buttonClasses } from "@/components/ui/button";
 
 export function LockedSubmission({
   assignmentTitle,
@@ -13,7 +14,7 @@ export function LockedSubmission({
   return (
     <div className="mx-auto max-w-md py-16 text-center">
       <h1 className="text-section font-semibold">Submission interrupted</h1>
-      <p className="mt-3 text-sm leading-relaxed text-gray-600">
+      <p className="mt-3 text-sm leading-relaxed text-content-secondary">
         Your graded submission
         {assignmentTitle ? (
           <>
@@ -23,12 +24,12 @@ export function LockedSubmission({
         was left before it was submitted. A graded submission is a single,
         one-time attempt, so it cannot be resumed or restarted here.
       </p>
-      <p className="mt-3 text-sm leading-relaxed text-gray-600">
+      <p className="mt-3 text-sm leading-relaxed text-content-secondary">
         Please contact your instructor if you need this attempt reset.
       </p>
       <Link
         href="/student"
-        className="mt-6 inline-block rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
+        className={buttonClasses({ variant: "secondary", className: "mt-6" })}
       >
         Back to home
       </Link>
