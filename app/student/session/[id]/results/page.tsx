@@ -224,10 +224,12 @@ export default async function ResultsPage({
           score ? "md:grid-cols-2 print:grid-cols-1" : ""
         }`}
       >
-        {/* Itemized score (graded cases only) */}
+        {/* The itemized rubric (graded cases only). PD-7 renamed this heading
+            from "Itemized score" to "Rubric score", so the student and the
+            instructor call the same list of items by the same name. */}
         {score && (
         <section>
-          <h2 className="mb-3 text-lg font-medium">Itemized score</h2>
+          <h2 className="mb-3 text-lg font-medium">Rubric score</h2>
           <ul className="space-y-3">
             {score.items.map((item) => {
               const meta = labelById.get(item.id);

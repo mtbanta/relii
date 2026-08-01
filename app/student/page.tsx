@@ -14,6 +14,7 @@ import { NameGate } from "@/components/name-gate";
 import { KEPT_PRACTICES } from "@/lib/practice";
 import { displayName, hasName } from "@/lib/name";
 import { isLockedUntil, formatAvailableDate } from "@/lib/available-date";
+import { resolveMeetingMinutes } from "@/lib/meeting-length";
 import {
   RECORDING_LENGTH_LABEL,
   recordingLengthText,
@@ -53,6 +54,11 @@ type AssignmentRow = {
   // available_date is when the assignment UNLOCKS. Null means available now, so
   // assignments created before PD-3 simply appear immediately.
   available_date: string | null;
+  // duration_minutes is how long the role-play meeting runs (PD-4). Null means
+  // the standard 30 minutes, which is what resolveMeetingMinutes returns, so the
+  // card shows the same number the clock actually counts up to. PD-7 added this
+  // to the query: the duration already reached the session page, but not here.
+  duration_minutes: number | null;
   instructions: string | null;
   // rubric_id is null for a conversation-only case: nothing to grade, so the
   // assignment is practice-only.
@@ -131,7 +137,7 @@ export default async function StudentHome() {
   // keep the newest-first order the page used before.
   const { data: assignments } = await supabase
     .from("assignments")
-    .select("id, title, required_mode, due_at, available_date, instructions, scenarios ( title, persona_name, rubric_id )")
+    .select("id, title, required_mode, due_at, available_date, duration_minutes, instructions, scenarios ( title, persona_name, rubric_id )")
     .order("available_date", { ascending: true, nullsFirst: true })
     .order("created_at", { ascending: false })
     .returns<AssignmentRow[]>();
@@ -214,7 +220,18 @@ export default async function StudentHome() {
           creates one.
         </p>
       ) : (
-        <ul className="space-y-4">
+        <>
+          {/* PD-7: a plain, always-on notice for the whole assignments area, so
+              a student who finishes a practice or a submission and does not see
+              their video, transcript, or score straight away knows it is still
+              being processed and is not lost. Static text only: nothing here
+              measures or waits on the real processing. */}
+          <p className="mb-4 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+            After you finish a practice or a submission, video and transcript
+            processing may take up to three minutes.
+          </p>
+
+          <ul className="space-y-4">
           {assignments.map((a) => {
             const due = formatDueDate(a.due_at);
             const submission = submissionByAssignment.get(a.id);
@@ -242,6 +259,12 @@ export default async function StudentHome() {
             // is the display half of it, not the whole of it.
             const locked = isLockedUntil(a.available_date);
             const availableOn = formatAvailableDate(a.available_date);
+            // PD-7: how long this assignment's meeting runs, shown the same way
+            // the instructor's assignment card shows it. It is ALWAYS shown,
+            // including when nothing is set: a null duration is not "no meeting
+            // length", it is the standard 30 minutes, and 30 is exactly what the
+            // student's clock will count up to.
+            const meetingMinutes = resolveMeetingMinutes(a.duration_minutes);
 
             return (
               <li
@@ -262,6 +285,7 @@ export default async function StudentHome() {
                   {practiceOnly
                     ? "practice only, not graded"
                     : `${modeLabel(a.required_mode)} required`}
+                  {` · ${meetingMinutes} min meeting`}
                   {due ? ` · due ${due}` : ""}
                 </p>
                 {a.instructions && (
@@ -443,7 +467,8 @@ export default async function StudentHome() {
               </li>
             );
           })}
-        </ul>
+          </ul>
+        </>
       )}
     </main>
   );

@@ -1,6 +1,6 @@
 // The instructor's read-only detail view for ONE submission. It shows the
 // student, the assignment and scenario, the mode, the total score, the itemized
-// rubric breakdown (the same content the student results screen renders), the
+// rubric score (the same content the student results screen renders), the
 // full transcript, and, for a voice+video submission, the recording inline.
 //
 // Security: this route is gated on the server. It confirms the caller is an
@@ -242,9 +242,10 @@ export default async function InstructorSubmissionPage({
       )}
 
       <div className="grid gap-8 md:grid-cols-2">
-        {/* Itemized score */}
+        {/* The itemized rubric. PD-7 renamed this heading from "Itemized score"
+            to "Rubric score", matching the student results page. */}
         <section>
-          <h2 className="mb-3 text-lg font-medium">Itemized score</h2>
+          <h2 className="mb-3 text-lg font-medium">Rubric score</h2>
           {score && score.items.length > 0 ? (
             <ul className="space-y-3">
               {score.items.map((item) => {
