@@ -59,7 +59,7 @@ export function NameGate({ email }: { email: string }) {
   }
 
   return (
-    <main className="mx-auto max-w-page px-6 py-10">
+    <main className="mx-auto w-full max-w-page px-6 py-10">
       <h1 className="text-page-title font-medium">Welcome to Relii</h1>
       <p className="mt-2 text-body text-content-secondary">
         Before you continue, please tell us your name. This is how your

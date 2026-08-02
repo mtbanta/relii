@@ -28,7 +28,7 @@ export default async function ScaffoldPage() {
   const recent = await loadRecentGenerations();
 
   return (
-    <main className="mx-auto max-w-page space-y-5 px-6 pb-10 pt-5">
+    <main className="mx-auto w-full max-w-page space-y-5 px-6 pb-10 pt-5">
       {/* No back link: this is one of the five destinations in the instructor
           nav above, so the nav is how you leave it. The heading is an h2,
           because the page title in the shared header is the h1. */}

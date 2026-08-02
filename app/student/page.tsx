@@ -5,11 +5,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
 import { AppHeader } from "@/components/app-header";
 import { PracticeButton } from "@/components/practice-button";
 import { StartAssignmentButton } from "@/components/start-assignment-button";
 import { SubmitPracticeButton } from "@/components/submit-practice-button";
-import { DeletePracticeButton } from "@/components/delete-practice-button";
+import { PracticeRowActions } from "@/components/practice-row-actions";
 import { NameGate } from "@/components/name-gate";
 import { Card, cardClasses } from "@/components/ui/card";
 import { buttonClasses } from "@/components/ui/button";
@@ -208,8 +210,29 @@ export default async function StudentHome() {
     practicesByAssignment.set(p.assignment_id, list);
   }
 
+  // PD-8d: a short-lived signed link per kept recording, so a student can save a
+  // practice straight from its row instead of having to open its results page
+  // first. This is the SAME pattern the results page already uses: the rows above
+  // were read under Row Level Security, so they are provably this student's own,
+  // and only then does the admin client mint the links. The service-role key
+  // never reaches the browser, no Storage rule changes, and one batch call
+  // covers every row on the page rather than one call each.
+  const videoPaths = (practices ?? [])
+    .map((p) => p.video_path)
+    .filter((path): path is string => path != null);
+  const signedByPath = new Map<string, string>();
+  if (videoPaths.length > 0) {
+    const admin = createAdminClient();
+    const { data: signed } = await admin.storage
+      .from(SESSION_VIDEOS_BUCKET)
+      .createSignedUrls(videoPaths, 60 * 60);
+    for (const row of signed ?? []) {
+      if (row.path && row.signedUrl) signedByPath.set(row.path, row.signedUrl);
+    }
+  }
+
   return (
-    <main className="mx-auto max-w-page px-6 pb-10 pt-5">
+    <main className="mx-auto w-full max-w-page px-6 pb-10 pt-5">
       {/* PD-8c: the same shell the instructor side uses, so the two surfaces
           read as one product. The wordmark and the compact user block replace
           the stacked title, name and email, which means "Your assignments" is
@@ -293,25 +316,51 @@ export default async function StudentHome() {
                 padding="lg"
                 tone={locked ? "muted" : "default"}
               >
-                <h3
-                  className={`text-card-title font-medium ${locked ? "text-content-tertiary" : "text-content-primary"}`}
-                >
-                  {a.title}
-                </h3>
-                <p
-                  className={`mt-0.5 text-body ${locked ? "text-content-tertiary" : "text-content-secondary"}`}
-                >
-                  {a.scenarios?.title ?? "Scenario"}
-                  {a.scenarios?.persona_name
-                    ? ` (with ${a.scenarios.persona_name})`
-                    : ""}{" "}
-                  &middot;{" "}
-                  {practiceOnly
-                    ? "practice only, not graded"
-                    : `${modeLabel(a.required_mode)} required`}
-                  {` · ${meetingMinutes} min meeting`}
-                  {due ? ` · due ${due}` : ""}
-                </p>
+                {/* Title and one detail line on the left, the card's state as a
+                    pill on the right (the mockup's composition). The pill uses
+                    SHIPPED wording: the mockup says "Practiced 2 of 3", but the
+                    app has always said "Saved practices: 2 of 3", so that string
+                    moves up here rather than a second phrasing being invented.
+                    It is no longer repeated below. */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3
+                      className={`text-card-title font-medium ${locked ? "text-content-tertiary" : "text-content-primary"}`}
+                    >
+                      {a.title}
+                    </h3>
+                    <p
+                      className={`mt-0.5 text-meta ${locked ? "text-content-tertiary" : "text-content-secondary"}`}
+                    >
+                      {a.scenarios?.title ?? "Scenario"}
+                      {a.scenarios?.persona_name
+                        ? ` (with ${a.scenarios.persona_name})`
+                        : ""}{" "}
+                      &middot;{" "}
+                      {practiceOnly
+                        ? "practice only, not graded"
+                        : `${modeLabel(a.required_mode)} required`}
+                      {` · ${meetingMinutes} min meeting`}
+                      {due ? ` · due ${due}` : ""}
+                    </p>
+                  </div>
+                  <span className="shrink-0">
+                    {locked ? (
+                      <Badge>
+                        <Icon icon={IconLock} />
+                        Locked
+                      </Badge>
+                    ) : submitted ? (
+                      <Badge tone="success">Submitted</Badge>
+                    ) : interrupted ? (
+                      <Badge tone="danger">Interrupted</Badge>
+                    ) : (
+                      <Badge tone={kept.length > 0 ? "warning" : "neutral"}>
+                        Saved practices: {kept.length} of {KEPT_PRACTICES}
+                      </Badge>
+                    )}
+                  </span>
+                </div>
                 {a.instructions && (
                   <p
                     className={`mt-3 text-body leading-relaxed ${locked ? "text-content-tertiary" : "text-content-secondary"}`}
@@ -418,10 +467,9 @@ export default async function StudentHome() {
                     a normal locked card reads clean and no existing work is ever
                     hidden from the student who did it. */}
                 {(!locked || kept.length > 0) && (
-                <div className="mt-5 border-t border-line-tertiary pt-4">
-                  <p className="text-body text-content-secondary">
-                    Saved practices: {kept.length} of {KEPT_PRACTICES}
-                  </p>
+                <div className="mt-4 border-t border-line-tertiary pt-3">
+                  {/* The count itself now lives in the card's pill above, so it
+                      is stated once rather than twice. */}
                   {kept.length > 0 && (
                     <ul className="mt-2 divide-y divide-line-tertiary rounded-md border border-line-tertiary">
                       {kept.map((p) => (
@@ -465,14 +513,19 @@ export default async function StudentHome() {
                               {recordingLengthText(p.recorded_seconds)}
                             </span>
                           </span>
-                          <span className="ml-auto flex items-center gap-3">
-                            <Link
-                              href={`/student/session/${p.id}/results`}
-                              className="text-meta text-content-secondary hover:underline"
-                            >
-                              Review
-                            </Link>
-                            <DeletePracticeButton sessionId={p.id} />
+                          {/* PD-8d: Review, Download and Delete as one action
+                              group. The download is new here: before this a
+                              student had to open the results page to save a
+                              practice at all. */}
+                          <span className="ml-auto">
+                            <PracticeRowActions
+                              sessionId={p.id}
+                              downloadUrl={
+                                p.video_path
+                                  ? (signedByPath.get(p.video_path) ?? null)
+                                  : null
+                              }
+                            />
                           </span>
 
                           {/* Piece 4: submit this completed practice as the

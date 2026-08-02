@@ -12,7 +12,7 @@ export function LockedSubmission({
   assignmentTitle?: string;
 }) {
   return (
-    <div className="mx-auto max-w-page py-16 text-center">
+    <div className="mx-auto w-full max-w-page py-16 text-center">
       <h1 className="text-page-title font-medium">Submission interrupted</h1>
       <p className="mt-3 text-body leading-relaxed text-content-secondary">
         Your graded submission

@@ -38,7 +38,7 @@ function Blocked({
   children: React.ReactNode;
 }) {
   return (
-    <main className="mx-auto max-w-page space-y-4 px-6 pb-10 pt-5">
+    <main className="mx-auto w-full max-w-page space-y-4 px-6 pb-10 pt-5">
       <Link
         href="/instructor/scaffold"
         className="text-body text-content-secondary underline"
@@ -119,7 +119,7 @@ export default async function EditCandidatePage({
   }
 
   return (
-    <main className="mx-auto max-w-page space-y-5 px-6 pb-10 pt-5">
+    <main className="mx-auto w-full max-w-page space-y-5 px-6 pb-10 pt-5">
       <div>
         <Link
           href={`/instructor/scaffold/compare/${row.generation_group_id}`}

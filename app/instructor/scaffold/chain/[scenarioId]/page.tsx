@@ -50,7 +50,7 @@ export default async function ChainPage({
   // admin can act on both.
   if (gatekeeper.chain_role !== "gatekeeper") {
     return (
-      <main className="mx-auto max-w-page space-y-4 px-6 pb-10 pt-5">
+      <main className="mx-auto w-full max-w-page space-y-4 px-6 pb-10 pt-5">
         <Link href="/instructor/scaffold" className="text-body text-content-secondary underline">
           Back to Persona Scaffolding
         </Link>
@@ -68,7 +68,7 @@ export default async function ChainPage({
 
   if (!gatekeeper.enabled) {
     return (
-      <main className="mx-auto max-w-page space-y-4 px-6 pb-10 pt-5">
+      <main className="mx-auto w-full max-w-page space-y-4 px-6 pb-10 pt-5">
         <Link href="/instructor/scaffold" className="text-body text-content-secondary underline">
           Back to Persona Scaffolding
         </Link>
@@ -89,7 +89,7 @@ export default async function ChainPage({
   }
 
   return (
-    <main className="mx-auto max-w-page space-y-5 px-6 pb-10 pt-5">
+    <main className="mx-auto w-full max-w-page space-y-5 px-6 pb-10 pt-5">
       <div>
         <Link
           href="/instructor/scaffold"

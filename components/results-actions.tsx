@@ -12,11 +12,7 @@
 // only the score and transcript, not these buttons.
 import { Button } from "@/components/ui/button";
 import { cardClasses } from "@/components/ui/card";
-
-// Two zeros wide, e.g. 9 -> "09". Used to build the download timestamp.
-function pad(n: number): string {
-  return String(n).padStart(2, "0");
-}
+import { downloadRecording, recordingFileName } from "@/lib/recording-download";
 
 export function ResultsActions({
   downloadUrl,
@@ -39,32 +35,7 @@ export function ResultsActions({
 }) {
   function downloadVideo() {
     if (!downloadUrl) return;
-
-    // Build a filename stamped with the moment of THIS download, so repeated
-    // saves do not collide, e.g. relii-practice-2026-06-29-1432.webm. The clock
-    // is the student's own browser, read fresh on each click.
-    const d = new Date();
-    const stamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(
-      d.getDate(),
-    )}-${pad(d.getHours())}${pad(d.getMinutes())}`;
-    const filename = `${filePrefix}-${stamp}.webm`;
-
-    // Asking Supabase to serve the file as an attachment with our filename is
-    // what makes the browser SAVE the .webm instead of just playing it. The
-    // signed link already proves access; we only add the download name here.
-    const separator = downloadUrl.includes("?") ? "&" : "?";
-    const url = `${downloadUrl}${separator}download=${encodeURIComponent(
-      filename,
-    )}`;
-
-    // A throwaway link click is the standard way to start a file download
-    // without navigating the page away.
-    const a = document.createElement("a");
-    a.href = url;
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    downloadRecording(downloadUrl, recordingFileName(filePrefix));
   }
 
   return (

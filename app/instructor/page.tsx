@@ -26,7 +26,14 @@ import {
 import type { SessionScore } from "@/lib/types";
 import { cardClasses } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Icon, IconEye, IconVideo, IconFileText, IconTable } from "@/components/ui/icon";
+import {
+  Icon,
+  IconEye,
+  IconVideo,
+  IconFileText,
+  IconTable,
+  IconInbox,
+} from "@/components/ui/icon";
 
 // Compact mode label for the submissions table (matches the mockup: "V+V").
 function modeShort(mode: string): string {
@@ -175,7 +182,7 @@ export default async function InstructorSubmissions({
   const awaitingReview = scored.length;
 
   return (
-    <main className="mx-auto max-w-page px-6 pb-10 pt-5">
+    <main className="mx-auto w-full max-w-page px-6 pb-10 pt-5">
       <section>
         <div className="mb-4">
           <h2 className="text-page-title font-medium text-content-primary">
@@ -260,12 +267,47 @@ export default async function InstructorSubmissions({
 
             {/* Submissions table (kind = submission only). */}
             {rows.length === 0 ? (
-              <p className={cardClasses({ className: "text-body text-content-secondary" })}>
-                No submissions for this assignment yet.
-              </p>
+              /* A REAL empty state. This used to be a lone thin card reading
+                 "No submissions for this assignment yet.", which alongside three
+                 tiles of zeros made the page look unfinished rather than simply
+                 empty. The tiles stay: they are still informative at zero. */
+              <div
+                className={cardClasses({
+                  padding: "none",
+                  className: "px-6 py-10 text-center",
+                })}
+              >
+                <Icon
+                  icon={IconInbox}
+                  size="md"
+                  className="text-content-tertiary"
+                />
+                <p className="mt-2 text-body font-medium text-content-primary">
+                  No submissions for this assignment yet.
+                </p>
+                <p className="mx-auto mt-1 max-w-sm text-meta text-content-secondary">
+                  Submissions appear here as students hand in their graded
+                  attempt. Practice sessions never appear on this dashboard.
+                </p>
+              </div>
             ) : (
+              /* table-layout: fixed with explicit widths, which is what keeps the
+                 columns from jumping about as content changes (the mockup does
+                 the same). The widths are set for the real SEVEN columns, not the
+                 six the mockup was drawn with: Recording Length gets enough room
+                 to keep its shipped label on one line, and Actions gets the
+                 width its group needs. */
               <div className="overflow-x-auto rounded-lg border border-line-tertiary">
-                <table className="w-full text-meta">
+                <table className="w-full table-fixed text-meta">
+                  <colgroup>
+                    <col className="w-[20%]" />
+                    <col className="w-[19%]" />
+                    <col className="w-[7%]" />
+                    <col className="w-[13%]" />
+                    <col className="w-[10%]" />
+                    <col className="w-[12%]" />
+                    <col className="w-[19%]" />
+                  </colgroup>
                   <thead>
                     <tr className="border-b border-line-tertiary text-left text-micro text-content-secondary">
                       <th className="px-2.5 py-1.5 font-medium">Student</th>
@@ -273,7 +315,7 @@ export default async function InstructorSubmissions({
                       <th className="px-2.5 py-1.5 font-medium">Mode</th>
                       {/* PD-5. Sits next to Mode because the two are read
                           together: "V+V, 12:34" is the shape of the attempt. */}
-                      <th className="px-2.5 py-1.5 font-medium">
+                      <th className="whitespace-nowrap px-2.5 py-1.5 font-medium">
                         {RECORDING_LENGTH_LABEL}
                       </th>
                       <th className="px-2.5 py-1.5 font-medium">Score</th>
@@ -341,7 +383,13 @@ export default async function InstructorSubmissions({
                             )}
                           </td>
                           <td className="px-2.5 py-2">
-                            <div className="flex flex-col gap-1.5">
+                            {/* ONE ACTION GROUP, not four loose things and a
+                                button. View is the primary and leads; the three
+                                downloads sit under it as a labelled cluster with
+                                a hairline above, so a reader sees "open this" and
+                                "take a copy of this" as two ideas rather than
+                                four competing links. */}
+                            <div className="flex flex-col items-start gap-1.5">
                               <Link
                                 href={`/instructor/submission/${r.id}`}
                                 className="inline-flex w-fit items-center gap-1.5 font-medium text-content-info hover:underline"
@@ -359,11 +407,11 @@ export default async function InstructorSubmissions({
                                   aria-hidden and the link still reads as
                                   "Video" to a screen reader. */}
                               {isScored && (
-                                <div className="flex flex-wrap gap-x-3 gap-y-1 text-micro text-content-secondary">
+                                <div className="flex w-full flex-wrap gap-x-2.5 gap-y-1 border-t border-line-tertiary pt-1.5 text-micro text-content-secondary">
                                   {r.video_path && (
                                     <a
                                       href={`/api/instructor/submission/${r.id}/video`}
-                                      className="inline-flex items-center gap-1 hover:underline"
+                                      className="inline-flex items-center gap-1 hover:text-content-info hover:underline"
                                     >
                                       <Icon icon={IconVideo} />
                                       Video
@@ -371,14 +419,14 @@ export default async function InstructorSubmissions({
                                   )}
                                   <a
                                     href={`/api/instructor/submission/${r.id}/transcript`}
-                                    className="inline-flex items-center gap-1 hover:underline"
+                                    className="inline-flex items-center gap-1 hover:text-content-info hover:underline"
                                   >
                                     <Icon icon={IconFileText} />
                                     Transcript
                                   </a>
                                   <a
                                     href={`/api/instructor/submission/${r.id}/csv`}
-                                    className="inline-flex items-center gap-1 hover:underline"
+                                    className="inline-flex items-center gap-1 hover:text-content-info hover:underline"
                                   >
                                     <Icon icon={IconTable} />
                                     CSV

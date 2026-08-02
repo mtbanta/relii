@@ -40,6 +40,7 @@ export {
   IconEye,
   IconFileText,
   IconFlag,
+  IconInbox,
   IconLock,
   IconMessage,
   IconMicrophone,

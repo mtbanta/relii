@@ -37,16 +37,21 @@ function formatResetTime(value: string): string {
 }
 
 export function ResetHistory({ resets }: { resets: ResetHistoryRow[] }) {
+  // PD-8d: the empty case used to be a bare unstyled sentence floating below the
+  // page, which read as something unfinished rather than as a clean assignment.
+  // It is now the SAME disclosure as the non-empty case, just with nothing to
+  // open, so the two states are one component in one place on the page.
   if (resets.length === 0) {
-    // Quiet, so a clean assignment does not shout an empty section.
     return (
-      <p className="mt-3 text-meta text-content-tertiary">No resets for this assignment.</p>
+      <p className="mt-4 rounded-lg border border-line-tertiary px-3 py-2 text-meta text-content-tertiary">
+        Resets: 0
+      </p>
     );
   }
 
   return (
-    <details className="mt-3 rounded-lg border border-line-tertiary p-3">
-      <summary className="cursor-pointer text-body text-content-secondary">
+    <details className="mt-4 rounded-lg border border-line-tertiary px-3 py-2">
+      <summary className="cursor-pointer text-meta text-content-secondary">
         Resets: {resets.length}
       </summary>
       <ul className="mt-2 space-y-2 text-meta">

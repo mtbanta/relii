@@ -80,7 +80,7 @@ export default async function SessionPage({
   // server-side: no resume, no restart.
   if (isSubmission && isSubmissionLocked(session)) {
     return (
-      <main className="mx-auto max-w-page px-6 py-4">
+      <main className="mx-auto w-full max-w-page px-6 py-4">
         <LockedSubmission assignmentTitle={assignmentTitle} />
       </main>
     );
@@ -112,7 +112,7 @@ export default async function SessionPage({
     );
 
   return (
-    <main className="mx-auto max-w-page px-6 py-4">
+    <main className="mx-auto w-full max-w-page px-6 py-4">
       {isSubmission ? (
         <SubmissionLiveGate
           sessionId={session.id}

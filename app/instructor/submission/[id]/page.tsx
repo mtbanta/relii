@@ -29,6 +29,7 @@ import type { RubricItem, SessionScore, TranscriptTurn } from "@/lib/types";
 import { buttonClasses } from "@/components/ui/button";
 import { cardClasses } from "@/components/ui/card";
 import { Icon, IconArrowLeft } from "@/components/ui/icon";
+import { RubricScore } from "@/components/rubric-score";
 
 function modeLabel(mode: string): string {
   return mode === "voice_video" ? "Voice + video" : "Text";
@@ -106,7 +107,6 @@ export default async function InstructorSubmissionPage({
     .single();
 
   const rubricItems = (rubric?.items ?? []) as RubricItem[];
-  const labelById = new Map(rubricItems.map((i) => [i.id, i]));
 
   // Signed video link, minted with the admin client after the instructor gate.
   // The link expires after an hour; reload the page to get a fresh one.
@@ -121,7 +121,7 @@ export default async function InstructorSubmissionPage({
   const submittedAt = formatDateTaken(session.submitted_at);
 
   return (
-    <main className="mx-auto max-w-page px-6 pb-10 pt-5">
+    <main className="mx-auto w-full max-w-page px-6 pb-10 pt-5">
       {/* An h2, not an h1: the page title in the shared instructor header above
           is the h1. The name and email here are the STUDENT'S, and the header
           above shows the signed-in instructor's, so this one says whose it is.
@@ -250,33 +250,10 @@ export default async function InstructorSubmissionPage({
             to "Rubric score", matching the student results page. */}
         <section>
           <h2 className="mb-2 text-section font-medium text-content-secondary">Rubric score</h2>
+          {/* The SAME component the student results page uses, so the two views
+              of one submission cannot drift apart. */}
           {score && score.items.length > 0 ? (
-            <ul className="space-y-3">
-              {score.items.map((item) => {
-                const meta = labelById.get(item.id);
-                return (
-                  <li
-                    key={item.id}
-                    className={cardClasses()}
-                  >
-                    <div className="flex items-baseline justify-between gap-3">
-                      <h3 className="text-body font-medium">
-                        {meta?.label ?? item.id}
-                      </h3>
-                      <span className="shrink-0 text-body font-semibold tabular-nums">
-                        {item.points_earned}/{item.points_max}
-                      </span>
-                    </div>
-                    {meta?.category && (
-                      <p className="mt-0.5 text-meta text-content-tertiary">
-                        {meta.category}
-                      </p>
-                    )}
-                    <p className="mt-2 text-body text-content-secondary">{item.comment}</p>
-                  </li>
-                );
-              })}
-            </ul>
+            <RubricScore items={score.items} rubricItems={rubricItems} />
           ) : (
             <p className="text-body text-content-secondary">
               This submission has no itemized score.

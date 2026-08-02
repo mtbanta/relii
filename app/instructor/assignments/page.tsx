@@ -84,7 +84,7 @@ export default async function InstructorAssignments() {
   }
 
   return (
-    <main className="mx-auto max-w-page px-6 pb-10 pt-5">
+    <main className="mx-auto w-full max-w-page px-6 pb-10 pt-5">
       <h2 className="mb-1 text-page-title font-medium text-content-primary">
         Manage Assignments
       </h2>

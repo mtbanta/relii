@@ -14,9 +14,10 @@ import {
   recordingLengthText,
 } from "@/lib/recording-length";
 import type { RubricItem, SessionScore, TranscriptTurn } from "@/lib/types";
-import { buttonClasses } from "@/components/ui/button";
 import { cardClasses } from "@/components/ui/card";
 import { Icon, IconArrowLeft } from "@/components/ui/icon";
+import { Badge } from "@/components/ui/badge";
+import { RubricScore } from "@/components/rubric-score";
 
 export default async function ResultsPage({
   params,
@@ -109,53 +110,77 @@ export default async function ResultsPage({
         .single();
 
   const rubricItems = (rubric?.items ?? []) as RubricItem[];
-  const labelById = new Map(rubricItems.map((i) => [i.id, i]));
 
   // PD-5: a submission shows the moment it was handed in (the same stamp the
   // instructor view shows), a practice the moment it was started.
   const takenOn = dateTaken(session);
 
   return (
-    <main className="mx-auto max-w-page px-6 pb-10 pt-5">
-      <header className="mb-6 flex items-center justify-between">
-        <div>
+    <main className="mx-auto w-full max-w-page px-6 pb-10 pt-5">
+      {/* A small accent link, not a bordered button: leaving is not one of this
+          page's actions, it is just the way back. */}
+      <Link
+        href="/student"
+        className="mb-3 inline-flex items-center gap-1 text-meta text-content-info hover:underline print:hidden"
+      >
+        <Icon icon={IconArrowLeft} />
+        Back to home
+      </Link>
+
+      {/* THE SCORE IS THE SUBJECT OF THIS PAGE. It used to sit in a gray box
+          below the header, which made the page lead with who and when rather
+          than with how they did. Now it is the header's right-hand side, with
+          everything identifying the attempt on the left. */}
+      <header className="mb-5 flex flex-wrap items-start justify-between gap-4 border-b border-line-tertiary pb-4">
+        <div className="min-w-0">
           <h1 className="text-page-title font-medium">Your results</h1>
-          <p className="mt-0.5 text-body text-content-primary">{displayName(student)}</p>
-          {hasName(student) && (
-            <p className="text-meta text-content-tertiary">{user.email}</p>
-          )}
-          <p className="mt-1 text-body text-content-secondary">
+          <p className="mt-0.5 text-body text-content-secondary">
             {scenario?.title ?? "Practice session"}
           </p>
-          {/* PD-5: directly under the scenario title, the length of THIS one
-              session and the date it was taken. The length is the recording's
-              own length when the camera was on, and the elapsed conversation
-              time for a text session or a call with the camera off. The date
-              matches the one the instructor's submission view shows. */}
-          <p className="mt-1 text-meta text-content-secondary">
-            {RECORDING_LENGTH_LABEL}:{" "}
-            <span className="tabular-nums">
-              {recordingLengthText(session.recorded_seconds)}
+          {/* The mode pill beside the date, and PD-5's Recording Length and Date
+              Taken folded into this one line rather than stacked as three. */}
+          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-meta text-content-secondary">
+            <Badge tone={isVoice ? "info" : "neutral"}>
+              {isVoice ? "Voice + video" : "Text"}
+            </Badge>
+            {takenOn && <span>{takenOn}</span>}
+            <span aria-hidden="true" className="text-content-tertiary">
+              &middot;
             </span>
+            <span>
+              {RECORDING_LENGTH_LABEL}{" "}
+              <span className="tabular-nums">
+                {recordingLengthText(session.recorded_seconds)}
+              </span>
+            </span>
+          </div>
+          <p className="mt-1.5 text-micro text-content-tertiary">
+            {displayName(student)}
+            {hasName(student) ? ` · ${user.email}` : ""}
           </p>
-          {takenOn && (
-            <p className="mt-0.5 text-meta text-content-secondary">Date Taken: {takenOn}</p>
-          )}
         </div>
-        <Link
-          href="/student"
-          className={buttonClasses({ variant: "secondary", size: "sm", className: "print:hidden" })}
-        >
-          <Icon icon={IconArrowLeft} />
-          Back to home
-        </Link>
+
+        {score && !conversationOnly && (
+          <div className="shrink-0 text-right">
+            <p className="text-stat font-medium tabular-nums text-content-primary">
+              {score.total}
+              <span className="text-card-title font-normal text-content-tertiary">
+                {" "}
+                / {score.max_total}
+              </span>
+            </p>
+            <p className="text-meta font-medium text-content-success">
+              {Math.round((score.total / score.max_total) * 100)}%
+            </p>
+          </div>
+        )}
       </header>
 
       {conversationOnly || !score ? (
         // A conversation-only case has no rubric behind it, so there is nothing
         // to score. Say so plainly, so an unscored result never looks like a
         // score that failed to load.
-        <div className={cardClasses({ tone: "muted", padding: "lg", className: "mb-6" })}>
+        <div className={cardClasses({ tone: "muted", className: "mb-5" })}>
           <p className="text-body font-medium">
             Conversation-only practice, no score
           </p>
@@ -165,24 +190,7 @@ export default async function ResultsPage({
             {isVoice ? " and recording are" : " is"} saved below.
           </p>
         </div>
-      ) : (
-        <div className={cardClasses({ tone: "muted", padding: "lg", className: "mb-6" })}>
-          <p className="text-body text-content-secondary">
-            Content score ({isVoice ? "voice" : "text"} role-play)
-          </p>
-          <p className="text-stat font-medium">
-            {score.total}
-            <span className="text-card-title font-normal text-content-secondary">
-              {" "}
-              / {score.max_total}
-            </span>
-          </p>
-          <p className="mt-1 text-meta text-content-secondary">
-            Scored by AI on the discovery content items. Delivery items (tone,
-            pace, and other spoken-only points) are added in a later stage.
-          </p>
-        </div>
-      )}
+      ) : null}
 
       {/* Save-a-copy controls: download the recording and print/save the score
           and transcript. Read-only; hidden when printing. We pass the same
@@ -234,32 +242,13 @@ export default async function ResultsPage({
         {score && (
         <section>
           <h2 className="mb-2 text-section font-medium text-content-secondary">Rubric score</h2>
-          <ul className="space-y-3">
-            {score.items.map((item) => {
-              const meta = labelById.get(item.id);
-              return (
-                <li
-                  key={item.id}
-                  className={cardClasses()}
-                >
-                  <div className="flex items-baseline justify-between gap-3">
-                    <h3 className="text-body font-medium">
-                      {meta?.label ?? item.id}
-                    </h3>
-                    <span className="shrink-0 text-body font-semibold tabular-nums">
-                      {item.points_earned}/{item.points_max}
-                    </span>
-                  </div>
-                  {meta?.category && (
-                    <p className="mt-0.5 text-meta text-content-tertiary">
-                      {meta.category}
-                    </p>
-                  )}
-                  <p className="mt-2 text-body text-content-secondary">{item.comment}</p>
-                </li>
-              );
-            })}
-          </ul>
+          <RubricScore items={score.items} rubricItems={rubricItems} />
+          {/* Kept from the old score box, restyled: it explains why the total is
+              out of what it is, which is the first thing a student wonders. */}
+          <p className="mt-2 text-micro text-content-tertiary">
+            Scored by AI on the discovery content items. Delivery items (tone,
+            pace, and other spoken-only points) are added in a later stage.
+          </p>
         </section>
         )}
 

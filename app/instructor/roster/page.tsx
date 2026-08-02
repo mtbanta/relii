@@ -50,7 +50,7 @@ export default async function InstructorRoster() {
   );
 
   return (
-    <main className="mx-auto max-w-page px-6 pb-10 pt-5">
+    <main className="mx-auto w-full max-w-page px-6 pb-10 pt-5">
       <h2 className="mb-1 text-page-title font-medium text-content-primary">
         Roster
       </h2>

@@ -174,7 +174,7 @@ export default async function CompareCandidatesPage({
   const retainedLosers = decided ? rows.filter((row) => !row.enabled) : [];
 
   return (
-    <main className="mx-auto max-w-page space-y-5 px-6 pb-10 pt-5">
+    <main className="mx-auto w-full max-w-page space-y-5 px-6 pb-10 pt-5">
       <div>
         <Link
           href="/instructor/scaffold"
