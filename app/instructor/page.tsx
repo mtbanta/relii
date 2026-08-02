@@ -9,11 +9,16 @@
 // Manage Assignments, and Roster used to sit below this view on one long page;
 // they are now their own pages under the same nav, each reading only its own
 // data.
+import { Fragment } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AssignmentSelector } from "@/components/assignment-selector";
-import { SubmissionResetButton } from "@/components/submission-reset-button";
+import {
+  SubmissionResetProvider,
+  SubmissionResetTrigger,
+  SubmissionResetConfirmRow,
+} from "@/components/submission-reset-button";
 import { ResetHistory } from "@/components/reset-history";
 import type { ResetHistoryRow } from "@/components/reset-history";
 import { requireInstructor } from "@/lib/instructor-auth";
@@ -29,6 +34,26 @@ import { SubmissionDownloadMenu } from "@/components/submission-download-menu";
 function modeShort(mode: string): string {
   return mode === "voice_video" ? "V+V" : "Text";
 }
+
+// How many columns the table has. Named because the reset confirm renders as its
+// own row spanning ALL of them, so the two must never drift apart.
+const SUBMISSION_COLUMNS = 8;
+
+// The instructions for this screen's controls, ONE SENTENCE PER LINE. They sit
+// ABOVE the table rather than below it, because they explain controls the reader
+// is about to use.
+//
+// The last line is a MEANING correction, not a formatting one. It used to read
+// "Practice sessions never appear here", which is misleading under the Piece 4
+// model where a submission IS a converted practice: what is true is that only
+// the practice a student selected for submission shows up in this table.
+const TABLE_INSTRUCTIONS = [
+  "Review opens the submission with its recording, transcript and rubric score.",
+  "Download offers the video, the transcript, and a CSV of scores.",
+  "Allow retake, under a submission's status, returns it to the student's practice pool, keeping the score and recording so they can submit again.",
+  "Reset, under an interrupted attempt, permanently deletes that attempt and its recording.",
+  "Only the Practice sessions selected for submission appear here.",
+];
 
 // One assignment as read for the dashboard selector (ALL assignments).
 type SelectorAssignment = {
@@ -280,10 +305,14 @@ export default async function InstructorSubmissions({
                 </p>
                 {/* States what is actually TRUE right now rather than a generic
                     line, then offers one next action. */}
+                {/* The second sentence carries the same MEANING correction as
+                    the instructions above the table: a submission IS a converted
+                    practice under the Piece 4 model, so "practice sessions never
+                    appear here" was misleading in both places. */}
                 <p className="mx-auto mt-1 max-w-sm text-meta text-content-secondary">
                   {enrolledCount > 0
-                    ? `All ${enrolledCount} enrolled student${enrolledCount === 1 ? "" : "s"} still have this assignment open. Practice sessions never appear here.`
-                    : "No students have registered yet, so there is nobody to submit this assignment. Practice sessions never appear here."}
+                    ? `All ${enrolledCount} enrolled student${enrolledCount === 1 ? "" : "s"} still have this assignment open. Only the Practice sessions selected for submission appear here.`
+                    : "No students have registered yet, so there is nobody to submit this assignment. Only the Practice sessions selected for submission appear here."}
                 </p>
                 <Link
                   href="/instructor/assignments"
@@ -293,13 +322,25 @@ export default async function InstructorSubmissions({
                 </Link>
               </div>
             ) : (
-              /* EIGHT columns, table-layout: fixed, with the approved widths.
+              <>
+              {/* THE INSTRUCTIONS, above the table rather than below it: they
+                  explain the controls the reader is about to use, and one
+                  sentence per line is far easier to scan than one running
+                  paragraph. Capped at the reading measure, because at the wider
+                  page a sentence would otherwise run the full 1120px. */}
+              <div className="mb-2 max-w-reading space-y-0.5 px-0.5 text-meta text-content-secondary">
+                {TABLE_INSTRUCTIONS.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
+              </div>
+
+              {/* EIGHT columns, table-layout: fixed, with the approved widths.
                  The old Actions column held four stacked controls, which is what
                  made every row four lines tall and ragged; splitting it into a
                  one-icon Review and a one-icon Download is what gets the table to
                  ONE LINE OF CONTENT PER ROW. That row-height change is the single
                  largest source of the tidiness here, more than any colour or
-                 spacing choice. */
+                 spacing choice. */}
               <div className="overflow-x-auto rounded-lg border border-line-tertiary">
                 <table className="w-full table-fixed text-meta">
                   <colgroup>
@@ -328,7 +369,11 @@ export default async function InstructorSubmissions({
                       <th className="px-2.5 py-1.5 font-medium">Download</th>
                     </tr>
                   </thead>
+                  {/* The provider holds which row's reset confirm is open. It
+                      renders no element of its own, so it is legal directly
+                      inside <tbody>, where only <tr> may live. */}
                   <tbody>
+                    <SubmissionResetProvider>
                     {rows.map((r) => {
                       const isScored = r.score != null;
                       // Recompute the lock state on the SERVER (never trust the
@@ -346,10 +391,8 @@ export default async function InstructorSubmissions({
                       const isInProgress =
                         r.status === "in_progress" && !locked;
                       return (
-                        <tr
-                          key={r.id}
-                          className="border-b border-line-tertiary last:border-0"
-                        >
+                        <Fragment key={r.id}>
+                        <tr className="border-b border-line-tertiary last:border-0">
                           <td className="px-2.5 py-2">
                             <div>{r.name}</div>
                             {r.name !== r.email && (
@@ -410,25 +453,21 @@ export default async function InstructorSubmissions({
                             {/* Labelled text, never an icon: these are
                                 consequential and rare, and icon-only is for
                                 routine, universally understood actions. All the
-                                existing confirm behaviour is unchanged. */}
+                                existing confirm behaviour is unchanged; only the
+                                PANEL moved, to the row below (see the confirm
+                                row after this </tr>). */}
                             {isScored && (
                               <div className="mt-1">
-                                <SubmissionResetButton
+                                <SubmissionResetTrigger
                                   sessionId={r.id}
-                                  studentEmail={r.email}
-                                  assignmentTitle={selected.title}
                                   type="retake"
-                                  priorScoreTotal={r.score!.total}
-                                  priorScoreMax={r.score!.max_total}
                                 />
                               </div>
                             )}
                             {isInterrupted && (
                               <div className="mt-1">
-                                <SubmissionResetButton
+                                <SubmissionResetTrigger
                                   sessionId={r.id}
-                                  studentEmail={r.email}
-                                  assignmentTitle={selected.title}
                                   type="interrupted"
                                 />
                               </div>
@@ -465,35 +504,27 @@ export default async function InstructorSubmissions({
                             )}
                           </td>
                         </tr>
+
+                        {/* THE CONFIRM, as its own row spanning all eight
+                            columns. It renders nothing unless this row's trigger
+                            is the one that is open. This is what stopped the
+                            panel being squeezed into the 17% Status column. */}
+                        {(isScored || isInterrupted) && (
+                          <SubmissionResetConfirmRow
+                            sessionId={r.id}
+                            studentName={r.name}
+                            type={isInterrupted ? "interrupted" : "retake"}
+                            colSpan={SUBMISSION_COLUMNS}
+                          />
+                        )}
+                        </Fragment>
                       );
                     })}
+                    </SubmissionResetProvider>
                   </tbody>
                 </table>
               </div>
-            )}
-
-            {/* THE FOOTNOTE is what makes icon-only defensible in this table.
-                Instructors are repeat users of a dense screen, so one quiet line
-                explaining the two icons buys back the labels the columns dropped.
-                Adopted from the mockup's own pattern.
-
-                PD-8f CORRECTION: the Allow retake clause here shipped BACKWARDS.
-                It said the control deletes the recorded grade. It does not: the
-                route returns the submission to the student's practice pool and
-                keeps both the score and the recording. RESET is the destructive
-                one, and it was not explained at all, so it is named here now.
-                The authority for both is the route itself,
-                app/api/instructor/submission/[id]/reset/route.ts. */}
-            {rows.length > 0 && (
-              <p className="mt-2 px-0.5 text-micro text-content-tertiary">
-                Review opens the submission with its recording, transcript and
-                rubric score. Download offers the video, the transcript, and a CSV
-                of scores. Allow retake, under a submission&apos;s status, returns
-                it to the student&apos;s practice pool, keeping the score and
-                recording so they can submit again. Reset, under an interrupted
-                attempt, permanently deletes that attempt and its recording.
-                Practice sessions never appear here.
-              </p>
+              </>
             )}
 
             {/* Per-assignment reset history: a small "Resets: N" line that

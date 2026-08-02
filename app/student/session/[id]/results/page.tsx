@@ -202,60 +202,61 @@ export default async function ResultsPage({
         conversationOnly={conversationOnly}
       />
 
-      {/* The student's own recording (voice sessions only). Hidden when printing
-          so the saved PDF is a clean score-and-transcript sheet. */}
-      {isVoice && (
-        <section className="mb-6 print:hidden">
-          <h2 className="mb-2 text-section font-medium text-content-secondary">Your recording</h2>
-          {videoUrl ? (
-            <video
-              src={videoUrl}
-              controls
-              playsInline
-              className="w-full max-w-2xl rounded-lg border border-line-tertiary bg-black"
-            />
-          ) : videoError === "1" ? (
-            <p className="rounded-md border border-amber-300 bg-surface-warning p-3 text-body text-content-warning">
-              Your recording could not be saved this time, but your{" "}
-              {conversationOnly ? "transcript" : "score"} below was saved. You
-              can run another practice if you want a recording.
-            </p>
-          ) : (
-            <p className="text-body text-content-secondary">
-              No recording was saved for this session (the camera was off).
-            </p>
-          )}
-        </section>
-      )}
+      {/* PD-8f: THE RECORDING AND THE TRANSCRIPT SIT SIDE BY SIDE, with the
+          rubric full width beneath them. The instructor's view of this same
+          submission now uses the identical arrangement, which is the point: two
+          screens showing the same material two different ways was the exact
+          inconsistency this sprint exists to remove.
 
-      {/* Two columns when there is a score to sit beside the transcript; a
-          conversation-only session has none, so the transcript gets the full
-          width on its own. */}
-      <div
-        className={`grid gap-8 print:gap-6 ${
-          score ? "md:grid-cols-2 print:grid-cols-1" : ""
-        }`}
-      >
-        {/* The itemized rubric (graded cases only). PD-7 renamed this heading
-            from "Itemized score" to "Rubric score", so the student and the
-            instructor call the same list of items by the same name. */}
-        {score && (
-        <section>
-          <h2 className="mb-2 text-section font-medium text-content-secondary">Rubric score</h2>
-          <RubricScore items={score.items} rubricItems={rubricItems} />
-          {/* Kept from the old score box, restyled: it explains why the total is
-              out of what it is, which is the first thing a student wonders. */}
-          <p className="mt-2 text-micro text-content-tertiary">
-            Scored by AI on the discovery content items. Delivery items (tone,
-            pace, and other spoken-only points) are added in a later stage.
-          </p>
-        </section>
+          HOW THE HEIGHTS MATCH: both columns are the same width, the player is
+          pinned to 16:9, and the transcript's scroll box takes the SAME ratio,
+          so the two bodies compute to the same height with no measuring.
+
+          THE PRINT TRAP, and it is the thing that would have shipped broken.
+          Print-to-PDF is a shipped feature here. A fixed-height, internally
+          scrolling transcript prints CLIPPED: a student would get only the first
+          screenful of their own conversation. So in print the ratio and the
+          scroll are both switched off (print:aspect-auto, print:overflow-visible,
+          print:max-h-none) and the grid collapses to one column. Same family as
+          the collapsed-rubric trap from PD-8d, and verified the same way, by
+          forcing print rather than by reasoning about it. */}
+      <div className={`mb-6 grid gap-6 print:grid-cols-1 ${isVoice ? "md:grid-cols-2" : ""}`}>
+        {/* The student's own recording (voice sessions only). Hidden when
+            printing so the saved PDF is a clean score-and-transcript sheet. */}
+        {isVoice && (
+          <section className="min-w-0 print:hidden">
+            <h2 className="mb-2 text-section font-medium text-content-secondary">Your recording</h2>
+            {videoUrl ? (
+              <video
+                src={videoUrl}
+                controls
+                playsInline
+                className="aspect-video w-full rounded-lg border border-line-tertiary bg-black object-contain"
+              />
+            ) : videoError === "1" ? (
+              <p className="rounded-md border border-amber-300 bg-surface-warning p-3 text-body text-content-warning">
+                Your recording could not be saved this time, but your{" "}
+                {conversationOnly ? "transcript" : "score"} below was saved. You
+                can run another practice if you want a recording.
+              </p>
+            ) : (
+              <p className="text-body text-content-secondary">
+                No recording was saved for this session (the camera was off).
+              </p>
+            )}
+          </section>
         )}
 
         {/* Transcript */}
-        <section>
+        <section className="min-w-0">
           <h2 className="mb-2 text-section font-medium text-content-secondary">Transcript</h2>
-          <div className={cardClasses({ className: "space-y-3" })}>
+          <div
+            className={cardClasses({
+              className: `space-y-3 print:aspect-auto print:max-h-none print:overflow-visible ${
+                isVoice ? "md:aspect-video md:overflow-y-auto" : ""
+              }`,
+            })}
+          >
             {transcript.map((turn, i) => (
               <div key={i}>
                 <p className="text-meta font-medium text-content-tertiary">
@@ -263,7 +264,7 @@ export default async function ResultsPage({
                     ? "You"
                     : (scenario?.persona_name ?? "Customer")}
                 </p>
-                <p className="text-body whitespace-pre-wrap text-content-primary">
+                <p className="max-w-reading text-body whitespace-pre-wrap text-content-primary">
                   {turn.text}
                 </p>
               </div>
@@ -271,6 +272,23 @@ export default async function ResultsPage({
           </div>
         </section>
       </div>
+
+      {/* The itemized rubric (graded cases only), now FULL WIDTH beneath the
+          pair above, which is where PD-8d's collapsible categories read best.
+          PD-7 renamed this heading from "Itemized score" to "Rubric score", so
+          the student and the instructor call the same list by the same name. */}
+      {score && (
+        <section>
+          <h2 className="mb-2 text-section font-medium text-content-secondary">Rubric score</h2>
+          <RubricScore items={score.items} rubricItems={rubricItems} />
+          {/* Kept from the old score box, restyled: it explains why the total is
+              out of what it is, which is the first thing a student wonders. */}
+          <p className="mt-2 max-w-reading text-micro text-content-tertiary">
+            Scored by AI on the discovery content items. Delivery items (tone,
+            pace, and other spoken-only points) are added in a later stage.
+          </p>
+        </section>
+      )}
     </main>
   );
 }

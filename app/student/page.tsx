@@ -267,7 +267,7 @@ export default async function StudentHome() {
             className={cardClasses({
               tone: "muted",
               padding: "sm",
-              className: "mb-4 text-body text-content-secondary",
+              className: "mb-4 max-w-reading text-body text-content-secondary",
             })}
           >
             After you finish a practice or a submission, video and transcript

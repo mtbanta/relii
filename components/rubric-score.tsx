@@ -218,8 +218,13 @@ export function RubricScore({
                           {item.points_earned} / {item.points_max}
                         </span>
                       </div>
+                      {/* The per-item feedback is the one genuinely long-form
+                          text in this component, and the rubric now runs the
+                          full width of a 1120px page, so it takes the narrower
+                          reading measure. The score line above it deliberately
+                          does not: it needs to stay flush right. */}
                       {item.comment && (
-                        <p className="mt-1 text-micro italic text-content-secondary">
+                        <p className="mt-1 max-w-reading text-micro italic text-content-secondary">
                           {item.comment}
                         </p>
                       )}

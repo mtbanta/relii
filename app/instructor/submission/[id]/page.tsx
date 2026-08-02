@@ -226,46 +226,50 @@ export default async function InstructorSubmissionPage({
         </div>
       </section>
 
-      {/* The recording (voice+video submissions only). */}
-      {isVoice && (
-        <section className="mb-6">
-          <h2 className="mb-2 text-section font-medium text-content-secondary">Recording</h2>
-          {videoUrl ? (
-            <video
-              src={videoUrl}
-              controls
-              playsInline
-              className="w-full max-w-2xl rounded-lg border border-line-tertiary bg-black"
-            />
-          ) : (
-            <p className="text-body text-content-secondary">
-              No recording is attached to this submission.
-            </p>
-          )}
-        </section>
-      )}
+      {/* PD-8f: THE PLAYER AND THE TRANSCRIPT SIT SIDE BY SIDE, and the rubric
+          runs full width beneath them. This is the same arrangement the student
+          results page now uses, deliberately: two screens showing the same
+          material in two different arrangements was exactly the inconsistency
+          this sprint set out to remove, and the collapsible rubric from PD-8d
+          reads far better across the full width than in a half column.
 
-      <div className="grid gap-8 md:grid-cols-2">
-        {/* The itemized rubric. PD-7 renamed this heading from "Itemized score"
-            to "Rubric score", matching the student results page. */}
-        <section>
-          <h2 className="mb-2 text-section font-medium text-content-secondary">Rubric score</h2>
-          {/* The SAME component the student results page uses, so the two views
-              of one submission cannot drift apart. */}
-          {score && score.items.length > 0 ? (
-            <RubricScore items={score.items} rubricItems={rubricItems} />
-          ) : (
-            <p className="text-body text-content-secondary">
-              This submission has no itemized score.
-            </p>
-          )}
-        </section>
+          HOW THE HEIGHTS MATCH WITHOUT MEASURING ANYTHING. Both columns are the
+          same width, the video is pinned to 16:9, and the transcript's scroll
+          box is given the SAME 16:9 ratio, so the two bodies compute to exactly
+          the same height and the transcript scrolls inside it. Below md there is
+          one column and the transcript is simply full height. */}
+      <div
+        className={`mb-6 grid gap-6 ${isVoice ? "md:grid-cols-2" : ""}`}
+      >
+        {isVoice && (
+          <section className="min-w-0">
+            <h2 className="mb-2 text-section font-medium text-content-secondary">Recording</h2>
+            {videoUrl ? (
+              <video
+                src={videoUrl}
+                controls
+                playsInline
+                className="aspect-video w-full rounded-lg border border-line-tertiary bg-black object-contain"
+              />
+            ) : (
+              <p className="text-body text-content-secondary">
+                No recording is attached to this submission.
+              </p>
+            )}
+          </section>
+        )}
 
         {/* Transcript */}
-        <section>
+        <section className="min-w-0">
           <h2 className="mb-2 text-section font-medium text-content-secondary">Transcript</h2>
           {transcript.length > 0 ? (
-            <div className={cardClasses({ className: "space-y-3" })}>
+            <div
+              className={cardClasses({
+                className: `space-y-3 print:aspect-auto print:max-h-none print:overflow-visible ${
+                  isVoice ? "md:aspect-video md:overflow-y-auto" : ""
+                }`,
+              })}
+            >
               {transcript.map((turn, i) => (
                 <div key={i}>
                   <p className="text-meta font-medium text-content-tertiary">
@@ -273,7 +277,7 @@ export default async function InstructorSubmissionPage({
                       ? studentName
                       : scenario?.persona_name ?? "Customer"}
                   </p>
-                  <p className="text-body whitespace-pre-wrap text-content-primary">
+                  <p className="max-w-reading text-body whitespace-pre-wrap text-content-primary">
                     {turn.text}
                   </p>
                 </div>
@@ -286,6 +290,22 @@ export default async function InstructorSubmissionPage({
           )}
         </section>
       </div>
+
+      {/* The itemized rubric, now FULL WIDTH beneath the pair above. PD-7 renamed
+          this heading from "Itemized score" to "Rubric score", matching the
+          student results page. */}
+      <section>
+        <h2 className="mb-2 text-section font-medium text-content-secondary">Rubric score</h2>
+        {/* The SAME component the student results page uses, so the two views
+            of one submission cannot drift apart. */}
+        {score && score.items.length > 0 ? (
+          <RubricScore items={score.items} rubricItems={rubricItems} />
+        ) : (
+          <p className="text-body text-content-secondary">
+            This submission has no itemized score.
+          </p>
+        )}
+      </section>
     </main>
   );
 }

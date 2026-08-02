@@ -34,7 +34,7 @@ export default async function ScaffoldPage() {
           because the page title in the shared header is the h1. */}
       <div>
         <h2 className="text-page-title font-medium">Persona Scaffolding</h2>
-        <p className="mt-1 text-body text-content-secondary">
+        <p className="mt-1 max-w-reading text-body text-content-secondary">
           Describe a sales case and the AI writes two candidate buyer personas
           in the same style as Alex and Jordan. Both are saved turned OFF, so no
           student can be given one, and you compare them side by side before

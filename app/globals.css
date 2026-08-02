@@ -123,15 +123,35 @@
 
   /* THE PAGE WIDTH. One width, everywhere, replacing the six unrelated ones the
      app had grown (max-w-5xl, 3xl, 2xl, 6xl, md, sm).
-     56rem is 896px, and it was MEASURED rather than picked. The widest real
-     screen is the instructor submissions table, which has seven columns
-     (Student, Assignment, Mode, Recording Length, Score, Status, Actions), not
-     the six the mockup was drawn with. Rendered at the density below with
-     realistic long names, emails and titles, that table is 176px tall at 720px,
-     161px at 800 to 880, and settles at 146px from 896px on, with no further
-     gain from any extra width. So 896 is the exact point where it stops
-     wrapping, which makes it the narrowest honest page width. */
-  --container-page: 56rem;
+     PD-8c set this to 56rem (896px), measured as the narrowest width at which
+     the instructor submissions table stopped wrapping. PD-8f raises it to 70rem
+     (1120px) on the owner's instruction, to give the dashboards, the tables and
+     the new side-by-side review layout more room.
+     THE COST OF THAT, AND WHAT PAYS IT: this ONE token drives every screen,
+     including the student results page and the transcript, and long-form prose
+     at 1120px is genuinely harder to read (the eye loses the start of the next
+     line). So the width below is for TABLES, DASHBOARDS AND CARD GRIDS, and
+     long-form text blocks inside those pages get the narrower measure that
+     follows instead. */
+  --container-page: 70rem;
+
+  /* THE READING MEASURE, for long-form text only: instruction blocks, the
+     transcript body, and the rubric's per-item feedback. Used as max-w-reading.
+
+     WHY NOT max-w-reading, which is the obvious name. Tailwind v4 ships max-w-reading
+     as a HARDCODED 65ch utility, and that static rule beats the --container-*
+     theme namespace, so naming this token --container-prose compiled to nothing
+     at all and every block silently kept Tailwind's 65ch. Verified in the built
+     stylesheet, which is the only reason it was caught. A distinct name has no
+     built-in to lose to.
+
+     42rem is 672px. Recorded honestly, because the owner may want to revisit it:
+     at this app's 13px body text that is roughly 95 characters per line, where
+     the classic comfortable measure is 45 to 75 (Tailwind's own 65ch would land
+     near 465px here). It is the owner's specified number and it is already a
+     large improvement on 1120px. If the lines still read long, this one value is
+     the only thing to change. */
+  --container-reading: 42rem;
 }
 
 @theme inline {

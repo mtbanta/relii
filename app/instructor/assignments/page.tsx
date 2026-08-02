@@ -88,7 +88,7 @@ export default async function InstructorAssignments() {
       <h2 className="mb-1 text-page-title font-medium text-content-primary">
         Manage Assignments
       </h2>
-      <p className="mb-3 text-body text-content-secondary">
+      <p className="mb-3 max-w-reading text-body text-content-secondary">
         Create an assignment for a scenario and pick the mode the graded
         submission must use. Each student can submit an assignment once.
       </p>

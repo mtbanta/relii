@@ -54,16 +54,27 @@ export default async function InstructorRoster() {
       <h2 className="mb-1 text-page-title font-medium text-content-primary">
         Roster
       </h2>
-      <p className="mb-4 text-body text-content-secondary">
-        Everyone with access to Relii, grouped by status. Registered users have
-        signed up; pending invites are on the invite list but have not registered
-        yet. Add more people on the{" "}
-        <Link href="/instructor/invites" className="underline">
-          Invite Users
-        </Link>{" "}
-        page. Deleting a student permanently removes their account, sessions, and
-        recorded videos, and frees their email from the invite list.
-      </p>
+      {/* PD-8f: one sentence per line rather than one running paragraph, and
+          capped at the reading measure now that the page is 1120px wide. The
+          wording is unchanged. */}
+      <div className="mb-4 max-w-reading space-y-0.5 text-body text-content-secondary">
+        <p>Everyone with access to Relii, grouped by status.</p>
+        <p>
+          Registered users have signed up; pending invites are on the invite list
+          but have not registered yet.
+        </p>
+        <p>
+          Add more people on the{" "}
+          <Link href="/instructor/invites" className="underline">
+            Invite Users
+          </Link>{" "}
+          page.
+        </p>
+        <p>
+          Deleting a student permanently removes their account, sessions, and
+          recorded videos, and frees their email from the invite list.
+        </p>
+      </div>
 
       {/* Registered students: the existing Delete action, unchanged. */}
       <h3 className="mb-2 text-body font-medium text-content-primary">

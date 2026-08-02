@@ -47,10 +47,14 @@ export function InstructorNav() {
               <Link
                 href={d.href}
                 aria-current={current ? "page" : undefined}
+                // PD-8f: text-card-title (14px), up one step from text-meta
+                // (12px) on the existing scale. The nav is the app's primary
+                // wayfinding and was reading as metadata. All five destinations
+                // still fit on one line at the wider container.
                 className={
                   current
-                    ? "-mb-px inline-block border-b-2 border-content-info py-1.5 text-meta font-medium text-content-primary"
-                    : "-mb-px inline-block border-b-2 border-transparent py-1.5 text-meta text-content-secondary hover:text-content-primary"
+                    ? "-mb-px inline-block border-b-2 border-content-info py-1.5 text-card-title font-medium text-content-primary"
+                    : "-mb-px inline-block border-b-2 border-transparent py-1.5 text-card-title text-content-secondary hover:text-content-primary"
                 }
               >
                 {d.label}
