@@ -145,13 +145,14 @@
      stylesheet, which is the only reason it was caught. A distinct name has no
      built-in to lose to.
 
-     42rem is 672px. Recorded honestly, because the owner may want to revisit it:
-     at this app's 13px body text that is roughly 95 characters per line, where
-     the classic comfortable measure is 45 to 75 (Tailwind's own 65ch would land
-     near 465px here). It is the owner's specified number and it is already a
-     large improvement on 1120px. If the lines still read long, this one value is
-     the only thing to change. */
-  --container-reading: 42rem;
+     30rem is 480px, and it was MEASURED rather than estimated. PD-8f first
+     shipped 42rem (672px) on the owner's estimate, then measured real prose at
+     that width and found roughly 95 characters per line, which is 20 past the
+     classic comfortable 45 to 75. The owner's ruling was to take the measurement
+     over his own number, so 480px is the value: measured the same way it lands
+     near 68 characters, inside the range. This one value is the only thing to
+     change if it ever needs revisiting. */
+  --container-reading: 30rem;
 }
 
 @theme inline {

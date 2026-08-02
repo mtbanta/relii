@@ -31,12 +31,17 @@
 // could not have fixed it.
 //
 // The fix is structural and needs no JavaScript positioning, no popover and no
-// overlay: the TRIGGER stays in the Status cell, and the PANEL is rendered as a
-// SECOND TABLE ROW beneath that submission's row, spanning all eight columns. A
+// overlay: the TRIGGER stays in a table cell, and the PANEL is rendered as a
+// SECOND TABLE ROW beneath that submission's row, spanning every column. A
 // trigger in one row and a panel in another cannot share React state directly,
 // so a tiny context (rendered by SubmissionResetProvider, which emits no DOM of
 // its own and so is legal directly inside <tbody>) holds the id of the one open
 // confirm. Only one can be open at a time, which is also the behaviour we want.
+//
+// WHERE THE TRIGGER LIVES: the Manage column, next to the Status it changes.
+// It used to sit INSIDE the Status cell on its own line, because at the old
+// 896px page a ninth column did not fit. At 1120px it does, and moving it out
+// stopped that cell stacking, which took 8px off every row carrying a control.
 // -----------------------------------------------------------------------------
 import {
   createContext,
@@ -71,7 +76,7 @@ function panelId(sessionId: string): string {
   return `reset-confirm-${sessionId}`;
 }
 
-// ---- The trigger, which stays in the Status cell. ---------------------------
+// ---- The trigger, which sits in the Manage cell. ----------------------------
 // Labelled text rather than an icon: these are consequential and rare, and
 // icon-only is for routine, universally understood actions.
 export function SubmissionResetTrigger({
@@ -91,14 +96,17 @@ export function SubmissionResetTrigger({
       // Only while it is open, because the panel does not exist in the page
       // when it is closed and aria-controls must not point at a missing id.
       aria-controls={isOpen ? panelId(sessionId) : undefined}
+      // whitespace-nowrap because these now live in the Manage column, which is
+      // sized to hold "Allow retake" on ONE line. Without it a narrow viewport
+      // could break the label across two lines and put the row height back.
       className={
         type === "interrupted"
           ? // THE DESTRUCTIVE ONE wears the danger tokens.
-            "rounded-md border border-content-danger px-2 py-0.5 text-micro text-content-danger hover:bg-surface-danger"
+            "whitespace-nowrap rounded-md border border-content-danger px-2 py-0.5 text-micro text-content-danger hover:bg-surface-danger"
           : // A quiet, ordinary action: a hairline border is its resting
             // affordance, and it deliberately does NOT wear a warning colour,
             // because nothing here is lost.
-            "rounded-md border border-line-secondary px-2 py-0.5 text-micro text-content-secondary hover:bg-surface-tertiary hover:text-content-primary"
+            "whitespace-nowrap rounded-md border border-line-secondary px-2 py-0.5 text-micro text-content-secondary hover:bg-surface-tertiary hover:text-content-primary"
       }
     >
       {type === "interrupted" ? "Reset" : "Allow retake"}

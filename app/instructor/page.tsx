@@ -36,22 +36,29 @@ function modeShort(mode: string): string {
 }
 
 // How many columns the table has. Named because the reset confirm renders as its
-// own row spanning ALL of them, so the two must never drift apart.
-const SUBMISSION_COLUMNS = 8;
+// own row spanning ALL of them, so the two must never drift apart. Raised from 8
+// to 9 when Allow retake and Reset moved into the Manage column.
+const SUBMISSION_COLUMNS = 9;
 
 // The instructions for this screen's controls, ONE SENTENCE PER LINE. They sit
 // ABOVE the table rather than below it, because they explain controls the reader
 // is about to use.
 //
-// The last line is a MEANING correction, not a formatting one. It used to read
-// "Practice sessions never appear here", which is misleading under the Piece 4
-// model where a submission IS a converted practice: what is true is that only
-// the practice a student selected for submission shows up in this table.
+// THESE SENTENCES NAME WHERE EACH CONTROL LIVES, so they go stale the moment a
+// control moves. That has now happened twice in this sprint (PD-8e shipped a
+// footnote describing the retake backwards, and PD-8f moved the two controls out
+// of the Status cell), so treat this constant as part of the table's layout:
+// MOVE A CONTROL, EDIT THIS IN THE SAME CHANGE.
+//
+// The last line is a MEANING correction rather than a formatting one. It used to
+// read "Practice sessions never appear here", which is misleading under the
+// Piece 4 model where a submission IS a converted practice: what is true is that
+// only the practice a student selected for submission shows up in this table.
 const TABLE_INSTRUCTIONS = [
   "Review opens the submission with its recording, transcript and rubric score.",
   "Download offers the video, the transcript, and a CSV of scores.",
-  "Allow retake, under a submission's status, returns it to the student's practice pool, keeping the score and recording so they can submit again.",
-  "Reset, under an interrupted attempt, permanently deletes that attempt and its recording.",
+  "Allow retake, in the Manage column, returns a scored submission to the student's practice pool, keeping the score and recording so they can submit again.",
+  "Reset, in the Manage column, permanently deletes an interrupted attempt and its recording.",
   "Only the Practice sessions selected for submission appear here.",
 ];
 
@@ -334,24 +341,32 @@ export default async function InstructorSubmissions({
                 ))}
               </div>
 
-              {/* EIGHT columns, table-layout: fixed, with the approved widths.
-                 The old Actions column held four stacked controls, which is what
-                 made every row four lines tall and ragged; splitting it into a
-                 one-icon Review and a one-icon Download is what gets the table to
-                 ONE LINE OF CONTENT PER ROW. That row-height change is the single
-                 largest source of the tidiness here, more than any colour or
-                 spacing choice. */}
+              {/* NINE columns, table-layout: fixed, with the measured widths.
+                 PD-8e's Actions column held four stacked controls, which made
+                 every row four lines tall; splitting it into a one-icon Review
+                 and a one-icon Download is what got the table to ONE LINE OF
+                 CONTENT PER ROW.
+
+                 PD-8f then added the ninth, Manage. At 896px a ninth column did
+                 not fit, which is why the reset controls originally sat inside
+                 the Status cell on their own line. At 1120px it does fit, and it
+                 is measurably BETTER rather than merely tolerable: with the
+                 control out of the Status cell that cell stops stacking, so a row
+                 carrying a control drops from 61px to 53px. No header wraps, no
+                 cell text wraps that did not already, and there is no horizontal
+                 scroll. Owner-ruled on that measurement. */}
               <div className="overflow-x-auto rounded-lg border border-line-tertiary">
                 <table className="w-full table-fixed text-meta">
                   <colgroup>
-                    <col className="w-[21%]" />
-                    <col className="w-[16%]" />
+                    <col className="w-[20%]" />
+                    <col className="w-[15%]" />
+                    <col className="w-[6%]" />
                     <col className="w-[7%]" />
-                    <col className="w-[8%]" />
-                    <col className="w-[10%]" />
-                    <col className="w-[17%]" />
+                    <col className="w-[9%]" />
                     <col className="w-[9%]" />
                     <col className="w-[12%]" />
+                    <col className="w-[9%]" />
+                    <col className="w-[13%]" />
                   </colgroup>
                   <thead>
                     <tr className="border-b border-line-tertiary text-left text-micro text-content-secondary">
@@ -365,6 +380,10 @@ export default async function InstructorSubmissions({
                       <th className="px-2.5 py-1.5 font-medium">Length</th>
                       <th className="px-2.5 py-1.5 font-medium">Score</th>
                       <th className="px-2.5 py-1.5 font-medium">Status</th>
+                      {/* MANAGE: the two state-changing controls, sitting next to
+                          the Status they change rather than beside the two
+                          routine icon actions. */}
+                      <th className="px-2.5 py-1.5 font-medium">Manage</th>
                       <th className="px-2.5 py-1.5 font-medium">Review</th>
                       <th className="px-2.5 py-1.5 font-medium">Download</th>
                     </tr>
@@ -403,9 +422,10 @@ export default async function InstructorSubmissions({
                           </td>
                           {/* Left to WRAP rather than truncate. Truncating the
                               email and this title was tried and measured: row
-                              heights were identical either way (the Status cell
-                              and a wrapped student name are what set the height),
-                              so it chopped legible text for no gain. */}
+                              heights were identical either way, because a wrapped
+                              student name is what sets the height, so it chopped
+                              legible text for no gain. (The Status cell used to
+                              share that job, before its control moved to Manage.) */}
                           <td className="px-2.5 py-2 text-content-secondary">
                             {selected.title}
                           </td>
@@ -420,19 +440,18 @@ export default async function InstructorSubmissions({
                               ? `${r.score!.total} / ${r.score!.max_total}`
                               : "-"}
                           </td>
-                          {/* STATUS, and the control that changes it.
+                          {/* STATUS, now text only. The control that changes it
+                              moved to Manage, the next column, on the owner's
+                              ruling after PD-8f measured that a ninth column fits
+                              at 1120px. It used to sit inside this cell on its own
+                              line, which is what made this cell two lines tall and
+                              set the height of every row carrying a control.
+
                               Coloured TEXT rather than a Badge in this column
                               only: in a table this dense a pill per row is noise,
                               and the column header already supplies the context
                               the pill was compensating for. The Badge primitive
                               stays in use everywhere else in the app.
-
-                              The reset controls live HERE rather than in an
-                              actions column, and that is a correctness point, not
-                              a layout one: an interrupted attempt has no score and
-                              nothing worth viewing, so routing its recovery
-                              through Review would strand it. The action belongs
-                              to the state it changes.
 
                               "To review" is a STATIC placeholder until professor
                               finalization (built after Stage 6). The in_progress
@@ -449,28 +468,39 @@ export default async function InstructorSubmissions({
                             ) : (
                               <span className="text-content-secondary">{r.status}</span>
                             )}
+                          </td>
 
-                            {/* Labelled text, never an icon: these are
-                                consequential and rare, and icon-only is for
-                                routine, universally understood actions. All the
-                                existing confirm behaviour is unchanged; only the
-                                PANEL moved, to the row below (see the confirm
-                                row after this </tr>). */}
-                            {isScored && (
-                              <div className="mt-1">
-                                <SubmissionResetTrigger
-                                  sessionId={r.id}
-                                  type="retake"
-                                />
-                              </div>
-                            )}
-                            {isInterrupted && (
-                              <div className="mt-1">
-                                <SubmissionResetTrigger
-                                  sessionId={r.id}
-                                  type="interrupted"
-                                />
-                              </div>
+                          {/* MANAGE: the one control that changes this row's
+                              state, if it has one. It sits beside Status rather
+                              than beside Review and Download, because that
+                              adjacency is the point: an interrupted attempt has
+                              no score and nothing worth viewing, so its recovery
+                              belongs next to the state it changes, not among the
+                              routine actions.
+
+                              Labelled TEXT, never an icon: these are consequential
+                              and rare, and icon-only is for routine, universally
+                              understood actions. The two controls, their colours
+                              and every confirm behaviour are unchanged; only the
+                              trigger's cell moved, and the panel still opens as
+                              the full-width row beneath (after this </tr>).
+
+                              A row with neither control shows a dash rather than
+                              an empty cell, the same way Score and Download do, so
+                              every row keeps its shape. */}
+                          <td className="px-2.5 py-2">
+                            {isScored ? (
+                              <SubmissionResetTrigger
+                                sessionId={r.id}
+                                type="retake"
+                              />
+                            ) : isInterrupted ? (
+                              <SubmissionResetTrigger
+                                sessionId={r.id}
+                                type="interrupted"
+                              />
+                            ) : (
+                              <span className="text-content-tertiary">-</span>
                             )}
                           </td>
 
