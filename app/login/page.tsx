@@ -43,8 +43,8 @@ export default function LoginPage() {
         className="w-full max-w-sm space-y-4 rounded-xl border border-line-tertiary p-6 shadow-sm"
       >
         <div className="text-center">
-          <h1 className="text-page-title font-semibold">Relii</h1>
-          <p className="text-sm text-content-secondary">Sign in to your account</p>
+          <h1 className="text-page-title font-medium">Relii</h1>
+          <p className="text-body text-content-secondary">Sign in to your account</p>
         </div>
 
         <Label>
@@ -67,7 +67,7 @@ export default function LoginPage() {
           />
         </Label>
 
-        {error && <p className="text-sm text-content-danger">{error}</p>}
+        {error && <p className="text-body text-content-danger">{error}</p>}
 
         <Button
           fullWidth
@@ -77,7 +77,7 @@ export default function LoginPage() {
           {loading ? "Signing in..." : "Sign in"}
         </Button>
 
-        <p className="text-center text-sm text-content-secondary">
+        <p className="text-center text-body text-content-secondary">
           First time here?{" "}
           <Link href="/register" className="underline">
             Create your account

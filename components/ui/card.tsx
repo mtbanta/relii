@@ -40,25 +40,32 @@ export type CardElement = "div" | "li" | "section" | "article";
 export type CardOptions = {
   tone?: CardTone;
   padding?: CardPadding;
+  // A card normally has a hairline border. The summary tiles on the instructor
+  // Submissions page deliberately do not: in the mockup they are flat cream
+  // panels, and a border around each one turns three quiet numbers into three
+  // boxes competing with the table below them.
+  bordered?: boolean;
   className?: string;
 };
 
-const BASE = "rounded-lg border";
+const BASE = "rounded-lg";
 
 const TONES: Record<CardTone, string> = {
-  default: "bg-surface-primary border-line-tertiary",
-  muted: "bg-surface-secondary border-line-tertiary",
-  info: "bg-surface-info border-line-tertiary",
-  success: "bg-surface-success border-line-tertiary",
-  warning: "bg-surface-warning border-line-tertiary",
-  danger: "bg-surface-danger border-line-tertiary",
+  default: "bg-surface-primary",
+  muted: "bg-surface-secondary",
+  info: "bg-surface-info",
+  success: "bg-surface-success",
+  warning: "bg-surface-warning",
+  danger: "bg-surface-danger",
 };
 
+// PD-8c density: md is the mockup's card padding, 14px. The app was on 16px and
+// 20px, which across a page of stacked cards is what made it read roomy.
 const PADDINGS: Record<CardPadding, string> = {
   none: "",
   sm: "px-3 py-2",
-  md: "p-4",
-  lg: "p-5",
+  md: "p-3.5",
+  lg: "p-4",
 };
 
 // The classes for one card, on their own. Use this when the element already
@@ -66,9 +73,16 @@ const PADDINGS: Record<CardPadding, string> = {
 export function cardClasses({
   tone = "default",
   padding = "md",
+  bordered = true,
   className = "",
 }: CardOptions = {}): string {
-  return [BASE, TONES[tone], PADDINGS[padding], className]
+  return [
+    BASE,
+    bordered ? "border border-line-tertiary" : "",
+    TONES[tone],
+    PADDINGS[padding],
+    className,
+  ]
     .filter(Boolean)
     .join(" ");
 }
@@ -79,6 +93,7 @@ export function Card({
   as: Element = "div",
   tone,
   padding,
+  bordered,
   className,
   children,
 }: CardOptions & {
@@ -86,7 +101,7 @@ export function Card({
   children?: ReactNode;
 }) {
   return (
-    <Element className={cardClasses({ tone, padding, className })}>
+    <Element className={cardClasses({ tone, padding, bordered, className })}>
       {children}
     </Element>
   );

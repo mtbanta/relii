@@ -69,7 +69,7 @@ export function BulkInviteForm() {
       className="mt-4 space-y-3 rounded-lg border border-line-tertiary p-4"
     >
       <h2 className="font-medium">Bulk invite (CSV)</h2>
-      <p className="text-sm text-content-secondary">
+      <p className="text-body text-content-secondary">
         Upload a .csv with two columns, email and role. A header row (email,role)
         is fine. Role must be student or instructor. Rows with a problem are
         skipped and listed below with a reason; the rest are added.
@@ -84,10 +84,10 @@ export function BulkInviteForm() {
         {loading ? "Importing..." : "Import CSV"}
       </Button>
 
-      {error && <p className="text-sm text-content-danger">{error}</p>}
+      {error && <p className="text-body text-content-danger">{error}</p>}
 
       {result && (
-        <div className="space-y-2 border-t border-line-tertiary pt-3 text-sm">
+        <div className="space-y-2 border-t border-line-tertiary pt-3 text-body">
           <p className="text-content-success">
             Added {result.addedCount}. Skipped {result.skippedCount}.
           </p>
@@ -98,7 +98,7 @@ export function BulkInviteForm() {
               <ul className="space-y-1">
                 {result.skipped.map((s, i) => (
                   <li key={i} className="flex flex-wrap gap-x-2 text-content-secondary">
-                    <span className="font-mono text-xs text-content-secondary">
+                    <span className="font-mono text-meta text-content-secondary">
                       {s.value}
                     </span>
                     <span className="text-content-tertiary">|</span>

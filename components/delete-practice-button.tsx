@@ -35,7 +35,7 @@ export function DeletePracticeButton({ sessionId }: { sessionId: string }) {
   }
 
   return (
-    <span className="inline-flex items-center gap-2 text-xs">
+    <span className="inline-flex items-center gap-2 text-meta">
       {confirming ? (
         <>
           <button

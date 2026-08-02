@@ -96,18 +96,18 @@ export function DiscardAllGenerations() {
       <div>
         <button
           onClick={openPanel}
-          className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-content-danger hover:bg-surface-danger"
+          className="rounded-md border border-red-300 px-3 py-1.5 text-body text-content-danger hover:bg-surface-danger"
         >
           Discard all unused test generations
         </button>
-        {done && <p className="mt-2 text-sm text-content-success">{done}</p>}
-        {error && <p className="mt-2 text-sm text-content-danger">{error}</p>}
+        {done && <p className="mt-2 text-body text-content-success">{done}</p>}
+        {error && <p className="mt-2 text-body text-content-danger">{error}</p>}
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border-2 border-red-300 bg-surface-danger p-4 text-sm">
+    <div className="rounded-lg border-2 border-red-300 bg-surface-danger p-4 text-body">
       <p className="mb-2 font-semibold text-content-danger">
         Permanently delete every unused generated persona
       </p>
@@ -125,14 +125,14 @@ export function DiscardAllGenerations() {
             . This cannot be undone.
           </p>
           {preview.names.length > 0 && (
-            <p className="mb-2 text-xs text-content-danger">
+            <p className="mb-2 text-meta text-content-danger">
               To be deleted: {preview.names.join(", ")}.
             </p>
           )}
 
           {/* Said explicitly, because "delete everything unused" is exactly the
               kind of action where an admin needs to see what it will NOT do. */}
-          <div className="mb-3 rounded-md bg-white p-2 text-xs text-content-primary">
+          <div className="mb-3 rounded-md bg-white p-2 text-meta text-content-primary">
             <p className="font-medium text-content-primary">What is NOT touched:</p>
             <ul className="mt-1 list-disc space-y-0.5 pl-4">
               <li>Alex, Jordan, and every hand-written scenario.</li>

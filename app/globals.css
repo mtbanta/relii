@@ -85,20 +85,53 @@
   --radius-md: 8px;
   --radius-lg: 12px;
 
-  /* THE HEADING SCALE. Three sizes, by ROLE rather than by HTML tag, because a
-     page heading under the shared instructor header is an h2 (PD-1 demoted it)
-     while a standalone screen's heading is an h1.
-       page-title = the top heading of a standalone screen
-       section    = an instructor destination's title, under the shared header
-       subsection = a heading for one area inside a page
-     The values equal what the app already used most often (24 / 20 / 18px), so
-     applying the scale mostly changes only the headings that were out of step. */
-  --text-page-title: 1.5rem;
-  --text-page-title--line-height: 2rem;
-  --text-section: 1.25rem;
-  --text-section--line-height: 1.75rem;
-  --text-subsection: 1.125rem;
-  --text-subsection--line-height: 1.75rem;
+  /* THE TYPE SCALE, by ROLE rather than by size or by HTML tag.
+     PD-8a deliberately set this scale equal to the sizes the app already used,
+     so applying it would be visually near-invisible. That was the right call for
+     a plumbing session, but it meant type DENSITY had never been touched: the
+     app was a wide page of large, roomy type where the mockup is a tight column
+     of small, dense type. PD-8c closes that, and these are the mockup's own
+     values from docs/Relii-Core-Screen-Mockups.html.
+
+       page-title  the page's own heading, and the first real thing on the page
+       stat        a big number in a summary tile
+       card-title  the title of one card in a list
+       section     the small label above a group ("Your assignments")
+       body        body copy, message bubbles, buttons, form controls
+       meta        table cells, dates, supporting lines under a title
+       micro       table headers, pills, captions
+
+     Note how flat this is. There is no 20px or 18px step any more: the mockup
+     separates levels by WEIGHT and COLOUR far more than by size, which is what
+     lets a whole screen fit in one dense column. */
+  --text-wordmark: 1.125rem; /* 18px, the "Relii" mark in the app header */
+  --text-wordmark--line-height: 1.5rem;
+  --text-page-title: 1.375rem; /* 22px */
+  --text-page-title--line-height: 1.75rem;
+  --text-stat: 1.375rem; /* 22px */
+  --text-stat--line-height: 1.75rem;
+  --text-card-title: 0.875rem; /* 14px */
+  --text-card-title--line-height: 1.25rem;
+  --text-section: 0.8125rem; /* 13px */
+  --text-section--line-height: 1.125rem;
+  --text-body: 0.8125rem; /* 13px */
+  --text-body--line-height: 1.25rem;
+  --text-meta: 0.75rem; /* 12px */
+  --text-meta--line-height: 1.125rem;
+  --text-micro: 0.6875rem; /* 11px */
+  --text-micro--line-height: 1rem;
+
+  /* THE PAGE WIDTH. One width, everywhere, replacing the six unrelated ones the
+     app had grown (max-w-5xl, 3xl, 2xl, 6xl, md, sm).
+     56rem is 896px, and it was MEASURED rather than picked. The widest real
+     screen is the instructor submissions table, which has seven columns
+     (Student, Assignment, Mode, Recording Length, Score, Status, Actions), not
+     the six the mockup was drawn with. Rendered at the density below with
+     realistic long names, emails and titles, that table is 176px tall at 720px,
+     161px at 800 to 880, and settles at 146px from 896px on, with no further
+     gain from any extra width. So 896 is the exact point where it stops
+     wrapping, which makes it the narrowest honest page width. */
+  --container-page: 56rem;
 }
 
 @theme inline {

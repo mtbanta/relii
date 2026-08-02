@@ -37,9 +37,9 @@ export function InstructorNav() {
   return (
     <nav
       aria-label="Instructor sections"
-      className="mt-4 border-b border-line-tertiary"
+      className="border-b border-line-tertiary"
     >
-      <ul className="flex flex-wrap gap-x-6 gap-y-1">
+      <ul className="flex flex-wrap gap-x-5 gap-y-1">
         {DESTINATIONS.map((d) => {
           const current = isCurrent(pathname, d.href);
           return (
@@ -49,8 +49,8 @@ export function InstructorNav() {
                 aria-current={current ? "page" : undefined}
                 className={
                   current
-                    ? "-mb-px inline-block border-b-2 border-content-primary py-2 text-sm font-medium text-content-primary"
-                    : "-mb-px inline-block border-b-2 border-transparent py-2 text-sm text-content-secondary hover:text-content-primary"
+                    ? "-mb-px inline-block border-b-2 border-content-info py-1.5 text-meta font-medium text-content-primary"
+                    : "-mb-px inline-block border-b-2 border-transparent py-1.5 text-meta text-content-secondary hover:text-content-primary"
                 }
               >
                 {d.label}

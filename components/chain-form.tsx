@@ -28,7 +28,7 @@ import { cardClasses } from "@/components/ui/card";
 const inputClass = controlClasses();
 const labelClass = labelClasses("mb-1");
 const carriedClass =
-  "rounded-md border border-line-tertiary bg-surface-secondary px-3 py-2 text-sm text-content-secondary";
+  "rounded-md border border-line-tertiary bg-surface-secondary px-3 py-2 text-body text-content-secondary";
 
 export function ChainForm({
   gatekeeperId,
@@ -107,7 +107,7 @@ export function ChainForm({
         {/* What carries over, shown so the admin can see the case is shared. */}
         <div>
           <h2 className="font-medium">Carried over from {gatekeeperName}</h2>
-          <p className="mt-1 mb-3 text-sm text-content-secondary">
+          <p className="mt-1 mb-3 text-body text-content-secondary">
             These are reused so both meetings are one coherent case at one
             company. They cannot be edited here.
           </p>
@@ -140,7 +140,7 @@ export function ChainForm({
 
         <div className="border-t border-line-tertiary pt-4">
           <h2 className="font-medium">The decision maker</h2>
-          <p className="mt-1 mb-3 text-sm text-content-secondary">
+          <p className="mt-1 mb-3 text-body text-content-secondary">
             The two things that are about this second meeting.
           </p>
 
@@ -154,7 +154,7 @@ export function ChainForm({
                 onChange={(e) => setPersonaRole(e.target.value)}
                 className={inputClass}
               />
-              <p className="mt-1 text-xs text-content-secondary">
+              <p className="mt-1 text-meta text-content-secondary">
                 Pre-filled from who {gatekeeperName} gates access to. Trim it to
                 a job title if it reads as a description.
               </p>
@@ -172,7 +172,7 @@ export function ChainForm({
                 onChange={(e) => setWinCondition(e.target.value)}
                 className={inputClass}
               />
-              <p className="mt-1 text-xs text-content-secondary">
+              <p className="mt-1 text-meta text-content-secondary">
                 This is the real close, not another meeting. The first meeting
                 already earned the introduction.
               </p>
@@ -188,13 +188,13 @@ export function ChainForm({
         </Button>
 
         {loading && (
-          <p className="text-sm text-content-secondary">
+          <p className="text-body text-content-secondary">
             Writing two personas. This usually takes twenty to sixty seconds, so
             please leave this page open.
           </p>
         )}
 
-        {error && <p className="text-sm text-content-danger">{error}</p>}
+        {error && <p className="text-body text-content-danger">{error}</p>}
       </form>
 
       {/* Fallback, so a slow or blocked navigation never strands the instructor
@@ -202,7 +202,7 @@ export function ChainForm({
       {savedGroupId && (
         <div className={cardClasses()}>
           <h2 className="font-medium">Two candidates saved</h2>
-          <p className="mt-1 text-sm text-content-secondary">
+          <p className="mt-1 text-body text-content-secondary">
             <Link
               href={`/instructor/scaffold/compare/${savedGroupId}`}
               className="underline"

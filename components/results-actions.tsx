@@ -69,7 +69,7 @@ export function ResultsActions({
 
   return (
     <section className={cardClasses({ className: "mb-6 print:hidden" })}>
-      <p className="mb-3 text-sm font-medium">Save a copy for your records</p>
+      <p className="mb-3 text-body font-medium">Save a copy for your records</p>
 
       <div className="flex flex-wrap items-center gap-3">
         {downloadUrl ? (
@@ -80,7 +80,7 @@ export function ResultsActions({
             Download video
           </Button>
         ) : (
-          <p className="text-sm text-content-secondary">
+          <p className="text-body text-content-secondary">
             {isVoice
               ? "No recording was saved for this session, so there is nothing to download."
               : "There is no recording for a text practice."}
@@ -95,7 +95,7 @@ export function ResultsActions({
         </Button>
       </div>
 
-      <p className="mt-2 text-xs text-content-secondary">
+      <p className="mt-2 text-meta text-content-secondary">
         Opens your browser&apos;s print window. Choose &quot;Save as PDF&quot; to
         download your {conversationOnly ? "transcript" : "score and transcript"}.
       </p>

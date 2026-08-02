@@ -50,14 +50,14 @@ export default async function ChainPage({
   // admin can act on both.
   if (gatekeeper.chain_role !== "gatekeeper") {
     return (
-      <main className="mx-auto max-w-3xl space-y-4 px-8 pb-12 pt-6">
-        <Link href="/instructor/scaffold" className="text-sm text-content-secondary underline">
+      <main className="mx-auto max-w-page space-y-4 px-6 pb-10 pt-5">
+        <Link href="/instructor/scaffold" className="text-body text-content-secondary underline">
           Back to Persona Scaffolding
         </Link>
         {/* An h2, not an h1: the page title in the shared instructor header
             above is the h1. */}
-        <h2 className="text-section font-semibold">Nothing to chain from</h2>
-        <p className="text-sm text-content-secondary">
+        <h2 className="text-page-title font-medium">Nothing to chain from</h2>
+        <p className="text-body text-content-secondary">
           {gatekeeper.persona_name} is a decision maker, and a decision maker
           gates nobody, so there is no second meeting to build. The chain starts
           from a gatekeeper.
@@ -68,19 +68,19 @@ export default async function ChainPage({
 
   if (!gatekeeper.enabled) {
     return (
-      <main className="mx-auto max-w-3xl space-y-4 px-8 pb-12 pt-6">
-        <Link href="/instructor/scaffold" className="text-sm text-content-secondary underline">
+      <main className="mx-auto max-w-page space-y-4 px-6 pb-10 pt-5">
+        <Link href="/instructor/scaffold" className="text-body text-content-secondary underline">
           Back to Persona Scaffolding
         </Link>
-        <h2 className="text-section font-semibold">Choose this gatekeeper first</h2>
-        <p className="text-sm text-content-secondary">
+        <h2 className="text-page-title font-medium">Choose this gatekeeper first</h2>
+        <p className="text-body text-content-secondary">
           {gatekeeper.persona_name} is switched off, so it is not a case anyone
           has settled on yet. Choose it first, and then come back to build its
           decision maker.
         </p>
         <Link
           href={`/instructor/scaffold/compare/${gatekeeper.generation_group_id}`}
-          className="inline-block text-sm underline"
+          className="inline-block text-body underline"
         >
           Open the comparison for {gatekeeper.persona_name}
         </Link>
@@ -89,25 +89,25 @@ export default async function ChainPage({
   }
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 px-8 pb-12 pt-6">
+    <main className="mx-auto max-w-page space-y-5 px-6 pb-10 pt-5">
       <div>
         <Link
           href="/instructor/scaffold"
-          className="text-sm text-content-secondary underline"
+          className="text-body text-content-secondary underline"
         >
           Back to Persona Scaffolding
         </Link>
-        <h2 className="mt-2 text-section font-semibold">
+        <h2 className="mt-2 text-page-title font-medium">
           Build the decision maker for this case
         </h2>
-        <p className="mt-1 text-sm text-content-secondary">
+        <p className="mt-1 text-body text-content-secondary">
           {gatekeeper.persona_name} is the gatekeeper. This builds the person
           they gate access to: the second meeting, where the seller presents and
           closes. It is the same shape as Jordan following Alex.
         </p>
       </div>
 
-      <div className={cardClasses({ tone: "muted", className: "text-sm text-content-primary" })}>
+      <div className={cardClasses({ tone: "muted", className: "text-body text-content-primary" })}>
         <p>
           You will get two candidates to compare and pick from, exactly as
           before, and both are saved switched OFF.

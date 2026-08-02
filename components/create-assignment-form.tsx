@@ -54,7 +54,7 @@ export function CreateAssignmentForm({
     return (
       <div className={cardClasses()}>
         <h2 className="mb-1 font-medium">Create assignment</h2>
-        <p className="text-sm text-content-secondary">
+        <p className="text-body text-content-secondary">
           There are no scenarios to assign yet. A scenario (such as the Alex
           discovery call) must exist first.
         </p>
@@ -176,7 +176,7 @@ export function CreateAssignmentForm({
           <option value="voice_video">Voice + video</option>
           <option value="text">Text</option>
         </Select>
-        <p className="mt-1 text-xs text-content-tertiary">
+        <p className="mt-1 text-meta text-content-tertiary">
           The mode the graded submission must be done in.
         </p>
       </div>
@@ -195,7 +195,7 @@ export function CreateAssignmentForm({
           value={durationMinutes}
           onChange={(e) => setDurationMinutes(e.target.value)}
         />
-        <p className="mt-1 text-xs text-content-tertiary">
+        <p className="mt-1 text-meta text-content-tertiary">
           How long the role-play runs, from {MIN_MEETING_MINUTES} to{" "}
           {MAX_MEETING_MINUTES} minutes. The practice clock counts up and the
           practice ends automatically at this length. Leave blank for{" "}
@@ -224,7 +224,7 @@ export function CreateAssignmentForm({
           value={availableDate}
           onChange={(e) => setAvailableDate(e.target.value)}
         />
-        <p className="mt-1 text-xs text-content-tertiary">
+        <p className="mt-1 text-meta text-content-tertiary">
           Students see this assignment listed but locked until this date. Leave
           blank to make it available now.
         </p>
@@ -249,7 +249,7 @@ export function CreateAssignmentForm({
       </Button>
 
       {message && (
-        <p className={`text-sm ${isError ? "text-content-danger" : "text-content-success"}`}>
+        <p className={`text-body ${isError ? "text-content-danger" : "text-content-success"}`}>
           {message}
         </p>
       )}

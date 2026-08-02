@@ -59,17 +59,17 @@ export function NameGate({ email }: { email: string }) {
   }
 
   return (
-    <main className="mx-auto max-w-md p-8">
-      <h1 className="text-page-title font-semibold">Welcome to Relii</h1>
-      <p className="mt-2 text-sm text-content-secondary">
+    <main className="mx-auto max-w-page px-6 py-10">
+      <h1 className="text-page-title font-medium">Welcome to Relii</h1>
+      <p className="mt-2 text-body text-content-secondary">
         Before you continue, please tell us your name. This is how your
         instructor will see your work. You only need to do this once.
       </p>
-      <p className="mt-1 text-xs text-content-tertiary">Signed in as {email}</p>
+      <p className="mt-1 text-meta text-content-tertiary">Signed in as {email}</p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium" htmlFor="first-name">
+          <label className="block text-body font-medium" htmlFor="first-name">
             First name
           </label>
           <Input
@@ -83,7 +83,7 @@ export function NameGate({ email }: { email: string }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium" htmlFor="last-name">
+          <label className="block text-body font-medium" htmlFor="last-name">
             Last name
           </label>
           <Input
@@ -102,7 +102,7 @@ export function NameGate({ email }: { email: string }) {
           {loading ? "Saving..." : "Save and continue"}
         </Button>
 
-        {error && <p className="text-sm text-content-danger">{error}</p>}
+        {error && <p className="text-body text-content-danger">{error}</p>}
       </form>
     </main>
   );

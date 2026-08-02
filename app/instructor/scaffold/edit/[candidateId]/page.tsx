@@ -38,21 +38,21 @@ function Blocked({
   children: React.ReactNode;
 }) {
   return (
-    <main className="mx-auto max-w-3xl space-y-4 px-8 pb-12 pt-6">
+    <main className="mx-auto max-w-page space-y-4 px-6 pb-10 pt-5">
       <Link
         href="/instructor/scaffold"
-        className="text-sm text-content-secondary underline"
+        className="text-body text-content-secondary underline"
       >
         Back to Persona Scaffolding
       </Link>
       {/* An h2, not an h1: the page title in the shared instructor header above
           is the h1. */}
-      <h2 className="text-section font-semibold">{heading}</h2>
-      <div className="space-y-3 text-sm text-content-secondary">{children}</div>
+      <h2 className="text-page-title font-medium">{heading}</h2>
+      <div className="space-y-3 text-body text-content-secondary">{children}</div>
       {groupId && (
         <Link
           href={`/instructor/scaffold/compare/${groupId}`}
-          className="inline-block text-sm underline"
+          className="inline-block text-body underline"
         >
           Back to the comparison
         </Link>
@@ -119,18 +119,18 @@ export default async function EditCandidatePage({
   }
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 px-8 pb-12 pt-6">
+    <main className="mx-auto max-w-page space-y-5 px-6 pb-10 pt-5">
       <div>
         <Link
           href={`/instructor/scaffold/compare/${row.generation_group_id}`}
-          className="text-sm text-content-secondary underline"
+          className="text-body text-content-secondary underline"
         >
           Back to the comparison
         </Link>
-        <h2 className="mt-2 text-section font-semibold">
+        <h2 className="mt-2 text-page-title font-medium">
           Customise {candidate.persona_name}
         </h2>
-        <p className="mt-1 text-sm text-content-secondary">
+        <p className="mt-1 text-body text-content-secondary">
           Change what this buyer is like, and the briefing and the persona
           instructions are rebuilt from your edits by the same fixed template
           that wrote them in the first place. Nothing is re-invented and no AI is
@@ -142,7 +142,7 @@ export default async function EditCandidatePage({
       {/* The three locked pairs, shown so it is clear they are structural rather
           than missing. The save route never reads them from the browser, so
           this panel is a description of the case, not a disabled input. */}
-      <div className={cardClasses({ tone: "muted", className: "text-sm" })}>
+      <div className={cardClasses({ tone: "muted", className: "text-body" })}>
         <h3 className="font-medium text-content-primary">
           Fixed for this case, and not editable here
         </h3>
@@ -152,7 +152,7 @@ export default async function EditCandidatePage({
         </p>
         <dl className="mt-3 space-y-3 text-content-primary">
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-content-secondary">
+            <dt className="text-meta font-medium uppercase tracking-wide text-content-secondary">
               Meeting type and chain position
             </dt>
             <dd>
@@ -165,13 +165,13 @@ export default async function EditCandidatePage({
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-content-secondary">
+            <dt className="text-meta font-medium uppercase tracking-wide text-content-secondary">
               Win condition and close terms
             </dt>
             <dd>{candidate.win_condition}</dd>
           </div>
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-content-secondary">
+            <dt className="text-meta font-medium uppercase tracking-wide text-content-secondary">
               Company (type and size)
             </dt>
             <dd>

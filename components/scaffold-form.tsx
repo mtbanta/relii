@@ -160,7 +160,7 @@ export function ScaffoldForm() {
               Decision maker (presentation and close)
             </option>
           </select>
-          <p className="mt-1 text-xs text-content-secondary">
+          <p className="mt-1 text-meta text-content-secondary">
             {chainPosition === "gatekeeper"
               ? "A discovery meeting, like Alex. This persona controls access to someone else."
               : "A presentation and close, like Jordan. This persona can decide themselves."}
@@ -216,13 +216,13 @@ export function ScaffoldForm() {
         </Button>
 
         {loading && (
-          <p className="text-sm text-content-secondary">
+          <p className="text-body text-content-secondary">
             Writing two personas. This usually takes twenty to sixty seconds,
             so please leave this page open.
           </p>
         )}
 
-        {error && <p className="text-sm text-content-danger">{error}</p>}
+        {error && <p className="text-body text-content-danger">{error}</p>}
       </form>
 
       {/* Normally the redirect above has already happened by now. This is the
@@ -231,7 +231,7 @@ export function ScaffoldForm() {
       {savedGroupId && (
         <div className={cardClasses()}>
           <h2 className="font-medium">Two candidates saved</h2>
-          <p className="mt-1 text-sm text-content-secondary">
+          <p className="mt-1 text-body text-content-secondary">
             <Link
               href={`/instructor/scaffold/compare/${savedGroupId}`}
               className="underline"

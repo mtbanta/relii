@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 
 // The name stays, so every use site below is unchanged; it now hands the work
 // to the shared form primitive.
-const INPUT_CLASS = controlClasses({ className: "mt-1 text-sm" });
+const INPUT_CLASS = controlClasses({ className: "mt-1 text-body" });
 
 function Field({
   label,
@@ -37,10 +37,10 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-content-primary">
+      <label className="block text-body font-medium text-content-primary">
         {label}
         {hint && (
-          <span className="mt-0.5 block text-xs font-normal text-content-secondary">
+          <span className="mt-0.5 block text-meta font-normal text-content-secondary">
             {hint}
           </span>
         )}
@@ -195,10 +195,10 @@ export function EditCandidateForm({
       {/* Hidden facts are the meat of the case, and the one field that is a pair
           rather than a line, so it gets rows instead of a textarea. */}
       <div>
-        <p className="text-sm font-medium text-content-primary">
+        <p className="text-body font-medium text-content-primary">
           Hidden facts and incumbent shortfalls
         </p>
-        <p className="mt-0.5 text-xs text-content-secondary">
+        <p className="mt-0.5 text-meta text-content-secondary">
           Hidden from the student and revealed only to good, specific questions.
           At least three are required. The fact is the shortfall; the detail is
           the concrete number or specific behind it.
@@ -210,7 +210,7 @@ export function EditCandidateForm({
               className="space-y-2 rounded-md border border-line-tertiary p-3"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium uppercase tracking-wide text-content-secondary">
+                <span className="text-meta font-medium uppercase tracking-wide text-content-secondary">
                   Fact {index + 1}
                 </span>
                 <button
@@ -220,7 +220,7 @@ export function EditCandidateForm({
                       facts.filter((_, i) => i !== index),
                     )
                   }
-                  className="text-xs text-content-secondary underline"
+                  className="text-meta text-content-secondary underline"
                 >
                   Remove
                 </button>
@@ -229,14 +229,14 @@ export function EditCandidateForm({
                 value={fact.fact}
                 onChange={(e) => updateFact(index, "fact", e.target.value)}
                 placeholder="The shortfall or pressure"
-                className={controlClasses({ className: "text-sm" })}
+                className={controlClasses({ className: "text-body" })}
               />
               <textarea
                 value={fact.detail}
                 onChange={(e) => updateFact(index, "detail", e.target.value)}
                 placeholder="The concrete detail or number"
                 rows={2}
-                className={controlClasses({ className: "text-sm" })}
+                className={controlClasses({ className: "text-body" })}
               />
             </div>
           ))}
@@ -279,7 +279,7 @@ export function EditCandidateForm({
       />
 
       {error && (
-        <div className="rounded-md border border-red-300 bg-surface-danger p-3 text-sm text-content-danger">
+        <div className="rounded-md border border-red-300 bg-surface-danger p-3 text-body text-content-danger">
           <p>{error}</p>
           {problems.length > 0 && (
             <ul className="mt-2 list-disc space-y-1 pl-4">

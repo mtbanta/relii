@@ -174,20 +174,20 @@ export default async function CompareCandidatesPage({
   const retainedLosers = decided ? rows.filter((row) => !row.enabled) : [];
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 px-8 pb-12 pt-6">
+    <main className="mx-auto max-w-page space-y-5 px-6 pb-10 pt-5">
       <div>
         <Link
           href="/instructor/scaffold"
-          className="text-sm text-content-secondary underline"
+          className="text-body text-content-secondary underline"
         >
           Back to Persona Scaffolding
         </Link>
         {/* An h2, not an h1: the page title in the shared instructor header
             above is the h1. */}
-        <h2 className="mt-2 text-section font-semibold">
+        <h2 className="mt-2 text-page-title font-medium">
           {decided ? "The chosen persona" : "Compare the candidates"}
         </h2>
-        <p className="mt-1 text-sm text-content-secondary">
+        <p className="mt-1 text-body text-content-secondary">
           {decided
             ? "You have already picked a winner from this generation. The comparison is kept below for reference."
             : "Two candidate buyer personas built from the same case. Read them field by field and decide which one is the more real, more teachable buyer."}
@@ -196,7 +196,7 @@ export default async function CompareCandidatesPage({
 
       {/* What state these rows are in, said plainly. */}
       {decided ? (
-        <div className="rounded-lg border border-green-300 bg-surface-success p-4 text-sm text-content-success">
+        <div className="rounded-lg border border-green-300 bg-surface-success p-4 text-body text-content-success">
           <p>
             <span className="font-medium">
               {winner.persona_name} is switched ON.
@@ -245,7 +245,7 @@ export default async function CompareCandidatesPage({
           )}
         </div>
       ) : (
-        <div className={cardClasses({ tone: "muted", className: "text-sm text-content-primary" })}>
+        <div className={cardClasses({ tone: "muted", className: "text-body text-content-primary" })}>
           <p>
             <span className="font-medium">Both are saved and turned OFF.</span>{" "}
             Neither can be assigned to a student or started by one, and neither
@@ -262,7 +262,7 @@ export default async function CompareCandidatesPage({
       )}
 
       {!decided && rows.length !== 2 && (
-        <p className="rounded-lg border border-amber-300 bg-surface-warning p-4 text-sm text-content-warning">
+        <p className="rounded-lg border border-amber-300 bg-surface-warning p-4 text-body text-content-warning">
           This generation has {rows.length} candidate
           {rows.length === 1 ? "" : "s"} saved rather than the usual two.
         </p>
@@ -270,15 +270,15 @@ export default async function CompareCandidatesPage({
 
       {/* The aligned comparison. One row per field, candidates side by side. */}
       <div className="overflow-x-auto">
-        <table className="w-full table-fixed border-collapse text-sm">
+        <table className="w-full table-fixed border-collapse text-body">
           <thead>
             <tr className="border-b border-line-secondary">
-              <th className="w-52 p-3 text-left align-bottom text-xs font-medium uppercase tracking-wide text-content-secondary">
+              <th className="w-52 p-3 text-left align-bottom text-meta font-medium uppercase tracking-wide text-content-secondary">
                 Field
               </th>
               {rows.map((row, i) => (
                 <th key={row.id} className="p-3 text-left align-bottom">
-                  <span className="block text-xs font-medium uppercase tracking-wide text-content-secondary">
+                  <span className="block text-meta font-medium uppercase tracking-wide text-content-secondary">
                     Candidate {i + 1}
                     {decided && row.enabled && (
                       <span className="ml-2 rounded bg-surface-success px-1.5 py-0.5 text-content-success">
@@ -286,7 +286,7 @@ export default async function CompareCandidatesPage({
                       </span>
                     )}
                   </span>
-                  <span className="block text-base font-semibold text-content-primary">
+                  <span className="block text-body font-semibold text-content-primary">
                     {row.persona_name}
                   </span>
                 </th>
@@ -306,7 +306,7 @@ export default async function CompareCandidatesPage({
                 <th className="p-3 text-left align-top font-medium text-content-primary">
                   {field.label}
                   {field.hint && (
-                    <span className="mt-1 block text-xs font-normal text-content-secondary">
+                    <span className="mt-1 block text-meta font-normal text-content-secondary">
                       {field.hint}
                     </span>
                   )}
@@ -364,10 +364,10 @@ export default async function CompareCandidatesPage({
           doc), so they are repeated here next to each other, because the whole
           question is which of the two is carrying the argument. */}
       <div className={cardClasses()}>
-        <h2 className="text-subsection font-medium">
+        <h2 className="text-section font-medium text-content-secondary">
           Where the argument landed
         </h2>
-        <p className="mt-1 text-sm text-content-secondary">
+        <p className="mt-1 text-body text-content-secondary">
           The win condition is read by the STUDENT in their briefing. What earns
           the win is hidden and is what actually gates the close. If the
           persuasive argument sits in the win condition, the student is handed
@@ -378,22 +378,22 @@ export default async function CompareCandidatesPage({
             const candidate = row.generation_fields?.candidate;
             return (
               <div key={row.id} className="space-y-3 rounded-md bg-surface-secondary p-3">
-                <h3 className="text-sm font-semibold">
+                <h3 className="text-body font-semibold">
                   Candidate {i + 1}: {row.persona_name}
                 </h3>
                 <div>
-                  <h4 className="text-xs font-medium uppercase tracking-wide text-content-secondary">
+                  <h4 className="text-meta font-medium uppercase tracking-wide text-content-secondary">
                     Win condition (shown to the student)
                   </h4>
-                  <p className="mt-1 text-sm text-content-primary">
+                  <p className="mt-1 text-body text-content-primary">
                     {candidate?.win_condition || <Missing />}
                   </p>
                 </div>
                 <div>
-                  <h4 className="text-xs font-medium uppercase tracking-wide text-content-secondary">
+                  <h4 className="text-meta font-medium uppercase tracking-wide text-content-secondary">
                     What earns the win (hidden)
                   </h4>
-                  <div className="mt-1 text-sm text-content-primary">
+                  <div className="mt-1 text-body text-content-primary">
                     <Bullets items={candidate?.earns_win} />
                   </div>
                 </div>
@@ -406,10 +406,10 @@ export default async function CompareCandidatesPage({
       {/* The assembled text: what would actually drive the role-play. Collapsed
           by default so it does not bury the comparison above. */}
       <div className="space-y-3">
-        <h2 className="text-subsection font-medium">
+        <h2 className="text-section font-medium text-content-secondary">
           The assembled scenario text
         </h2>
-        <p className="text-sm text-content-secondary">
+        <p className="text-body text-content-secondary">
           Built from the fields above by the fixed template, so the case you
           compare and the persona a student would meet cannot drift apart.
         </p>
@@ -418,23 +418,23 @@ export default async function CompareCandidatesPage({
             key={row.id}
             className={cardClasses()}
           >
-            <summary className="cursor-pointer text-sm font-medium">
+            <summary className="cursor-pointer text-body font-medium">
               Candidate {i + 1}: {row.persona_name}
             </summary>
             <div className="mt-4 space-y-4">
               <div>
-                <h3 className="text-xs font-medium uppercase tracking-wide text-content-secondary">
+                <h3 className="text-meta font-medium uppercase tracking-wide text-content-secondary">
                   Scenario context (what the student is briefed on)
                 </h3>
-                <p className="mt-1 whitespace-pre-wrap rounded-md bg-surface-secondary p-3 text-sm">
+                <p className="mt-1 whitespace-pre-wrap rounded-md bg-surface-secondary p-3 text-body">
                   {row.scenario_context}
                 </p>
               </div>
               <div>
-                <h3 className="text-xs font-medium uppercase tracking-wide text-content-secondary">
+                <h3 className="text-meta font-medium uppercase tracking-wide text-content-secondary">
                   Persona system prompt (what the AI is told to be)
                 </h3>
-                <p className="mt-1 whitespace-pre-wrap rounded-md bg-surface-secondary p-3 text-sm">
+                <p className="mt-1 whitespace-pre-wrap rounded-md bg-surface-secondary p-3 text-body">
                   {row.persona_system_prompt}
                 </p>
               </div>

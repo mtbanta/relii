@@ -16,6 +16,7 @@ import {
 import type { RubricItem, SessionScore, TranscriptTurn } from "@/lib/types";
 import { buttonClasses } from "@/components/ui/button";
 import { cardClasses } from "@/components/ui/card";
+import { Icon, IconArrowLeft } from "@/components/ui/icon";
 
 export default async function ResultsPage({
   params,
@@ -115,15 +116,15 @@ export default async function ResultsPage({
   const takenOn = dateTaken(session);
 
   return (
-    <main className="mx-auto max-w-5xl p-8">
+    <main className="mx-auto max-w-page px-6 pb-10 pt-5">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-page-title font-semibold">Your results</h1>
-          <p className="mt-0.5 text-sm text-content-primary">{displayName(student)}</p>
+          <h1 className="text-page-title font-medium">Your results</h1>
+          <p className="mt-0.5 text-body text-content-primary">{displayName(student)}</p>
           {hasName(student) && (
-            <p className="text-xs text-content-tertiary">{user.email}</p>
+            <p className="text-meta text-content-tertiary">{user.email}</p>
           )}
-          <p className="mt-1 text-sm text-content-secondary">
+          <p className="mt-1 text-body text-content-secondary">
             {scenario?.title ?? "Practice session"}
           </p>
           {/* PD-5: directly under the scenario title, the length of THIS one
@@ -131,20 +132,21 @@ export default async function ResultsPage({
               own length when the camera was on, and the elapsed conversation
               time for a text session or a call with the camera off. The date
               matches the one the instructor's submission view shows. */}
-          <p className="mt-1 text-xs text-content-secondary">
+          <p className="mt-1 text-meta text-content-secondary">
             {RECORDING_LENGTH_LABEL}:{" "}
             <span className="tabular-nums">
               {recordingLengthText(session.recorded_seconds)}
             </span>
           </p>
           {takenOn && (
-            <p className="mt-0.5 text-xs text-content-secondary">Date Taken: {takenOn}</p>
+            <p className="mt-0.5 text-meta text-content-secondary">Date Taken: {takenOn}</p>
           )}
         </div>
         <Link
           href="/student"
           className={buttonClasses({ variant: "secondary", size: "sm", className: "print:hidden" })}
         >
+          <Icon icon={IconArrowLeft} />
           Back to home
         </Link>
       </header>
@@ -154,10 +156,10 @@ export default async function ResultsPage({
         // to score. Say so plainly, so an unscored result never looks like a
         // score that failed to load.
         <div className={cardClasses({ tone: "muted", padding: "lg", className: "mb-6" })}>
-          <p className="text-sm font-medium">
+          <p className="text-body font-medium">
             Conversation-only practice, no score
           </p>
-          <p className="mt-1 text-sm text-content-secondary">
+          <p className="mt-1 text-body text-content-secondary">
             This case is for practising the conversation itself, so it is not
             graded and no score is given. Your full transcript
             {isVoice ? " and recording are" : " is"} saved below.
@@ -165,17 +167,17 @@ export default async function ResultsPage({
         </div>
       ) : (
         <div className={cardClasses({ tone: "muted", padding: "lg", className: "mb-6" })}>
-          <p className="text-sm text-content-secondary">
+          <p className="text-body text-content-secondary">
             Content score ({isVoice ? "voice" : "text"} role-play)
           </p>
-          <p className="text-3xl font-semibold">
+          <p className="text-stat font-medium">
             {score.total}
-            <span className="text-lg font-normal text-content-secondary">
+            <span className="text-card-title font-normal text-content-secondary">
               {" "}
               / {score.max_total}
             </span>
           </p>
-          <p className="mt-1 text-xs text-content-secondary">
+          <p className="mt-1 text-meta text-content-secondary">
             Scored by AI on the discovery content items. Delivery items (tone,
             pace, and other spoken-only points) are added in a later stage.
           </p>
@@ -196,7 +198,7 @@ export default async function ResultsPage({
           so the saved PDF is a clean score-and-transcript sheet. */}
       {isVoice && (
         <section className="mb-6 print:hidden">
-          <h2 className="mb-3 text-subsection font-medium">Your recording</h2>
+          <h2 className="mb-2 text-section font-medium text-content-secondary">Your recording</h2>
           {videoUrl ? (
             <video
               src={videoUrl}
@@ -205,13 +207,13 @@ export default async function ResultsPage({
               className="w-full max-w-2xl rounded-lg border border-line-tertiary bg-black"
             />
           ) : videoError === "1" ? (
-            <p className="rounded-md border border-amber-300 bg-surface-warning p-3 text-sm text-content-warning">
+            <p className="rounded-md border border-amber-300 bg-surface-warning p-3 text-body text-content-warning">
               Your recording could not be saved this time, but your{" "}
               {conversationOnly ? "transcript" : "score"} below was saved. You
               can run another practice if you want a recording.
             </p>
           ) : (
-            <p className="text-sm text-content-secondary">
+            <p className="text-body text-content-secondary">
               No recording was saved for this session (the camera was off).
             </p>
           )}
@@ -231,7 +233,7 @@ export default async function ResultsPage({
             instructor call the same list of items by the same name. */}
         {score && (
         <section>
-          <h2 className="mb-3 text-subsection font-medium">Rubric score</h2>
+          <h2 className="mb-2 text-section font-medium text-content-secondary">Rubric score</h2>
           <ul className="space-y-3">
             {score.items.map((item) => {
               const meta = labelById.get(item.id);
@@ -241,19 +243,19 @@ export default async function ResultsPage({
                   className={cardClasses()}
                 >
                   <div className="flex items-baseline justify-between gap-3">
-                    <h3 className="text-sm font-medium">
+                    <h3 className="text-body font-medium">
                       {meta?.label ?? item.id}
                     </h3>
-                    <span className="shrink-0 text-sm font-semibold tabular-nums">
+                    <span className="shrink-0 text-body font-semibold tabular-nums">
                       {item.points_earned}/{item.points_max}
                     </span>
                   </div>
                   {meta?.category && (
-                    <p className="mt-0.5 text-xs text-content-tertiary">
+                    <p className="mt-0.5 text-meta text-content-tertiary">
                       {meta.category}
                     </p>
                   )}
-                  <p className="mt-2 text-sm text-content-secondary">{item.comment}</p>
+                  <p className="mt-2 text-body text-content-secondary">{item.comment}</p>
                 </li>
               );
             })}
@@ -263,16 +265,16 @@ export default async function ResultsPage({
 
         {/* Transcript */}
         <section>
-          <h2 className="mb-3 text-subsection font-medium">Transcript</h2>
+          <h2 className="mb-2 text-section font-medium text-content-secondary">Transcript</h2>
           <div className={cardClasses({ className: "space-y-3" })}>
             {transcript.map((turn, i) => (
               <div key={i}>
-                <p className="text-xs font-medium text-content-tertiary">
+                <p className="text-meta font-medium text-content-tertiary">
                   {turn.role === "student"
                     ? "You"
                     : (scenario?.persona_name ?? "Customer")}
                 </p>
-                <p className="text-sm whitespace-pre-wrap text-content-primary">
+                <p className="text-body whitespace-pre-wrap text-content-primary">
                   {turn.text}
                 </p>
               </div>

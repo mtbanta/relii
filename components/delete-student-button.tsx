@@ -59,14 +59,14 @@ export function DeleteStudentButton({
     return (
       <div className="flex items-center justify-between gap-3">
         <span className="min-w-0">
-          <span className="block text-sm">{name || email}</span>
+          <span className="block text-body">{name || email}</span>
           {hasRealName && (
-            <span className="block text-xs text-content-tertiary">{email}</span>
+            <span className="block text-meta text-content-tertiary">{email}</span>
           )}
         </span>
         <button
           onClick={() => setConfirming(true)}
-          className="shrink-0 rounded-md border border-red-300 px-3 py-1 text-sm text-content-danger hover:bg-surface-danger"
+          className="shrink-0 rounded-md border border-red-300 px-3 py-1 text-body text-content-danger hover:bg-surface-danger"
         >
           Delete
         </button>
@@ -76,7 +76,7 @@ export function DeleteStudentButton({
 
   // Confirmation state: spell out what gets removed, require a second click.
   return (
-    <div className="text-sm">
+    <div className="text-body">
       <p className="mb-2 text-content-danger">
         Delete <span className="font-medium">{label}</span>? This permanently
         removes their account, all of their sessions, all of their recorded

@@ -52,10 +52,11 @@ const CONTROL_TONES: Record<ControlTone, string> = {
     "border border-content-danger focus:border-content-danger focus:ring-content-danger/30",
 };
 
+// PD-8c density: md matches the mockup's control, 13px with 9px by 12px padding.
 const CONTROL_SIZES: Record<ControlSize, string> = {
-  xs: "px-2 py-0.5",
-  sm: "px-3 py-1.5 text-sm",
-  md: "px-3 py-2",
+  xs: "px-2 py-0.5 text-micro",
+  sm: "px-2.5 py-1 text-meta",
+  md: "px-3 py-2 text-body",
 };
 
 // The classes for one control, on their own.
@@ -135,8 +136,8 @@ export function Textarea({
 // carries only the text beside it.
 export function fileInputClasses(className = ""): string {
   return [
-    "block w-full text-sm text-content-secondary",
-    "file:mr-3 file:rounded-md file:border file:border-line-secondary file:bg-surface-primary file:px-3 file:py-1.5 file:text-sm file:text-content-primary",
+    "block w-full text-body text-content-secondary",
+    "file:mr-3 file:rounded-md file:border file:border-line-secondary file:bg-surface-primary file:px-3 file:py-1.5 file:text-body file:text-content-primary",
     className,
   ]
     .filter(Boolean)
@@ -159,7 +160,7 @@ export function FileInput({
 // Spacing is left to the caller, because a label that WRAPS its control needs no
 // bottom margin while a label that sits above one does (pass "mb-1").
 export function labelClasses(className = ""): string {
-  return ["block text-sm font-medium text-content-primary", className]
+  return ["block text-meta font-medium text-content-primary", className]
     .filter(Boolean)
     .join(" ");
 }
@@ -178,7 +179,9 @@ export function Label({
 
 // The short explanatory line under a control ("Leave blank for no due date").
 export function helpTextClasses(className = ""): string {
-  return ["text-xs text-content-secondary", className].filter(Boolean).join(" ");
+  return ["text-micro text-content-secondary", className]
+    .filter(Boolean)
+    .join(" ");
 }
 
 export function HelpText({

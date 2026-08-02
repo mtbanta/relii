@@ -5,7 +5,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { SignOutButton } from "@/components/sign-out-button";
+import { AppHeader } from "@/components/app-header";
 import { PracticeButton } from "@/components/practice-button";
 import { StartAssignmentButton } from "@/components/start-assignment-button";
 import { SubmitPracticeButton } from "@/components/submit-practice-button";
@@ -13,6 +13,13 @@ import { DeletePracticeButton } from "@/components/delete-practice-button";
 import { NameGate } from "@/components/name-gate";
 import { Card, cardClasses } from "@/components/ui/card";
 import { buttonClasses } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Icon,
+  IconVideo,
+  IconMessage,
+  IconLock,
+} from "@/components/ui/icon";
 import { KEPT_PRACTICES } from "@/lib/practice";
 import { displayName, hasName } from "@/lib/name";
 import { isLockedUntil, formatAvailableDate } from "@/lib/available-date";
@@ -202,21 +209,22 @@ export default async function StudentHome() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl p-8">
-      <header className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-page-title font-semibold text-content-primary">
-            Student home
-          </h1>
-          <p className="text-sm text-content-secondary">
-            {displayName({ ...profile, email: user.email ?? "" })}
-          </p>
-          <p className="text-xs text-content-tertiary">{user.email}</p>
-        </div>
-        <SignOutButton />
-      </header>
+    <main className="mx-auto max-w-page px-6 pb-10 pt-5">
+      {/* PD-8c: the same shell the instructor side uses, so the two surfaces
+          read as one product. The wordmark and the compact user block replace
+          the stacked title, name and email, which means "Your assignments" is
+          now the first real thing on the page rather than the fourth. */}
+      <AppHeader
+        name={displayName({ ...profile, email: user.email ?? "" })}
+        email={user.email ?? ""}
+        homeHref="/student"
+      />
 
-      <h2 className="mb-3 text-subsection font-medium text-content-primary">
+      <h1 className="mt-4 mb-1 text-page-title font-medium text-content-primary">
+        Student home
+      </h1>
+
+      <h2 className="mt-5 mb-2 text-section font-medium text-content-secondary">
         Your assignments
       </h2>
 
@@ -236,7 +244,7 @@ export default async function StudentHome() {
             className={cardClasses({
               tone: "muted",
               padding: "sm",
-              className: "mb-4 text-sm text-content-secondary",
+              className: "mb-4 text-body text-content-secondary",
             })}
           >
             After you finish a practice or a submission, video and transcript
@@ -291,7 +299,7 @@ export default async function StudentHome() {
                   {a.title}
                 </h3>
                 <p
-                  className={`mt-0.5 text-sm ${locked ? "text-content-tertiary" : "text-content-secondary"}`}
+                  className={`mt-0.5 text-body ${locked ? "text-content-tertiary" : "text-content-secondary"}`}
                 >
                   {a.scenarios?.title ?? "Scenario"}
                   {a.scenarios?.persona_name
@@ -306,7 +314,7 @@ export default async function StudentHome() {
                 </p>
                 {a.instructions && (
                   <p
-                    className={`mt-3 text-sm leading-relaxed ${locked ? "text-content-tertiary" : "text-content-secondary"}`}
+                    className={`mt-3 text-body leading-relaxed ${locked ? "text-content-tertiary" : "text-content-secondary"}`}
                   >
                     {a.instructions}
                   </p>
@@ -328,13 +336,15 @@ export default async function StudentHome() {
                     <p
                       className={cardClasses({
                         padding: "sm",
-                        className: "text-sm font-medium text-content-secondary",
+                        className:
+                          "inline-flex items-center gap-1.5 text-body font-medium text-content-secondary",
                       })}
                     >
+                      <Icon icon={IconLock} className="text-content-tertiary" />
                       Locked. Available on {availableOn}.
                     </p>
                   ) : practiceOnly ? (
-                    <p className="text-sm text-content-secondary">
+                    <p className="text-body text-content-secondary">
                       This one is for conversation practice only. There is
                       nothing to submit and no score.
                     </p>
@@ -344,7 +354,7 @@ export default async function StudentHome() {
                           summary line (this card shows the submission as a line,
                           not as a table row). It is this one submission's own
                           length, never a total across attempts. */}
-                      <span className="text-sm text-content-success">
+                      <span className="text-body text-content-success">
                         Submitted
                         {submission?.score_total != null &&
                         submission.score?.max_total != null
@@ -362,7 +372,7 @@ export default async function StudentHome() {
                       </Link>
                     </div>
                   ) : interrupted ? (
-                    <p className="text-sm text-content-warning">
+                    <p className="text-body text-content-warning">
                       Your submission was interrupted. A graded submission is a
                       one-time attempt and cannot be resumed. Please contact your
                       instructor to have it reset.
@@ -374,7 +384,7 @@ export default async function StudentHome() {
                           graded submission is now made by submitting a completed
                           voice + video practice from the list below. */}
                       <StartAssignmentButton assignmentId={a.id} disabled />
-                      <p className="mt-2 text-xs text-content-tertiary">
+                      <p className="mt-2 text-meta text-content-tertiary">
                         Start assignment is temporarily disabled.
                       </p>
                     </>
@@ -387,10 +397,10 @@ export default async function StudentHome() {
                     are not rendered at all, so there is nothing to click. */}
                 {!submitted && !locked && (
                   <div className="mt-5 border-t border-line-tertiary pt-4">
-                    <p className="text-sm font-medium text-content-primary">
+                    <p className="text-body font-medium text-content-primary">
                       Practice this assignment
                     </p>
-                    <p className="mt-0.5 text-xs text-content-secondary">
+                    <p className="mt-0.5 text-meta text-content-secondary">
                       Practice as many times as you like. We keep your last{" "}
                       {KEPT_PRACTICES}.
                     </p>
@@ -409,7 +419,7 @@ export default async function StudentHome() {
                     hidden from the student who did it. */}
                 {(!locked || kept.length > 0) && (
                 <div className="mt-5 border-t border-line-tertiary pt-4">
-                  <p className="text-sm text-content-secondary">
+                  <p className="text-body text-content-secondary">
                     Saved practices: {kept.length} of {KEPT_PRACTICES}
                   </p>
                   {kept.length > 0 && (
@@ -417,28 +427,39 @@ export default async function StudentHome() {
                       {kept.map((p) => (
                         <li
                           key={p.id}
-                          className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm"
+                          className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-meta"
                         >
-                          <span className="text-content-primary">
+                          {/* The mode icon is decoration beside its own label,
+                              so it is aria-hidden and the row still reads as
+                              "voice + video" to a screen reader. */}
+                          <span className="inline-flex items-center gap-1.5 text-content-primary">
+                            <Icon
+                              icon={
+                                p.mode === "voice_video"
+                                  ? IconVideo
+                                  : IconMessage
+                              }
+                              className="text-content-tertiary"
+                            />
                             {modeLabel(p.mode)}
                           </span>
-                          <span className="text-xs text-content-tertiary">
+                          <span className="text-meta text-content-tertiary">
                             {formatShortDate(p.created_at)}
                           </span>
-                          <span className="tabular-nums text-content-secondary">
+                          <Badge className="tabular-nums">
                             {practiceOnly
                               ? "no score"
                               : p.score_total != null &&
                                   p.score?.max_total != null
                                 ? `${p.score_total} / ${p.score.max_total}`
                                 : "-"}
-                          </span>
+                          </Badge>
                           {/* PD-5: how long THIS practice ran. For a voice +
                               video practice with the camera on that is the
                               recording's length; for a text practice, or one
                               where the camera was off, it is the elapsed
                               conversation time. */}
-                          <span className="text-xs text-content-secondary">
+                          <span className="text-meta text-content-secondary">
                             {RECORDING_LENGTH_LABEL}{" "}
                             <span className="tabular-nums">
                               {recordingLengthText(p.recorded_seconds)}
@@ -447,7 +468,7 @@ export default async function StudentHome() {
                           <span className="ml-auto flex items-center gap-3">
                             <Link
                               href={`/student/session/${p.id}/results`}
-                              className="text-xs text-content-secondary hover:underline"
+                              className="text-meta text-content-secondary hover:underline"
                             >
                               Review
                             </Link>

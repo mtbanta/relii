@@ -12,9 +12,9 @@ export function LockedSubmission({
   assignmentTitle?: string;
 }) {
   return (
-    <div className="mx-auto max-w-md py-16 text-center">
-      <h1 className="text-section font-semibold">Submission interrupted</h1>
-      <p className="mt-3 text-sm leading-relaxed text-content-secondary">
+    <div className="mx-auto max-w-page py-16 text-center">
+      <h1 className="text-page-title font-medium">Submission interrupted</h1>
+      <p className="mt-3 text-body leading-relaxed text-content-secondary">
         Your graded submission
         {assignmentTitle ? (
           <>
@@ -24,7 +24,7 @@ export function LockedSubmission({
         was left before it was submitted. A graded submission is a single,
         one-time attempt, so it cannot be resumed or restarted here.
       </p>
-      <p className="mt-3 text-sm leading-relaxed text-content-secondary">
+      <p className="mt-3 text-body leading-relaxed text-content-secondary">
         Please contact your instructor if you need this attempt reset.
       </p>
       <Link

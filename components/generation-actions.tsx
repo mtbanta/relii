@@ -70,7 +70,7 @@ export function GenerationActions({
     if (confirming !== "disable") {
       return (
         <div className="shrink-0 text-right">
-          <span className="mb-1 block text-xs font-medium text-content-success">
+          <span className="mb-1 block text-meta font-medium text-content-success">
             Chosen and ON
           </span>
           <Button
@@ -80,12 +80,12 @@ export function GenerationActions({
           >
             Turn off
           </Button>
-          {error && <p className="mt-1 text-xs text-content-danger">{error}</p>}
+          {error && <p className="mt-1 text-meta text-content-danger">{error}</p>}
         </div>
       );
     }
     return (
-      <div className="w-64 shrink-0 rounded-md border border-line-tertiary bg-surface-secondary p-2 text-xs">
+      <div className="w-64 shrink-0 rounded-md border border-line-tertiary bg-surface-secondary p-2 text-meta">
         <p className="mb-2 text-content-primary">
           Turn <span className="font-medium">{liveRow.personaName}</span> off? It
           leaves the create-assignment list and no new session can be started
@@ -124,7 +124,7 @@ export function GenerationActions({
   // ---- ROLE-PLAYED: no delete is possible ---------------------------------
   if (usedRow) {
     return (
-      <span className="w-40 shrink-0 text-right text-xs text-content-secondary">
+      <span className="w-40 shrink-0 text-right text-meta text-content-secondary">
         Role-played, so it cannot be deleted. It is already switched off.
       </span>
     );
@@ -141,12 +141,12 @@ export function GenerationActions({
         >
           Discard
         </Button>
-        {error && <p className="mt-1 text-xs text-content-danger">{error}</p>}
+        {error && <p className="mt-1 text-meta text-content-danger">{error}</p>}
       </div>
     );
   }
   return (
-    <div className="w-64 shrink-0 rounded-md border border-line-tertiary bg-surface-secondary p-2 text-xs">
+    <div className="w-64 shrink-0 rounded-md border border-line-tertiary bg-surface-secondary p-2 text-meta">
       <p className="mb-2 text-content-primary">
         Permanently delete{" "}
         <span className="font-medium">

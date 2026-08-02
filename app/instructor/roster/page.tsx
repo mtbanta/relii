@@ -50,11 +50,11 @@ export default async function InstructorRoster() {
   );
 
   return (
-    <main className="mx-auto max-w-5xl px-8 pb-12 pt-6">
-      <h2 className="mb-1 text-section font-semibold text-content-primary">
+    <main className="mx-auto max-w-page px-6 pb-10 pt-5">
+      <h2 className="mb-1 text-page-title font-medium text-content-primary">
         Roster
       </h2>
-      <p className="mb-4 text-sm text-content-secondary">
+      <p className="mb-4 text-body text-content-secondary">
         Everyone with access to Relii, grouped by status. Registered users have
         signed up; pending invites are on the invite list but have not registered
         yet. Add more people on the{" "}
@@ -66,7 +66,7 @@ export default async function InstructorRoster() {
       </p>
 
       {/* Registered students: the existing Delete action, unchanged. */}
-      <h3 className="mb-2 text-sm font-medium text-content-primary">
+      <h3 className="mb-2 text-body font-medium text-content-primary">
         Registered students{" "}
         <span className="font-normal text-content-tertiary">({students.length})</span>
       </h3>
@@ -83,13 +83,13 @@ export default async function InstructorRoster() {
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-content-secondary">No students have registered yet.</p>
+        <p className="text-body text-content-secondary">No students have registered yet.</p>
       )}
 
       {/* Registered instructors: display only. There is no delete for an
           instructor (the delete-student route refuses a non-student), and you
           cannot delete yourself. Your own account is marked "(you)". */}
-      <h3 className="mb-2 mt-6 text-sm font-medium text-content-primary">
+      <h3 className="mb-2 mt-6 text-body font-medium text-content-primary">
         Registered instructors{" "}
         <span className="font-normal text-content-tertiary">
           ({registeredInstructors.length})
@@ -100,20 +100,20 @@ export default async function InstructorRoster() {
           {registeredInstructors.map((p) => (
             <li
               key={p.id}
-              className="flex flex-wrap items-center gap-x-2 rounded-lg border border-line-tertiary p-3 text-sm"
+              className="flex flex-wrap items-center gap-x-2 rounded-lg border border-line-tertiary p-3 text-body"
             >
               <span>{displayName(p)}</span>
               {p.id === user.id && (
-                <span className="text-xs text-content-tertiary">(you)</span>
+                <span className="text-meta text-content-tertiary">(you)</span>
               )}
               {hasName(p) && (
-                <span className="text-xs text-content-tertiary">· {p.email}</span>
+                <span className="text-meta text-content-tertiary">· {p.email}</span>
               )}
             </li>
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-content-secondary">
+        <p className="text-body text-content-secondary">
           No instructors have registered yet.
         </p>
       )}
@@ -121,7 +121,7 @@ export default async function InstructorRoster() {
       {/* Pending invites: on the invite list but not registered yet. Either
           role can be pending. Each has an Un-invite action that removes just
           that one invite-list row (verified pending, server-side). */}
-      <h3 className="mb-2 mt-6 text-sm font-medium text-content-primary">
+      <h3 className="mb-2 mt-6 text-body font-medium text-content-primary">
         Invited, pending{" "}
         <span className="font-normal text-content-tertiary">
           ({pendingInvites.length})
@@ -136,7 +136,7 @@ export default async function InstructorRoster() {
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-content-secondary">No pending invites.</p>
+        <p className="text-body text-content-secondary">No pending invites.</p>
       )}
     </main>
   );

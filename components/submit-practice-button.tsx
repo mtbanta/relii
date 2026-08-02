@@ -64,7 +64,7 @@ export function SubmitPracticeButton({
   }
 
   return (
-    <div className="mt-1 w-full rounded-md border border-amber-300 bg-surface-warning p-3 text-xs">
+    <div className="mt-1 w-full rounded-md border border-amber-300 bg-surface-warning p-3 text-meta">
       <p className="text-content-warning">
         Submit this practice as your graded assignment? It becomes your official
         submission

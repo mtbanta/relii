@@ -74,7 +74,7 @@ export function AddEmailForm() {
       </Button>
 
       {message && (
-        <p className={`text-sm ${isError ? "text-content-danger" : "text-content-success"}`}>
+        <p className={`text-body ${isError ? "text-content-danger" : "text-content-success"}`}>
           {message}
         </p>
       )}

@@ -128,7 +128,7 @@ export function PracticeClock({
   return (
     <span
       aria-label={`Elapsed time ${label} of a ${targetLabel} meeting`}
-      className="font-mono text-base font-semibold tabular-nums text-content-primary"
+      className="font-mono text-body font-semibold tabular-nums text-content-primary"
     >
       {label}
       <span className="font-normal text-content-tertiary"> / {targetLabel}</span>

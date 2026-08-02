@@ -58,7 +58,7 @@ export function PracticeButton({
         {loading ? "Starting..." : label}
       </Button>
       {error && (
-        <p className="mt-2 w-full text-sm text-content-danger">{error}</p>
+        <p className="mt-2 w-full text-body text-content-danger">{error}</p>
       )}
     </>
   );

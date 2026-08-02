@@ -193,8 +193,8 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
     return (
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-medium">{assignment.title}</p>
-          <p className="mt-0.5 text-xs text-content-secondary">
+          <p className="text-body font-medium">{assignment.title}</p>
+          <p className="mt-0.5 text-meta text-content-secondary">
             {assignment.scenarioTitle ?? "Scenario"}
             {assignment.personaName ? ` (with ${assignment.personaName})` : ""}{" "}
             &middot; {modeLabel(assignment.required_mode)}
@@ -203,7 +203,7 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
             {due ? ` · due ${due}` : ""}
           </p>
           {assignment.instructions && (
-            <p className="mt-1.5 text-sm text-content-secondary">
+            <p className="mt-1.5 text-body text-content-secondary">
               {assignment.instructions}
             </p>
           )}
@@ -259,7 +259,7 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
           value={durationMinutes}
           onChange={(e) => setDurationMinutes(e.target.value)}
         />
-        <p className="mt-1 text-xs text-content-tertiary">
+        <p className="mt-1 text-meta text-content-tertiary">
           How long the role-play runs, from {MIN_MEETING_MINUTES} to{" "}
           {MAX_MEETING_MINUTES} minutes. The practice clock counts up and the
           practice ends automatically at this length. Leave blank for{" "}
@@ -276,7 +276,7 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
           value={availableDate}
           onChange={(e) => setAvailableDate(e.target.value)}
         />
-        <p className="mt-1 text-xs text-content-tertiary">
+        <p className="mt-1 text-meta text-content-tertiary">
           Students see this assignment listed but locked until this date. Leave
           blank to make it available now.
         </p>
@@ -296,7 +296,7 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
       {/* Scenario and mode are fixed. They are shown here read-only so the
           instructor can see them, but there is no way to change them: existing
           sessions and scores were graded under them. */}
-      <div className="rounded-md border border-line-tertiary bg-surface-secondary p-3 text-xs text-content-secondary">
+      <div className="rounded-md border border-line-tertiary bg-surface-secondary p-3 text-meta text-content-secondary">
         <p>
           <span className="font-medium text-content-secondary">Scenario:</span>{" "}
           {assignment.scenarioTitle ?? "Scenario"}
@@ -331,7 +331,7 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
       </div>
 
       {message && (
-        <p className={`text-sm ${isError ? "text-content-danger" : "text-content-success"}`}>
+        <p className={`text-body ${isError ? "text-content-danger" : "text-content-success"}`}>
           {message}
         </p>
       )}

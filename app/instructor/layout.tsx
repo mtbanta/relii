@@ -13,7 +13,7 @@
 // role for itself (it needs the user's id for its own reads anyway), but does
 // NOT re-check the name, because a page that redirected on a missing name would
 // bounce against this gate forever.
-import { SignOutButton } from "@/components/sign-out-button";
+import { AppHeader } from "@/components/app-header";
 import { InstructorNav } from "@/components/instructor-nav";
 import { NameGate } from "@/components/name-gate";
 import { requireInstructor } from "@/lib/instructor-auth";
@@ -34,20 +34,13 @@ export default async function InstructorLayout({
 
   return (
     <>
-      <div className="mx-auto max-w-5xl px-8 pt-8">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-page-title font-semibold text-content-primary">
-              Instructor dashboard
-            </h1>
-            <p className="text-sm text-content-secondary">
-              {displayName({ ...profile, email: user.email ?? "" })}
-            </p>
-            <p className="text-xs text-content-tertiary">{user.email}</p>
-          </div>
-          <SignOutButton />
-        </header>
-
+      <div className="mx-auto max-w-page px-6">
+        <AppHeader
+          name={displayName({ ...profile, email: user.email ?? "" })}
+          email={user.email ?? ""}
+          qualifier="instructor"
+          homeHref="/instructor"
+        />
         <InstructorNav />
       </div>
 

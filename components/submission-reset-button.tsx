@@ -79,14 +79,14 @@ export function SubmissionResetButton({
       return (
         <button
           onClick={() => setConfirming(true)}
-          className="rounded-md border border-amber-300 px-2 py-0.5 text-xs text-content-warning hover:bg-surface-warning"
+          className="rounded-md border border-amber-300 px-2 py-0.5 text-meta text-content-warning hover:bg-surface-warning"
         >
           Reset
         </button>
       );
     }
     return (
-      <div className="mt-1 rounded-md border border-amber-200 bg-surface-warning p-2 text-xs">
+      <div className="mt-1 rounded-md border border-amber-200 bg-surface-warning p-2 text-meta">
         <p className="mb-2 text-content-warning">
           Reset the interrupted attempt for{" "}
           <span className="font-medium">{studentEmail}</span> on{" "}
@@ -127,14 +127,14 @@ export function SubmissionResetButton({
     return (
       <button
         onClick={() => setConfirming(true)}
-        className="rounded-md border border-amber-300 px-2 py-0.5 text-xs text-content-warning hover:bg-surface-warning"
+        className="rounded-md border border-amber-300 px-2 py-0.5 text-meta text-content-warning hover:bg-surface-warning"
       >
         Allow retake
       </button>
     );
   }
   return (
-    <div className="mt-1 rounded-md border border-amber-200 bg-surface-warning p-2 text-xs">
+    <div className="mt-1 rounded-md border border-amber-200 bg-surface-warning p-2 text-meta">
       <p className="mb-2 text-content-warning">
         Allow <span className="font-medium">{studentEmail}</span> to retake{" "}
         <span className="font-medium">{assignmentTitle}</span>? This returns their

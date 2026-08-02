@@ -25,6 +25,8 @@ import {
 } from "@/lib/recording-length";
 import type { SessionScore } from "@/lib/types";
 import { cardClasses } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Icon, IconEye, IconVideo, IconFileText, IconTable } from "@/components/ui/icon";
 
 // Compact mode label for the submissions table (matches the mockup: "V+V").
 function modeShort(mode: string): string {
@@ -173,10 +175,10 @@ export default async function InstructorSubmissions({
   const awaitingReview = scored.length;
 
   return (
-    <main className="mx-auto max-w-5xl px-8 pb-12 pt-6">
+    <main className="mx-auto max-w-page px-6 pb-10 pt-5">
       <section>
         <div className="mb-4">
-          <h2 className="text-section font-semibold text-content-primary">
+          <h2 className="text-page-title font-medium text-content-primary">
             Submissions
           </h2>
           {selectorList.length > 0 && selected && (
@@ -188,7 +190,7 @@ export default async function InstructorSubmissions({
                   agreed label for the control, not a filter. */}
               <label
                 htmlFor="assignment-selector"
-                className="block text-sm font-medium text-content-primary"
+                className="block text-body font-medium text-content-primary"
               >
                 Active Assignments
               </label>
@@ -206,7 +208,7 @@ export default async function InstructorSubmissions({
         </div>
 
         {selectorList.length === 0 || !selected ? (
-          <p className={cardClasses({ className: "text-sm text-content-secondary" })}>
+          <p className={cardClasses({ className: "text-body text-content-secondary" })}>
             No assignments yet. Create one on the{" "}
             <Link href="/instructor/assignments" className="underline">
               Manage Assignments
@@ -217,26 +219,26 @@ export default async function InstructorSubmissions({
           <>
             {/* Three summary tiles. */}
             <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className={cardClasses({ tone: "muted" })}>
-                <p className="text-xs text-content-secondary">Submissions</p>
-                <p className="mt-1 text-2xl font-semibold tabular-nums">
+              <div className={cardClasses({ tone: "muted", bordered: false, padding: "none", className: "px-3 py-2.5" })}>
+                <p className="text-meta text-content-secondary">Submissions</p>
+                <p className="mt-1 text-stat font-medium tabular-nums">
                   {submittedCount}{" "}
-                  <span className="text-sm font-normal text-content-tertiary">
+                  <span className="text-meta font-normal text-content-tertiary">
                     / {enrolledCount}
                   </span>
                 </p>
-                <p className="mt-0.5 text-xs text-content-tertiary">
+                <p className="mt-0.5 text-micro text-content-tertiary">
                   of {enrolledCount} enrolled
                 </p>
               </div>
 
-              <div className={cardClasses({ tone: "muted" })}>
-                <p className="text-xs text-content-secondary">Average score</p>
-                <p className="mt-1 text-2xl font-semibold tabular-nums">
+              <div className={cardClasses({ tone: "muted", bordered: false, padding: "none", className: "px-3 py-2.5" })}>
+                <p className="text-meta text-content-secondary">Average score</p>
+                <p className="mt-1 text-stat font-medium tabular-nums">
                   {avgTotal != null && maxTotal != null ? (
                     <>
                       {avgTotal}{" "}
-                      <span className="text-sm font-normal text-content-tertiary">
+                      <span className="text-meta font-normal text-content-tertiary">
                         / {maxTotal}
                       </span>
                     </>
@@ -244,39 +246,39 @@ export default async function InstructorSubmissions({
                     <span className="text-content-tertiary">-</span>
                   )}
                 </p>
-                <p className="mt-0.5 text-xs text-content-tertiary">graded so far</p>
+                <p className="mt-0.5 text-micro text-content-tertiary">graded so far</p>
               </div>
 
-              <div className={cardClasses({ tone: "muted" })}>
-                <p className="text-xs text-content-secondary">Awaiting review</p>
-                <p className="mt-1 text-2xl font-semibold tabular-nums">
+              <div className={cardClasses({ tone: "muted", bordered: false, padding: "none", className: "px-3 py-2.5" })}>
+                <p className="text-meta text-content-secondary">Awaiting review</p>
+                <p className="mt-1 text-stat font-medium tabular-nums">
                   {awaitingReview}
                 </p>
-                <p className="mt-0.5 text-xs text-content-tertiary">need finalizing</p>
+                <p className="mt-0.5 text-micro text-content-tertiary">need finalizing</p>
               </div>
             </div>
 
             {/* Submissions table (kind = submission only). */}
             {rows.length === 0 ? (
-              <p className={cardClasses({ className: "text-sm text-content-secondary" })}>
+              <p className={cardClasses({ className: "text-body text-content-secondary" })}>
                 No submissions for this assignment yet.
               </p>
             ) : (
               <div className="overflow-x-auto rounded-lg border border-line-tertiary">
-                <table className="w-full text-sm">
+                <table className="w-full text-meta">
                   <thead>
-                    <tr className="border-b border-line-tertiary text-left text-xs text-content-secondary">
-                      <th className="p-3 font-medium">Student</th>
-                      <th className="p-3 font-medium">Assignment</th>
-                      <th className="p-3 font-medium">Mode</th>
+                    <tr className="border-b border-line-tertiary text-left text-micro text-content-secondary">
+                      <th className="px-2.5 py-1.5 font-medium">Student</th>
+                      <th className="px-2.5 py-1.5 font-medium">Assignment</th>
+                      <th className="px-2.5 py-1.5 font-medium">Mode</th>
                       {/* PD-5. Sits next to Mode because the two are read
                           together: "V+V, 12:34" is the shape of the attempt. */}
-                      <th className="p-3 font-medium">
+                      <th className="px-2.5 py-1.5 font-medium">
                         {RECORDING_LENGTH_LABEL}
                       </th>
-                      <th className="p-3 font-medium">Score</th>
-                      <th className="p-3 font-medium">Status</th>
-                      <th className="p-3 font-medium">Actions</th>
+                      <th className="px-2.5 py-1.5 font-medium">Score</th>
+                      <th className="px-2.5 py-1.5 font-medium">Status</th>
+                      <th className="px-2.5 py-1.5 font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -301,27 +303,27 @@ export default async function InstructorSubmissions({
                           key={r.id}
                           className="border-b border-line-tertiary last:border-0"
                         >
-                          <td className="p-3">
+                          <td className="px-2.5 py-2">
                             <div>{r.name}</div>
                             {r.name !== r.email && (
-                              <div className="text-xs text-content-tertiary">
+                              <div className="text-meta text-content-tertiary">
                                 {r.email}
                               </div>
                             )}
                           </td>
-                          <td className="p-3 text-content-secondary">{selected.title}</td>
-                          <td className="p-3">{modeShort(r.mode)}</td>
+                          <td className="px-2.5 py-2 text-content-secondary">{selected.title}</td>
+                          <td className="px-2.5 py-2">{modeShort(r.mode)}</td>
                           {/* PD-5: how long this student's ONE submission ran.
                               Never a total across their attempts. */}
-                          <td className="p-3 tabular-nums">
+                          <td className="px-2.5 py-2 tabular-nums">
                             {recordingLengthText(r.recorded_seconds)}
                           </td>
-                          <td className="p-3 tabular-nums">
+                          <td className="px-2.5 py-2 tabular-nums">
                             {isScored
                               ? `${r.score!.total} / ${r.score!.max_total}`
                               : "-"}
                           </td>
-                          <td className="p-3">
+                          <td className="px-2.5 py-2">
                             {/* "To review" is a STATIC placeholder until
                                 professor finalization (built after Stage 6);
                                 there is no real reviewed/awaiting column yet. The
@@ -329,45 +331,56 @@ export default async function InstructorSubmissions({
                                 on the server: "In progress" (inside the live
                                 window) vs "Interrupted" (past it, resettable). */}
                             {isScored ? (
-                              <span className="text-content-warning">To review</span>
+                              <Badge tone="warning">To review</Badge>
                             ) : isInterrupted ? (
-                              <span className="text-content-tertiary">Interrupted</span>
+                              <Badge tone="danger">Interrupted</Badge>
                             ) : isInProgress ? (
-                              <span className="text-content-info">In progress</span>
+                              <Badge tone="info">In progress</Badge>
                             ) : (
-                              <span className="text-content-tertiary">{r.status}</span>
+                              <Badge>{r.status}</Badge>
                             )}
                           </td>
-                          <td className="p-3">
-                            <div className="flex flex-col gap-1">
+                          <td className="px-2.5 py-2">
+                            <div className="flex flex-col gap-1.5">
                               <Link
                                 href={`/instructor/submission/${r.id}`}
-                                className="text-content-info hover:underline"
+                                className="inline-flex w-fit items-center gap-1.5 font-medium text-content-info hover:underline"
                               >
+                                <Icon icon={IconEye} />
                                 View
                               </Link>
                               {/* Compact download links (scored submissions
-                                  only). Each hits an instructor-gated route. */}
+                                  only). Each hits an instructor-gated route.
+
+                                  ICON PLUS TEXT, deliberately, not icon-only:
+                                  these are three DIFFERENT downloads, so three
+                                  bare icons would be a guessing game. The icon
+                                  is decoration beside its own label, so it is
+                                  aria-hidden and the link still reads as
+                                  "Video" to a screen reader. */}
                               {isScored && (
-                                <div className="flex flex-wrap gap-2 text-xs text-content-secondary">
+                                <div className="flex flex-wrap gap-x-3 gap-y-1 text-micro text-content-secondary">
                                   {r.video_path && (
                                     <a
                                       href={`/api/instructor/submission/${r.id}/video`}
-                                      className="hover:underline"
+                                      className="inline-flex items-center gap-1 hover:underline"
                                     >
+                                      <Icon icon={IconVideo} />
                                       Video
                                     </a>
                                   )}
                                   <a
                                     href={`/api/instructor/submission/${r.id}/transcript`}
-                                    className="hover:underline"
+                                    className="inline-flex items-center gap-1 hover:underline"
                                   >
+                                    <Icon icon={IconFileText} />
                                     Transcript
                                   </a>
                                   <a
                                     href={`/api/instructor/submission/${r.id}/csv`}
-                                    className="hover:underline"
+                                    className="inline-flex items-center gap-1 hover:underline"
                                   >
+                                    <Icon icon={IconTable} />
                                     CSV
                                   </a>
                                 </div>

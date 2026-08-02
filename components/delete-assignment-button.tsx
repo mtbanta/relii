@@ -95,7 +95,7 @@ export function DeleteAssignmentButton({
       );
     }
     return (
-      <div className="mt-1 rounded-md border border-line-tertiary bg-surface-secondary p-2 text-xs">
+      <div className="mt-1 rounded-md border border-line-tertiary bg-surface-secondary p-2 text-meta">
         <p className="mb-2 text-content-primary">
           Delete the assignment <span className="font-medium">{title}</span>? It
           has no student submissions or practices, so nothing else is removed.
@@ -127,14 +127,14 @@ export function DeleteAssignmentButton({
     return (
       <button
         onClick={() => setConfirming(true)}
-        className="rounded-md border border-red-300 px-2 py-0.5 text-xs text-content-danger hover:bg-surface-danger"
+        className="rounded-md border border-red-300 px-2 py-0.5 text-meta text-content-danger hover:bg-surface-danger"
       >
         Delete
       </button>
     );
   }
   return (
-    <div className="mt-1 rounded-md border-2 border-red-300 bg-surface-danger p-2 text-xs">
+    <div className="mt-1 rounded-md border-2 border-red-300 bg-surface-danger p-2 text-meta">
       <p className="mb-1 font-semibold text-content-danger">
         Permanently delete an assignment with student work
       </p>

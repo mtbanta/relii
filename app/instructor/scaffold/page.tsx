@@ -28,13 +28,13 @@ export default async function ScaffoldPage() {
   const recent = await loadRecentGenerations();
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 px-8 pb-12 pt-6">
+    <main className="mx-auto max-w-page space-y-5 px-6 pb-10 pt-5">
       {/* No back link: this is one of the five destinations in the instructor
           nav above, so the nav is how you leave it. The heading is an h2,
           because the page title in the shared header is the h1. */}
       <div>
-        <h2 className="text-section font-semibold">Persona Scaffolding</h2>
-        <p className="mt-1 text-sm text-content-secondary">
+        <h2 className="text-page-title font-medium">Persona Scaffolding</h2>
+        <p className="mt-1 text-body text-content-secondary">
           Describe a sales case and the AI writes two candidate buyer personas
           in the same style as Alex and Jordan. Both are saved turned OFF, so no
           student can be given one, and you compare them side by side before
@@ -49,7 +49,7 @@ export default async function ScaffoldPage() {
       <div className="space-y-2">
         <h3 className="font-medium">Recent generations</h3>
         {recent.length === 0 ? (
-          <p className="text-sm text-content-secondary">
+          <p className="text-body text-content-secondary">
             Nothing generated yet. Your saved candidate pairs will be listed
             here.
           </p>
@@ -60,20 +60,20 @@ export default async function ScaffoldPage() {
                 key={generation.groupId}
                 className="flex items-start justify-between gap-4 p-3"
               >
-                <div className="text-sm">
+                <div className="text-body">
                   <span className="font-medium">
                     {generation.personaNames.join(" and ")}
                   </span>
                   <span className="text-content-secondary">
                     {generation.industry ? `, ${generation.industry}` : ""}
                   </span>
-                  <span className="mt-0.5 block text-xs text-content-secondary">
+                  <span className="mt-0.5 block text-meta text-content-secondary">
                     {chainRoleLabel(generation.chainRole)}, generated{" "}
                     {new Date(generation.createdAt).toLocaleString()}
                   </span>
                   <Link
                     href={`/instructor/scaffold/compare/${generation.groupId}`}
-                    className="mt-1 inline-block text-sm underline"
+                    className="mt-1 inline-block text-body underline"
                   >
                     Compare
                   </Link>
@@ -92,7 +92,7 @@ export default async function ScaffoldPage() {
           because it is the one control here that can delete a lot at once. */}
       <div className="space-y-2 border-t border-line-tertiary pt-6">
         <h3 className="font-medium">Clean up</h3>
-        <p className="text-sm text-content-secondary">
+        <p className="text-body text-content-secondary">
           Testing leaves candidate pairs behind. This removes every generated
           persona that is switched off and has never been used. It cannot touch
           Alex, Jordan, a chosen persona that is switched on, or anything a

@@ -83,7 +83,7 @@ export function StartAssignmentButton({
         {loading ? "Starting..." : "Start assignment"}
       </Button>
       {error && (
-        <p className="mt-2 w-full text-sm text-content-danger">{error}</p>
+        <p className="mt-2 w-full text-body text-content-danger">{error}</p>
       )}
     </>
   );

@@ -10,6 +10,7 @@ import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
 import type { TranscriptTurn } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { Icon, IconPlayerStop } from "@/components/ui/icon";
 
 // The live VOICE conversation with the persona (Alex), over the OpenAI Realtime
 // API via WebRTC, with optional WEBCAM RECORDING (Stage 5).
@@ -795,8 +796,8 @@ export function VoiceConversation({
 
       <header className="mb-4 flex items-center justify-between border-b border-line-tertiary pb-3">
         <div>
-          <h1 className="text-lg font-semibold">{scenarioTitle}</h1>
-          <p className="text-sm text-content-secondary">
+          <h1 className="text-card-title font-medium">{scenarioTitle}</h1>
+          <p className="text-body text-content-secondary">
             {isSubmission ? "Graded submission with " : "Voice call with "}
             {personaName}
           </p>
@@ -818,6 +819,7 @@ export function VoiceConversation({
             onClick={requestEndCall}
             disabled={!canEnd}
           >
+            <Icon icon={IconPlayerStop} />
             {status === "ending"
               ? "Finishing..."
               : isSubmission
@@ -829,7 +831,7 @@ export function VoiceConversation({
 
       {/* Graded submission: the explicit submit-and-score step. */}
       {isSubmission && confirming && (
-        <div className="mb-3 rounded-lg border border-amber-300 bg-surface-warning p-4 text-sm">
+        <div className="mb-3 rounded-lg border border-amber-300 bg-surface-warning p-4 text-body">
           <p className="text-content-warning">
             Submit this graded assignment for scoring? This ends the call and is
             your one official attempt; it cannot be redone.
@@ -853,7 +855,7 @@ export function VoiceConversation({
       )}
 
       {expired && (
-        <p className="mb-3 text-sm text-content-danger">
+        <p className="mb-3 text-body text-content-danger">
           Time is up. Ending your practice...
         </p>
       )}
@@ -868,7 +870,7 @@ export function VoiceConversation({
             playsInline
             className="h-28 w-40 rounded-md border border-line-tertiary bg-black object-cover"
           />
-          <p className="text-xs text-content-secondary">
+          <p className="text-meta text-content-secondary">
             Your camera is on and recording.
           </p>
         </div>
@@ -902,17 +904,17 @@ export function VoiceConversation({
           {cameraLocked ? (
             // Graded submission: the camera is required and locked on. No toggle.
             <div className="mt-5 max-w-md rounded-md border border-line-tertiary bg-surface-secondary px-3 py-2 text-center">
-              <p className="text-sm text-content-primary">
+              <p className="text-body text-content-primary">
                 Your camera will stay on for this graded submission.
               </p>
-              <p className="mt-1 text-xs text-content-tertiary">
+              <p className="mt-1 text-meta text-content-tertiary">
                 Camera stays on for graded assignments. It can be turned off in
                 practice. Tip: wear headphones to avoid echo in the recording.
               </p>
             </div>
           ) : (
             <>
-              <label className="mt-5 flex items-center gap-2 text-sm text-content-primary">
+              <label className="mt-5 flex items-center gap-2 text-body text-content-primary">
                 <input
                   type="checkbox"
                   checked={cameraOn}
@@ -921,7 +923,7 @@ export function VoiceConversation({
                 />
                 Record my camera during this practice
               </label>
-              <p className="mt-1 max-w-md text-xs text-content-tertiary">
+              <p className="mt-1 max-w-md text-meta text-content-tertiary">
                 {cameraOn
                   ? "Your webcam will record (video plus your voice and Alex's voice). Tip: wear headphones to avoid echo in the recording."
                   : "Camera off: nothing will be recorded for this practice."}
@@ -935,7 +937,7 @@ export function VoiceConversation({
           >
             Start call
           </Button>
-          {error && <p className="mt-4 text-sm text-content-danger">{error}</p>}
+          {error && <p className="mt-4 text-body text-content-danger">{error}</p>}
         </div>
       )}
 
@@ -950,7 +952,7 @@ export function VoiceConversation({
       {/* During and after the call: the live transcript. */}
       {(status === "live" || status === "ending" || status === "ended") && (
         <>
-          <div className="mb-2 flex items-center gap-2 text-xs text-content-secondary">
+          <div className="mb-2 flex items-center gap-2 text-meta text-content-secondary">
             <span className="inline-block h-2 w-2 rounded-full bg-red-500" />
             {status === "live"
               ? "Live. Speak naturally; pause when you finish a thought."
@@ -964,7 +966,7 @@ export function VoiceConversation({
               session button, so the student can actually find it. The toggle is
               SCREEN ONLY; see the transcriptShown comment above. */}
           <div className="mb-2 flex items-center justify-between gap-3 border-t border-line-tertiary pt-2">
-            <span className="text-sm font-medium text-content-primary">
+            <span className="text-body font-medium text-content-primary">
               Live transcript
             </span>
             <Button
@@ -980,7 +982,7 @@ export function VoiceConversation({
 
           {!transcriptShown && (
             <div className="flex flex-1 items-center justify-center">
-              <p className="max-w-sm text-center text-sm text-content-tertiary">
+              <p className="max-w-sm text-center text-body text-content-tertiary">
                 The transcript is hidden. Your conversation is still being
                 captured and saved, and your score is not affected. Click Show
                 transcript to read along again.
@@ -996,7 +998,7 @@ export function VoiceConversation({
             }
           >
             {turns.length === 0 && (
-              <p className="text-sm text-content-tertiary">
+              <p className="text-body text-content-tertiary">
                 {personaName} will speak first. The conversation will appear here
                 as you talk.
               </p>
@@ -1011,11 +1013,11 @@ export function VoiceConversation({
                 <div
                   className={
                     turn.role === "student"
-                      ? "max-w-[80%] rounded-2xl bg-black px-4 py-2 text-sm text-white"
-                      : "max-w-[80%] rounded-2xl bg-surface-secondary px-4 py-2 text-sm text-content-primary"
+                      ? "max-w-[80%] rounded-2xl bg-black px-4 py-2 text-body text-white"
+                      : "max-w-[80%] rounded-2xl bg-surface-secondary px-4 py-2 text-body text-content-primary"
                   }
                 >
-                  <p className="mb-0.5 text-xs font-medium opacity-70">
+                  <p className="mb-0.5 text-meta font-medium opacity-70">
                     {turn.role === "student" ? "You" : personaName}
                   </p>
                   <p className="whitespace-pre-wrap">
@@ -1027,7 +1029,7 @@ export function VoiceConversation({
             <div ref={bottomRef} />
           </div>
 
-          {error && <p className="mt-2 text-sm text-content-danger">{error}</p>}
+          {error && <p className="mt-2 text-body text-content-danger">{error}</p>}
         </>
       )}
     </div>

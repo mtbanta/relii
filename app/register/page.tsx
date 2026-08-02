@@ -64,8 +64,8 @@ export default function RegisterPage() {
         className="w-full max-w-sm space-y-4 rounded-xl border border-line-tertiary p-6 shadow-sm"
       >
         <div className="text-center">
-          <h1 className="text-page-title font-semibold">Relii</h1>
-          <p className="text-sm text-content-secondary">Create your account</p>
+          <h1 className="text-page-title font-medium">Relii</h1>
+          <p className="text-body text-content-secondary">Create your account</p>
         </div>
 
         <Label>
@@ -87,12 +87,12 @@ export default function RegisterPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)} className="mt-1"
           />
-          <span className="mt-1 block text-xs font-normal text-content-tertiary">
+          <span className="mt-1 block text-meta font-normal text-content-tertiary">
             At least 6 characters.
           </span>
         </Label>
 
-        {error && <p className="text-sm text-content-danger">{error}</p>}
+        {error && <p className="text-body text-content-danger">{error}</p>}
 
         <Button
           fullWidth
@@ -102,7 +102,7 @@ export default function RegisterPage() {
           {loading ? "Creating account..." : "Create account"}
         </Button>
 
-        <p className="text-center text-sm text-content-secondary">
+        <p className="text-center text-body text-content-secondary">
           Already have an account?{" "}
           <Link href="/login" className="underline">
             Sign in

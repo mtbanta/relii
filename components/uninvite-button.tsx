@@ -51,8 +51,8 @@ export function UninviteButton({
   // Resting state: role tag, email, and a small Un-invite button on the right.
   if (!confirming) {
     return (
-      <div className="flex items-center gap-2 text-sm">
-        <span className="rounded bg-surface-secondary px-2 py-0.5 text-xs text-content-secondary">
+      <div className="flex items-center gap-2 text-body">
+        <span className="rounded bg-surface-secondary px-2 py-0.5 text-meta text-content-secondary">
           {roleLabel}
         </span>
         <span className="flex-1">{email}</span>
@@ -70,7 +70,7 @@ export function UninviteButton({
 
   // Confirmation state: name the email, require one more click.
   return (
-    <div className="text-sm">
+    <div className="text-body">
       <p className="mb-2 text-content-primary">
         Remove <span className="font-medium">{email}</span> from the invite list?
         They will no longer be able to register.

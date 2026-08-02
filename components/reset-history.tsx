@@ -40,16 +40,16 @@ export function ResetHistory({ resets }: { resets: ResetHistoryRow[] }) {
   if (resets.length === 0) {
     // Quiet, so a clean assignment does not shout an empty section.
     return (
-      <p className="mt-3 text-xs text-content-tertiary">No resets for this assignment.</p>
+      <p className="mt-3 text-meta text-content-tertiary">No resets for this assignment.</p>
     );
   }
 
   return (
     <details className="mt-3 rounded-lg border border-line-tertiary p-3">
-      <summary className="cursor-pointer text-sm text-content-secondary">
+      <summary className="cursor-pointer text-body text-content-secondary">
         Resets: {resets.length}
       </summary>
-      <ul className="mt-2 space-y-2 text-xs">
+      <ul className="mt-2 space-y-2 text-meta">
         {resets.map((r) => {
           const isRetake = r.reset_type === "retake";
           const typeLabel = isRetake

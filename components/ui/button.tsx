@@ -60,10 +60,13 @@ const VARIANTS: Record<ButtonVariant, string> = {
     "bg-content-warning text-white border border-content-warning hover:brightness-110",
 };
 
+// PD-8c density: md is the mockup's button, 13px with 6px by 12px padding. The
+// app's buttons were 14px with 8px by 16px, which is what made every screen feel
+// roomier and larger than the design.
 const SIZES: Record<ButtonSize, string> = {
-  xs: "px-2 py-0.5 text-xs",
-  sm: "px-3 py-1.5 text-sm",
-  md: "px-4 py-2 text-sm",
+  xs: "px-2 py-0.5 text-micro",
+  sm: "px-2.5 py-1 text-meta",
+  md: "px-3 py-1.5 text-body",
 };
 
 // The classes for one button, on their own. Use this on an <a>, a <Link>, or

@@ -28,6 +28,7 @@ import {
 import type { RubricItem, SessionScore, TranscriptTurn } from "@/lib/types";
 import { buttonClasses } from "@/components/ui/button";
 import { cardClasses } from "@/components/ui/card";
+import { Icon, IconArrowLeft } from "@/components/ui/icon";
 
 function modeLabel(mode: string): string {
   return mode === "voice_video" ? "Voice + video" : "Text";
@@ -120,23 +121,24 @@ export default async function InstructorSubmissionPage({
   const submittedAt = formatDateTaken(session.submitted_at);
 
   return (
-    <main className="mx-auto max-w-5xl px-8 pb-12 pt-6">
+    <main className="mx-auto max-w-page px-6 pb-10 pt-5">
       {/* An h2, not an h1: the page title in the shared instructor header above
           is the h1. The name and email here are the STUDENT'S, and the header
           above shows the signed-in instructor's, so this one says whose it is.
           The back link returns to Submissions with this assignment selected. */}
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h2 className="text-section font-semibold">Submission</h2>
-          <p className="text-sm text-content-primary">Student: {studentName}</p>
+          <h2 className="text-page-title font-medium">Submission</h2>
+          <p className="text-body text-content-primary">Student: {studentName}</p>
           {student && hasName(student) && (
-            <p className="text-xs text-content-tertiary">{student.email}</p>
+            <p className="text-meta text-content-tertiary">{student.email}</p>
           )}
         </div>
         <Link
           href={`/instructor?assignment=${session.assignment_id}`}
           className={buttonClasses({ variant: "secondary", size: "sm" })}
         >
+          <Icon icon={IconArrowLeft} />
           Back to Submissions
         </Link>
       </header>
@@ -145,14 +147,14 @@ export default async function InstructorSubmissionPage({
       <div className={cardClasses({ tone: "muted", padding: "lg", className: "mb-6" })}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-medium">
+            <p className="text-body font-medium">
               {assignment?.title ?? "Assignment"}
             </p>
-            <p className="mt-0.5 text-sm text-content-secondary">
+            <p className="mt-0.5 text-body text-content-secondary">
               {scenario?.title ?? "Scenario"}
               {scenario?.persona_name ? ` (with ${scenario.persona_name})` : ""}
             </p>
-            <p className="mt-1 text-xs text-content-secondary">
+            <p className="mt-1 text-meta text-content-secondary">
               {modeLabel(session.mode)}
               {submittedAt ? ` · submitted ${submittedAt}` : ""}
             </p>
@@ -161,7 +163,7 @@ export default async function InstructorSubmissionPage({
                 submission, and the elapsed conversation time for a text one or
                 one recorded with the camera off. It is never a total across the
                 student's attempts. */}
-            <p className="mt-0.5 text-xs text-content-secondary">
+            <p className="mt-0.5 text-meta text-content-secondary">
               {RECORDING_LENGTH_LABEL}:{" "}
               <span className="tabular-nums">
                 {recordingLengthText(session.recorded_seconds)}
@@ -170,15 +172,15 @@ export default async function InstructorSubmissionPage({
           </div>
           <div className="text-right">
             {score ? (
-              <p className="text-3xl font-semibold tabular-nums">
+              <p className="text-stat font-medium tabular-nums">
                 {score.total}
-                <span className="text-lg font-normal text-content-secondary">
+                <span className="text-card-title font-normal text-content-secondary">
                   {" "}
                   / {score.max_total}
                 </span>
               </p>
             ) : (
-              <p className="text-sm text-content-secondary">
+              <p className="text-body text-content-secondary">
                 Not scored (interrupted submission)
               </p>
             )}
@@ -191,7 +193,7 @@ export default async function InstructorSubmissionPage({
           video link redirects to a short-lived signed download link; the
           transcript and CSV are built server-side. */}
       <section className="mb-6 rounded-lg border border-line-tertiary p-4">
-        <p className="mb-3 text-sm font-medium">Downloads</p>
+        <p className="mb-3 text-body font-medium">Downloads</p>
         <div className="flex flex-wrap items-center gap-3">
           {session.video_path ? (
             <a
@@ -201,7 +203,7 @@ export default async function InstructorSubmissionPage({
               Download video
             </a>
           ) : (
-            <span className="text-sm text-content-secondary">
+            <span className="text-body text-content-secondary">
               {isVoice
                 ? "No recording to download."
                 : "No recording (text submission)."}
@@ -227,7 +229,7 @@ export default async function InstructorSubmissionPage({
       {/* The recording (voice+video submissions only). */}
       {isVoice && (
         <section className="mb-6">
-          <h2 className="mb-3 text-subsection font-medium">Recording</h2>
+          <h2 className="mb-2 text-section font-medium text-content-secondary">Recording</h2>
           {videoUrl ? (
             <video
               src={videoUrl}
@@ -236,7 +238,7 @@ export default async function InstructorSubmissionPage({
               className="w-full max-w-2xl rounded-lg border border-line-tertiary bg-black"
             />
           ) : (
-            <p className="text-sm text-content-secondary">
+            <p className="text-body text-content-secondary">
               No recording is attached to this submission.
             </p>
           )}
@@ -247,7 +249,7 @@ export default async function InstructorSubmissionPage({
         {/* The itemized rubric. PD-7 renamed this heading from "Itemized score"
             to "Rubric score", matching the student results page. */}
         <section>
-          <h2 className="mb-3 text-subsection font-medium">Rubric score</h2>
+          <h2 className="mb-2 text-section font-medium text-content-secondary">Rubric score</h2>
           {score && score.items.length > 0 ? (
             <ul className="space-y-3">
               {score.items.map((item) => {
@@ -258,25 +260,25 @@ export default async function InstructorSubmissionPage({
                     className={cardClasses()}
                   >
                     <div className="flex items-baseline justify-between gap-3">
-                      <h3 className="text-sm font-medium">
+                      <h3 className="text-body font-medium">
                         {meta?.label ?? item.id}
                       </h3>
-                      <span className="shrink-0 text-sm font-semibold tabular-nums">
+                      <span className="shrink-0 text-body font-semibold tabular-nums">
                         {item.points_earned}/{item.points_max}
                       </span>
                     </div>
                     {meta?.category && (
-                      <p className="mt-0.5 text-xs text-content-tertiary">
+                      <p className="mt-0.5 text-meta text-content-tertiary">
                         {meta.category}
                       </p>
                     )}
-                    <p className="mt-2 text-sm text-content-secondary">{item.comment}</p>
+                    <p className="mt-2 text-body text-content-secondary">{item.comment}</p>
                   </li>
                 );
               })}
             </ul>
           ) : (
-            <p className="text-sm text-content-secondary">
+            <p className="text-body text-content-secondary">
               This submission has no itemized score.
             </p>
           )}
@@ -284,24 +286,24 @@ export default async function InstructorSubmissionPage({
 
         {/* Transcript */}
         <section>
-          <h2 className="mb-3 text-subsection font-medium">Transcript</h2>
+          <h2 className="mb-2 text-section font-medium text-content-secondary">Transcript</h2>
           {transcript.length > 0 ? (
             <div className={cardClasses({ className: "space-y-3" })}>
               {transcript.map((turn, i) => (
                 <div key={i}>
-                  <p className="text-xs font-medium text-content-tertiary">
+                  <p className="text-meta font-medium text-content-tertiary">
                     {turn.role === "student"
                       ? studentName
                       : scenario?.persona_name ?? "Customer"}
                   </p>
-                  <p className="text-sm whitespace-pre-wrap text-content-primary">
+                  <p className="text-body whitespace-pre-wrap text-content-primary">
                     {turn.text}
                   </p>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-content-secondary">
+            <p className="text-body text-content-secondary">
               This submission has no transcript.
             </p>
           )}

@@ -84,11 +84,11 @@ export default async function InstructorAssignments() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-8 pb-12 pt-6">
-      <h2 className="mb-1 text-section font-semibold text-content-primary">
+    <main className="mx-auto max-w-page px-6 pb-10 pt-5">
+      <h2 className="mb-1 text-page-title font-medium text-content-primary">
         Manage Assignments
       </h2>
-      <p className="mb-3 text-sm text-content-secondary">
+      <p className="mb-3 text-body text-content-secondary">
         Create an assignment for a scenario and pick the mode the graded
         submission must use. Each student can submit an assignment once.
       </p>
@@ -120,7 +120,7 @@ export default async function InstructorAssignments() {
                     }}
                   />
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line-tertiary pt-2">
-                    <span className="text-xs text-content-tertiary">
+                    <span className="text-meta text-content-tertiary">
                       {inUse
                         ? `In use: ${counts.submissions} submission${counts.submissions === 1 ? "" : "s"}, ${counts.practices} practice${counts.practices === 1 ? "" : "s"}`
                         : "Not in use (no student work)"}
@@ -137,7 +137,7 @@ export default async function InstructorAssignments() {
             })}
           </ul>
         ) : (
-          <p className="text-sm text-content-secondary">
+          <p className="text-body text-content-secondary">
             You have not created any assignments yet.
           </p>
         )}

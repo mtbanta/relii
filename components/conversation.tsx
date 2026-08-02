@@ -7,6 +7,7 @@ import { DEFAULT_MEETING_MINUTES } from "@/lib/meeting-length";
 import type { TranscriptTurn } from "@/lib/types";
 import { controlClasses } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
+import { Icon, IconSend } from "@/components/ui/icon";
 
 // PD-6: how tall the message box is allowed to grow before it starts scrolling
 // inside itself. Roughly six lines of text, which is enough to see a full
@@ -197,8 +198,8 @@ export function Conversation({
     <div className="flex h-[calc(100vh-2rem)] flex-col">
       <header className="mb-4 flex items-center justify-between border-b border-line-tertiary pb-3">
         <div>
-          <h1 className="text-lg font-semibold">{scenarioTitle}</h1>
-          <p className="text-sm text-content-secondary">
+          <h1 className="text-card-title font-medium">{scenarioTitle}</h1>
+          <p className="text-body text-content-secondary">
             {isSubmission ? "Graded submission with " : "Speaking with "}
             {personaName}
           </p>
@@ -237,11 +238,11 @@ export function Conversation({
             <div
               className={
                 turn.role === "student"
-                  ? "max-w-[80%] rounded-2xl bg-black px-4 py-2 text-sm text-white"
-                  : "max-w-[80%] rounded-2xl bg-surface-secondary px-4 py-2 text-sm text-content-primary"
+                  ? "max-w-[80%] rounded-2xl bg-black px-4 py-2 text-body text-white"
+                  : "max-w-[80%] rounded-2xl bg-surface-secondary px-4 py-2 text-body text-content-primary"
               }
             >
-              <p className="mb-0.5 text-xs font-medium opacity-70">
+              <p className="mb-0.5 text-meta font-medium opacity-70">
                 {turn.role === "student" ? "You" : personaName}
               </p>
               <p className="whitespace-pre-wrap">{turn.text}</p>
@@ -250,7 +251,7 @@ export function Conversation({
         ))}
         {sending && (
           <div className="flex justify-start">
-            <div className="max-w-[80%] rounded-2xl bg-surface-secondary px-4 py-2 text-sm text-content-secondary">
+            <div className="max-w-[80%] rounded-2xl bg-surface-secondary px-4 py-2 text-body text-content-secondary">
               {personaName} is typing...
             </div>
           </div>
@@ -258,17 +259,17 @@ export function Conversation({
         <div ref={bottomRef} />
       </div>
 
-      {error && <p className="mt-2 text-sm text-content-danger">{error}</p>}
+      {error && <p className="mt-2 text-body text-content-danger">{error}</p>}
 
       {expired && (
-        <p className="mt-2 text-sm text-content-danger">
+        <p className="mt-2 text-body text-content-danger">
           Time is up. Ending your practice...
         </p>
       )}
 
       {/* Graded submission: the explicit submit-and-score step. */}
       {isSubmission && confirming && (
-        <div className="mt-3 rounded-lg border border-amber-300 bg-surface-warning p-4 text-sm">
+        <div className="mt-3 rounded-lg border border-amber-300 bg-surface-warning p-4 text-body">
           <p className="text-content-warning">
             Submit this graded assignment for scoring? This is your one official
             attempt and cannot be redone.
@@ -317,13 +318,14 @@ export function Conversation({
           style={{ maxHeight: `${MAX_INPUT_HEIGHT_PX}px` }}
           className={controlClasses({
             fullWidth: false,
-            className: "flex-1 resize-none overflow-y-auto text-sm",
+            className: "flex-1 resize-none overflow-y-auto text-body",
           })}
         />
         <Button
           type="submit"
           disabled={sending || ending || expired || !input.trim()}
         >
+          <Icon icon={IconSend} />
           Send
         </Button>
       </form>
