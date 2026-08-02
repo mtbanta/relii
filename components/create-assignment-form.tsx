@@ -53,7 +53,7 @@ export function CreateAssignmentForm({
   if (scenarios.length === 0) {
     return (
       <div className={cardClasses()}>
-        <h2 className="mb-1 font-medium">Create assignment</h2>
+        <h2 className="mb-1 text-card-title font-medium">Create assignment</h2>
         <p className="text-body text-content-secondary">
           There are no scenarios to assign yet. A scenario (such as the Alex
           discovery call) must exist first.
@@ -136,7 +136,7 @@ export function CreateAssignmentForm({
       onSubmit={handleSubmit}
       className={cardClasses({ className: "space-y-3" })}
     >
-      <h2 className="font-medium">Create assignment</h2>
+      <h2 className="text-card-title font-medium">Create assignment</h2>
 
       <div>
         <Label className="mb-1">Title</Label>

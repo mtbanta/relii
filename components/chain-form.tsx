@@ -106,7 +106,7 @@ export function ChainForm({
       >
         {/* What carries over, shown so the admin can see the case is shared. */}
         <div>
-          <h2 className="font-medium">Carried over from {gatekeeperName}</h2>
+          <h2 className="text-card-title font-medium">Carried over from {gatekeeperName}</h2>
           <p className="mt-1 mb-3 text-body text-content-secondary">
             These are reused so both meetings are one coherent case at one
             company. They cannot be edited here.
@@ -139,7 +139,7 @@ export function ChainForm({
         </div>
 
         <div className="border-t border-line-tertiary pt-4">
-          <h2 className="font-medium">The decision maker</h2>
+          <h2 className="text-card-title font-medium">The decision maker</h2>
           <p className="mt-1 mb-3 text-body text-content-secondary">
             The two things that are about this second meeting.
           </p>
@@ -201,7 +201,7 @@ export function ChainForm({
           on a page with no way to reach what was just saved. */}
       {savedGroupId && (
         <div className={cardClasses()}>
-          <h2 className="font-medium">Two candidates saved</h2>
+          <h2 className="text-card-title font-medium">Two candidates saved</h2>
           <p className="mt-1 text-body text-content-secondary">
             <Link
               href={`/instructor/scaffold/compare/${savedGroupId}`}

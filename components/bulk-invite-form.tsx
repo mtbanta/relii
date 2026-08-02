@@ -68,7 +68,7 @@ export function BulkInviteForm() {
       onSubmit={handleSubmit}
       className="mt-4 space-y-3 rounded-lg border border-line-tertiary p-4"
     >
-      <h2 className="font-medium">Bulk invite (CSV)</h2>
+      <h2 className="text-card-title font-medium">Bulk invite (CSV)</h2>
       <p className="text-body text-content-secondary">
         Upload a .csv with two columns, email and role. A header row (email,role)
         is fine. Role must be student or instructor. Rows with a problem are

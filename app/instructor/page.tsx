@@ -315,10 +315,10 @@ export default async function InstructorSubmissions({
                           <td className="px-2.5 py-2">{modeShort(r.mode)}</td>
                           {/* PD-5: how long this student's ONE submission ran.
                               Never a total across their attempts. */}
-                          <td className="px-2.5 py-2 tabular-nums">
+                          <td className="px-2.5 py-2 tabular-nums whitespace-nowrap">
                             {recordingLengthText(r.recorded_seconds)}
                           </td>
-                          <td className="px-2.5 py-2 tabular-nums">
+                          <td className="px-2.5 py-2 tabular-nums whitespace-nowrap">
                             {isScored
                               ? `${r.score!.total} / ${r.score!.max_total}`
                               : "-"}

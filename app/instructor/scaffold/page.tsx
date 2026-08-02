@@ -47,7 +47,7 @@ export default async function ScaffoldPage() {
       {/* Past generations, so a compare view is never lost just because the web
           address was not kept. */}
       <div className="space-y-2">
-        <h3 className="font-medium">Recent generations</h3>
+        <h3 className="text-card-title font-medium">Recent generations</h3>
         {recent.length === 0 ? (
           <p className="text-body text-content-secondary">
             Nothing generated yet. Your saved candidate pairs will be listed
@@ -91,7 +91,7 @@ export default async function ScaffoldPage() {
       {/* The bulk tidy-up, kept at the bottom and away from everything else,
           because it is the one control here that can delete a lot at once. */}
       <div className="space-y-2 border-t border-line-tertiary pt-6">
-        <h3 className="font-medium">Clean up</h3>
+        <h3 className="text-card-title font-medium">Clean up</h3>
         <p className="text-body text-content-secondary">
           Testing leaves candidate pairs behind. This removes every generated
           persona that is switched off and has never been used. It cannot touch

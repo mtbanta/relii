@@ -143,7 +143,7 @@ export default async function EditCandidatePage({
           than missing. The save route never reads them from the browser, so
           this panel is a description of the case, not a disabled input. */}
       <div className={cardClasses({ tone: "muted", className: "text-body" })}>
-        <h3 className="font-medium text-content-primary">
+        <h3 className="text-card-title font-medium text-content-primary">
           Fixed for this case, and not editable here
         </h3>
         <p className="mt-1 text-content-secondary">

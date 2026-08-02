@@ -48,7 +48,7 @@ export function AddEmailForm() {
       onSubmit={handleSubmit}
       className={cardClasses({ className: "space-y-3" })}
     >
-      <h2 className="font-medium">Invite someone</h2>
+      <h2 className="text-card-title font-medium">Invite someone</h2>
 
       <Input
         type="email"

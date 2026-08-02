@@ -90,7 +90,7 @@ export function ScaffoldForm() {
         onSubmit={handleSubmit}
         className={cardClasses({ className: "space-y-3" })}
       >
-        <h2 className="font-medium">Case inputs</h2>
+        <h2 className="text-card-title font-medium">Case inputs</h2>
 
         <div>
           <label className={labelClass}>Industry</label>
@@ -230,7 +230,7 @@ export function ScaffoldForm() {
           instructor on a page with no way to reach what was just saved. */}
       {savedGroupId && (
         <div className={cardClasses()}>
-          <h2 className="font-medium">Two candidates saved</h2>
+          <h2 className="text-card-title font-medium">Two candidates saved</h2>
           <p className="mt-1 text-body text-content-secondary">
             <Link
               href={`/instructor/scaffold/compare/${savedGroupId}`}

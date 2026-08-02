@@ -294,7 +294,7 @@ export default async function StudentHome() {
                 tone={locked ? "muted" : "default"}
               >
                 <h3
-                  className={`font-semibold ${locked ? "text-content-tertiary" : "text-content-primary"}`}
+                  className={`text-card-title font-medium ${locked ? "text-content-tertiary" : "text-content-primary"}`}
                 >
                   {a.title}
                 </h3>
