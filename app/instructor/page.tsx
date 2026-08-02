@@ -353,28 +353,17 @@ export default async function InstructorSubmissions({
                           <td className="px-2.5 py-2">
                             <div>{r.name}</div>
                             {r.name !== r.email && (
-                              /* The email truncates rather than wrapping: it is
-                                 the secondary identifier (the name is above it),
-                                 and letting it wrap was adding a whole line to
-                                 the row. The full address stays available as a
-                                 tooltip. The NAME is deliberately allowed to
-                                 wrap, because truncating a person's name in a
-                                 grading table is a real loss. */
-                              <div
-                                className="truncate text-meta text-content-tertiary"
-                                title={r.email}
-                              >
+                              <div className="text-meta text-content-tertiary">
                                 {r.email}
                               </div>
                             )}
                           </td>
-                          {/* Every row shows the SAME assignment (it is the one
-                              selected above), so truncating loses nothing and
-                              saves a wrapped line on every single row. */}
-                          <td
-                            className="truncate px-2.5 py-2 text-content-secondary"
-                            title={selected.title}
-                          >
+                          {/* Left to WRAP rather than truncate. Truncating the
+                              email and this title was tried and measured: row
+                              heights were identical either way (the Status cell
+                              and a wrapped student name are what set the height),
+                              so it chopped legible text for no gain. */}
+                          <td className="px-2.5 py-2 text-content-secondary">
                             {selected.title}
                           </td>
                           <td className="px-2.5 py-2">{modeShort(r.mode)}</td>
