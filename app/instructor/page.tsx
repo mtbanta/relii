@@ -19,21 +19,11 @@ import type { ResetHistoryRow } from "@/components/reset-history";
 import { requireInstructor } from "@/lib/instructor-auth";
 import { isSubmissionLocked } from "@/lib/submission";
 import { displayName } from "@/lib/name";
-import {
-  RECORDING_LENGTH_LABEL,
-  recordingLengthText,
-} from "@/lib/recording-length";
+import { recordingLengthText } from "@/lib/recording-length";
 import type { SessionScore } from "@/lib/types";
 import { cardClasses } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Icon,
-  IconEye,
-  IconVideo,
-  IconFileText,
-  IconTable,
-  IconInbox,
-} from "@/components/ui/icon";
+import { ActionIcon, Icon, IconEye, IconInbox } from "@/components/ui/icon";
+import { SubmissionDownloadMenu } from "@/components/submission-download-menu";
 
 // Compact mode label for the submissions table (matches the mockup: "V+V").
 function modeShort(mode: string): string {
@@ -184,24 +174,27 @@ export default async function InstructorSubmissions({
   return (
     <main className="mx-auto w-full max-w-page px-6 pb-10 pt-5">
       <section>
-        <div className="mb-4">
+        {/* PD-8e: the heading and the selector share one line, heading left and
+            control right. Stacking them cost a whole row of vertical space above
+            a table whose entire point is density. */}
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
           <h2 className="text-page-title font-medium text-content-primary">
             Submissions
           </h2>
           {selectorList.length > 0 && selected && (
-            <div className="mt-3">
+            <div className="shrink-0">
               {/* The dropdown is how an instructor moves between the sessions
                   they are running, so it is labelled rather than left bare.
                   NOTE: the list is every assignment. There is no active or
                   inactive state in the data yet, so "Active Assignments" is the
-                  agreed label for the control, not a filter. */}
+                  agreed label for the control, not a filter (a PD-1 decision). */}
               <label
                 htmlFor="assignment-selector"
-                className="block text-body font-medium text-content-primary"
+                className="block text-micro text-content-tertiary"
               >
                 Active Assignments
               </label>
-              <div className="mt-1">
+              <div className="mt-0.5">
                 <AssignmentSelector
                   assignments={selectorList.map((a) => ({
                     id: a.id,
@@ -283,44 +276,56 @@ export default async function InstructorSubmissions({
                   className="text-content-tertiary"
                 />
                 <p className="mt-2 text-body font-medium text-content-primary">
-                  No submissions for this assignment yet.
+                  No submissions yet
                 </p>
+                {/* States what is actually TRUE right now rather than a generic
+                    line, then offers one next action. */}
                 <p className="mx-auto mt-1 max-w-sm text-meta text-content-secondary">
-                  Submissions appear here as students hand in their graded
-                  attempt. Practice sessions never appear on this dashboard.
+                  {enrolledCount > 0
+                    ? `All ${enrolledCount} enrolled student${enrolledCount === 1 ? "" : "s"} still have this assignment open. Practice sessions never appear here.`
+                    : "No students have registered yet, so there is nobody to submit this assignment. Practice sessions never appear here."}
                 </p>
+                <Link
+                  href="/instructor/assignments"
+                  className="mt-3 inline-block text-meta text-content-info hover:underline"
+                >
+                  Manage Assignments
+                </Link>
               </div>
             ) : (
-              /* table-layout: fixed with explicit widths, which is what keeps the
-                 columns from jumping about as content changes (the mockup does
-                 the same). The widths are set for the real SEVEN columns, not the
-                 six the mockup was drawn with: Recording Length gets enough room
-                 to keep its shipped label on one line, and Actions gets the
-                 width its group needs. */
+              /* EIGHT columns, table-layout: fixed, with the approved widths.
+                 The old Actions column held four stacked controls, which is what
+                 made every row four lines tall and ragged; splitting it into a
+                 one-icon Review and a one-icon Download is what gets the table to
+                 ONE LINE OF CONTENT PER ROW. That row-height change is the single
+                 largest source of the tidiness here, more than any colour or
+                 spacing choice. */
               <div className="overflow-x-auto rounded-lg border border-line-tertiary">
                 <table className="w-full table-fixed text-meta">
                   <colgroup>
-                    <col className="w-[20%]" />
-                    <col className="w-[19%]" />
+                    <col className="w-[21%]" />
+                    <col className="w-[16%]" />
                     <col className="w-[7%]" />
-                    <col className="w-[13%]" />
+                    <col className="w-[8%]" />
                     <col className="w-[10%]" />
+                    <col className="w-[17%]" />
+                    <col className="w-[9%]" />
                     <col className="w-[12%]" />
-                    <col className="w-[19%]" />
                   </colgroup>
                   <thead>
                     <tr className="border-b border-line-tertiary text-left text-micro text-content-secondary">
                       <th className="px-2.5 py-1.5 font-medium">Student</th>
                       <th className="px-2.5 py-1.5 font-medium">Assignment</th>
                       <th className="px-2.5 py-1.5 font-medium">Mode</th>
-                      {/* PD-5. Sits next to Mode because the two are read
-                          together: "V+V, 12:34" is the shape of the attempt. */}
-                      <th className="whitespace-nowrap px-2.5 py-1.5 font-medium">
-                        {RECORDING_LENGTH_LABEL}
-                      </th>
+                      {/* "Length", not the full "Recording Length". A deliberate,
+                          owner-approved deviation from PD-5's label and ONLY here:
+                          the full label is what forced this header onto two lines.
+                          Both detail views keep the full label unchanged. */}
+                      <th className="px-2.5 py-1.5 font-medium">Length</th>
                       <th className="px-2.5 py-1.5 font-medium">Score</th>
                       <th className="px-2.5 py-1.5 font-medium">Status</th>
-                      <th className="px-2.5 py-1.5 font-medium">Actions</th>
+                      <th className="px-2.5 py-1.5 font-medium">Review</th>
+                      <th className="px-2.5 py-1.5 font-medium">Download</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -348,12 +353,30 @@ export default async function InstructorSubmissions({
                           <td className="px-2.5 py-2">
                             <div>{r.name}</div>
                             {r.name !== r.email && (
-                              <div className="text-meta text-content-tertiary">
+                              /* The email truncates rather than wrapping: it is
+                                 the secondary identifier (the name is above it),
+                                 and letting it wrap was adding a whole line to
+                                 the row. The full address stays available as a
+                                 tooltip. The NAME is deliberately allowed to
+                                 wrap, because truncating a person's name in a
+                                 grading table is a real loss. */
+                              <div
+                                className="truncate text-meta text-content-tertiary"
+                                title={r.email}
+                              >
                                 {r.email}
                               </div>
                             )}
                           </td>
-                          <td className="px-2.5 py-2 text-content-secondary">{selected.title}</td>
+                          {/* Every row shows the SAME assignment (it is the one
+                              selected above), so truncating loses nothing and
+                              saves a wrapped line on every single row. */}
+                          <td
+                            className="truncate px-2.5 py-2 text-content-secondary"
+                            title={selected.title}
+                          >
+                            {selected.title}
+                          </td>
                           <td className="px-2.5 py-2">{modeShort(r.mode)}</td>
                           {/* PD-5: how long this student's ONE submission ran.
                               Never a total across their attempts. */}
@@ -365,102 +388,42 @@ export default async function InstructorSubmissions({
                               ? `${r.score!.total} / ${r.score!.max_total}`
                               : "-"}
                           </td>
+                          {/* STATUS, and the control that changes it.
+                              Coloured TEXT rather than a Badge in this column
+                              only: in a table this dense a pill per row is noise,
+                              and the column header already supplies the context
+                              the pill was compensating for. The Badge primitive
+                              stays in use everywhere else in the app.
+
+                              The reset controls live HERE rather than in an
+                              actions column, and that is a correctness point, not
+                              a layout one: an interrupted attempt has no score and
+                              nothing worth viewing, so routing its recovery
+                              through Review would strand it. The action belongs
+                              to the state it changes.
+
+                              "To review" is a STATIC placeholder until professor
+                              finalization (built after Stage 6). The in_progress
+                              states, though, are REAL and recomputed on the
+                              server: "In progress" (inside the live window) vs
+                              "Interrupted" (past it, resettable). */}
                           <td className="px-2.5 py-2">
-                            {/* "To review" is a STATIC placeholder until
-                                professor finalization (built after Stage 6);
-                                there is no real reviewed/awaiting column yet. The
-                                in_progress states, though, are REAL and recomputed
-                                on the server: "In progress" (inside the live
-                                window) vs "Interrupted" (past it, resettable). */}
                             {isScored ? (
-                              <Badge tone="warning">To review</Badge>
+                              <span className="text-content-warning">To review</span>
                             ) : isInterrupted ? (
-                              <Badge tone="danger">Interrupted</Badge>
+                              <span className="text-content-warning">Interrupted</span>
                             ) : isInProgress ? (
-                              <Badge tone="info">In progress</Badge>
+                              <span className="text-content-secondary">In progress</span>
                             ) : (
-                              <Badge>{r.status}</Badge>
+                              <span className="text-content-secondary">{r.status}</span>
                             )}
-                          </td>
-                          <td className="px-2.5 py-2">
-                            {/* ONE ACTION GROUP, not four loose things and a
-                                button. View leads and the three downloads sit
-                                under it behind a hairline and a "Download"
-                                label, so a reader sees "open this" and "take a
-                                copy of this" as two ideas rather than four
-                                competing links.
-                                Every one of the four is accent-coloured at rest,
-                                so colour marks them all as controls; View is the
-                                lead by WEIGHT alone. */}
-                            <div className="flex flex-col items-start gap-1.5">
-                              <Link
-                                href={`/instructor/submission/${r.id}`}
-                                className="inline-flex w-fit items-center gap-1.5 font-medium text-content-info hover:underline"
-                              >
-                                <Icon icon={IconEye} />
-                                View
-                              </Link>
-                              {/* Compact download links (scored submissions
-                                  only). Each hits an instructor-gated route.
 
-                                  ICON PLUS TEXT, deliberately, not icon-only:
-                                  these are three DIFFERENT downloads, so three
-                                  bare icons would be a guessing game. The icon
-                                  is decoration beside its own label, so it is
-                                  aria-hidden and the link still reads as
-                                  "Video" to a screen reader.
-
-                                  THE RESTING AFFORDANCE MATTERS MORE THAN THE
-                                  ICON. These three used to carry only a hover
-                                  colour, so at rest they inherited the cell's
-                                  text colour and were indistinguishable from the
-                                  row's data. A hover-only treatment cannot
-                                  advertise a control: the reader has to already
-                                  know it is there in order to hover it, and on a
-                                  touch screen there is no hover at all. So the
-                                  accent colour is now on at REST and the
-                                  underline is what hover adds.
-
-                                  That leaves colour unable to mark out the lead
-                                  action, so View is primary by WEIGHT instead. */}
-                              {isScored && (
-                                <div className="w-full border-t border-line-tertiary pt-1.5">
-                                  <p className="text-micro text-content-tertiary">
-                                    Download
-                                  </p>
-                                  <div className="mt-0.5 flex flex-wrap gap-x-2.5 gap-y-1 text-micro">
-                                    {r.video_path && (
-                                      <a
-                                        href={`/api/instructor/submission/${r.id}/video`}
-                                        className="inline-flex items-center gap-1 text-content-info hover:underline"
-                                      >
-                                        <Icon icon={IconVideo} />
-                                        Video
-                                      </a>
-                                    )}
-                                    <a
-                                      href={`/api/instructor/submission/${r.id}/transcript`}
-                                      className="inline-flex items-center gap-1 text-content-info hover:underline"
-                                    >
-                                      <Icon icon={IconFileText} />
-                                      Transcript
-                                    </a>
-                                    <a
-                                      href={`/api/instructor/submission/${r.id}/csv`}
-                                      className="inline-flex items-center gap-1 text-content-info hover:underline"
-                                    >
-                                      <Icon icon={IconTable} />
-                                      CSV
-                                    </a>
-                                  </div>
-                                </div>
-                              )}
-                              {/* Reset / allow-retake control. A scored
-                                  submission gets the stronger "Allow retake"
-                                  (deletes a real grade); a locked interrupted
-                                  attempt gets the simple "Reset". An in_progress
-                                  attempt still inside the window gets neither. */}
-                              {isScored && (
+                            {/* Labelled text, never an icon: these are
+                                consequential and rare, and icon-only is for
+                                routine, universally understood actions. All the
+                                existing confirm behaviour is unchanged. */}
+                            {isScored && (
+                              <div className="mt-1">
                                 <SubmissionResetButton
                                   sessionId={r.id}
                                   studentEmail={r.email}
@@ -469,16 +432,48 @@ export default async function InstructorSubmissions({
                                   priorScoreTotal={r.score!.total}
                                   priorScoreMax={r.score!.max_total}
                                 />
-                              )}
-                              {isInterrupted && (
+                              </div>
+                            )}
+                            {isInterrupted && (
+                              <div className="mt-1">
                                 <SubmissionResetButton
                                   sessionId={r.id}
                                   studentEmail={r.email}
                                   assignmentTitle={selected.title}
                                   type="interrupted"
                                 />
-                              )}
-                            </div>
+                              </div>
+                            )}
+                          </td>
+
+                          {/* REVIEW: one icon to the existing detail page, which
+                              already shows the recording, the transcript and the
+                              rubric score. Accent colour at rest, with a real
+                              accessible name and a tooltip. */}
+                          <td className="px-2.5 py-2">
+                            <Link
+                              href={`/instructor/submission/${r.id}`}
+                              className="inline-flex rounded-md p-1 text-content-info hover:bg-surface-tertiary"
+                            >
+                              <ActionIcon
+                                icon={IconEye}
+                                label={`Review ${r.name}'s submission`}
+                              />
+                            </Link>
+                          </td>
+
+                          {/* DOWNLOAD: one icon opening the three downloads. Only
+                              a scored submission has files worth offering. */}
+                          <td className="px-2.5 py-2">
+                            {isScored ? (
+                              <SubmissionDownloadMenu
+                                sessionId={r.id}
+                                hasVideo={r.video_path != null}
+                                studentName={r.name}
+                              />
+                            ) : (
+                              <span className="text-content-tertiary">-</span>
+                            )}
                           </td>
                         </tr>
                       );
@@ -486,6 +481,20 @@ export default async function InstructorSubmissions({
                   </tbody>
                 </table>
               </div>
+            )}
+
+            {/* THE FOOTNOTE is what makes icon-only defensible in this table.
+                Instructors are repeat users of a dense screen, so one quiet line
+                explaining the two icons buys back the labels the columns dropped.
+                Adopted from the mockup's own pattern. */}
+            {rows.length > 0 && (
+              <p className="mt-2 px-0.5 text-micro text-content-tertiary">
+                Review opens the submission with its recording, transcript and
+                rubric score. Download offers the video, the transcript, and a CSV
+                of scores. Allow retake, under a submission&apos;s status, returns
+                it to the student and deletes the recorded grade. Practice
+                sessions never appear here.
+              </p>
             )}
 
             {/* Per-assignment reset history: a small "Resets: N" line that

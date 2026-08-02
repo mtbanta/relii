@@ -12,26 +12,25 @@
 // visual weight. Fixing that is ONE design decision about the row's actions, not
 // three separate patches, so the three now share a component and a look.
 //
-// THE LOOK: a right-aligned cluster of small bordered icon buttons, which is the
-// mockup's row idiom (its row ends in a quiet trash glyph) rather than a row of
-// competing text links. Every one is an ActionIcon, so each carries a real
-// accessible name AND a hover tooltip: the words "Review", "Download recording"
-// and "Delete" are still there for a screen reader and on hover, they have simply
-// stopped being three pieces of grey text competing with the row's content.
+// THE LOOK: Review as a visible text link, then Download and Delete as small
+// bordered icon buttons. PD-8d made all three icons; PD-8e brought Review back to
+// text, because a row needs its primary action labelled (see the note at the
+// control itself). The two icons carry real accessible names and tooltips, so
+// "Download recording" and "Delete" are still announced and still appear on
+// hover.
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  ActionIcon,
-  IconDownload,
-  IconEye,
-  IconTrash,
-} from "@/components/ui/icon";
+import { ActionIcon, IconDownload, IconTrash } from "@/components/ui/icon";
 import { downloadRecording, recordingFileName } from "@/lib/recording-download";
 
-// One shared shape for the three controls, so they read as a set.
+// One shared shape for the icon controls. They carry BOTH a border and the
+// accent colour at rest, so they are distinguishable from the row's data
+// without any hover: a hover-only treatment cannot advertise a control, because
+// the reader has to already know it is there to hover it, and on a touch screen
+// there is no hover at all.
 const ACTION =
-  "inline-flex h-6 w-6 items-center justify-center rounded-md border border-line-tertiary bg-surface-primary text-content-secondary transition-colors hover:border-line-secondary hover:text-content-primary disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex h-6 w-6 items-center justify-center rounded-md border border-line-tertiary bg-surface-primary text-content-info transition-colors hover:border-line-secondary hover:bg-surface-tertiary disabled:cursor-not-allowed disabled:text-content-tertiary disabled:opacity-50";
 
 export function PracticeRowActions({
   sessionId,
@@ -105,12 +104,23 @@ export function PracticeRowActions({
         <span className="mr-1 text-micro text-content-danger">{error}</span>
       )}
 
+      {/* REVIEW IS A VISIBLE TEXT LINK, and the two icons beside it are not.
+          That asymmetry is deliberate. This row's primary action is opening the
+          result, and a primary action needs a visible label: an eye glyph is
+          ambiguous for "open my results", and this app already uses an eye-like
+          control to mean show/hide on the PD-6 transcript toggle. Three
+          same-weight icons would also give the row no hierarchy between its
+          primary action and its destructive one.
+
+          Note that the instructor submissions table takes the OPPOSITE decision
+          and is icon-only with an explanatory footnote. Also deliberate:
+          students are novices on a screen they visit occasionally, instructors
+          are repeat users of a dense table they read all day. */}
       <Link
         href={`/student/session/${sessionId}/results`}
-        className={ACTION}
-        aria-label="Review this practice"
+        className="mr-0.5 rounded-md px-1.5 py-0.5 text-micro font-medium text-content-info hover:underline"
       >
-        <ActionIcon icon={IconEye} label="Review this practice" />
+        Review
       </Link>
 
       <button

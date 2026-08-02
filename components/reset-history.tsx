@@ -51,7 +51,11 @@ export function ResetHistory({ resets }: { resets: ResetHistoryRow[] }) {
 
   return (
     <details className="mt-4 rounded-lg border border-line-tertiary px-3 py-2">
-      <summary className="cursor-pointer text-meta text-content-secondary">
+      {/* The accent colour is on at REST, not on hover. The native disclosure
+          triangle is a glyph, and a glyph is not an affordance on its own; a
+          hover-only treatment advertises nothing, since the reader has to
+          already know the control is there to hover it. */}
+      <summary className="cursor-pointer text-meta text-content-info">
         Resets: {resets.length}
       </summary>
       <ul className="mt-2 space-y-2 text-meta">
