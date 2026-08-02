@@ -88,7 +88,9 @@ export function SubmissionResetTrigger({
     <button
       onClick={() => setOpenId(isOpen ? null : sessionId)}
       aria-expanded={isOpen}
-      aria-controls={panelId(sessionId)}
+      // Only while it is open, because the panel does not exist in the page
+      // when it is closed and aria-controls must not point at a missing id.
+      aria-controls={isOpen ? panelId(sessionId) : undefined}
       className={
         type === "interrupted"
           ? // THE DESTRUCTIVE ONE wears the danger tokens.
