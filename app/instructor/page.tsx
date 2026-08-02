@@ -475,14 +475,24 @@ export default async function InstructorSubmissions({
             {/* THE FOOTNOTE is what makes icon-only defensible in this table.
                 Instructors are repeat users of a dense screen, so one quiet line
                 explaining the two icons buys back the labels the columns dropped.
-                Adopted from the mockup's own pattern. */}
+                Adopted from the mockup's own pattern.
+
+                PD-8f CORRECTION: the Allow retake clause here shipped BACKWARDS.
+                It said the control deletes the recorded grade. It does not: the
+                route returns the submission to the student's practice pool and
+                keeps both the score and the recording. RESET is the destructive
+                one, and it was not explained at all, so it is named here now.
+                The authority for both is the route itself,
+                app/api/instructor/submission/[id]/reset/route.ts. */}
             {rows.length > 0 && (
               <p className="mt-2 px-0.5 text-micro text-content-tertiary">
                 Review opens the submission with its recording, transcript and
                 rubric score. Download offers the video, the transcript, and a CSV
                 of scores. Allow retake, under a submission&apos;s status, returns
-                it to the student and deletes the recorded grade. Practice
-                sessions never appear here.
+                it to the student&apos;s practice pool, keeping the score and
+                recording so they can submit again. Reset, under an interrupted
+                attempt, permanently deletes that attempt and its recording.
+                Practice sessions never appear here.
               </p>
             )}
 

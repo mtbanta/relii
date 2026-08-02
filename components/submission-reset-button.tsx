@@ -4,16 +4,27 @@
 // chosen by the `type` prop, deliberately different because they carry very
 // different stakes:
 //
-//   type = "interrupted"  A low-stakes recovery of a stuck attempt. A plain
-//     "Reset" button opens a simple two-step confirm (like the delete-student
-//     control): it names the student and assignment and explains the interrupted
-//     attempt will be deleted so the student can start over.
+//   type = "interrupted"  "Reset". This is the DESTRUCTIVE one: the route
+//     permanently deletes the stuck attempt's row AND removes its recording from
+//     Storage. It is styled with the DANGER tokens for exactly that reason.
 //
-//   type = "retake"       Allow a retake of a FINISHED submission. Piece 4 made
-//     this non-destructive: an "Allow retake" button opens a plain confirm
-//     explaining that it RETURNS the student's submission to their practice pool
-//     (keeping the recording and the score) so they can submit again. Nothing is
-//     deleted, so there is no download reminder and no type-RESET gate.
+//   type = "retake"       "Allow retake". Piece 4 made this NON-destructive: the
+//     route returns the submission to the student's practice pool (kind
+//     submission -> practice, submitted_at cleared), KEEPING the score and the
+//     recording, so they can submit again. It is styled as an ordinary quiet
+//     action.
+//
+// PD-8f: those two used to look IDENTICAL, both amber. That was backwards, and
+// worse than merely inconsistent: the safe, routine action shouted as loudly as
+// the permanent one. The authority for which is which is the route itself,
+// app/api/instructor/submission/[id]/reset/route.ts, not the comments that used
+// to sit here.
+//
+// One consequence of the retake path that is easy to miss and IS now stated in
+// its confirm: after returning the row, the route re-runs prunePractices with
+// keepId set. The returned practice carries its original (old) date, so if the
+// student's pool is already at the cap, force-keeping it means their OLDEST
+// OTHER practice and that practice's recording are dropped.
 //
 // Both POST to /api/instructor/submission/<id>/reset with the matching type; the
 // server re-verifies the session qualifies for that path before acting. On
@@ -21,6 +32,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { KEPT_PRACTICES } from "@/lib/practice";
 
 export function SubmissionResetButton({
   sessionId,
@@ -73,25 +85,26 @@ export function SubmissionResetButton({
     setError("");
   }
 
-  // ---- Path 1: interrupted attempt (low stakes) --------------------------
+  // ---- Path 1: interrupted attempt. THE DESTRUCTIVE ONE. ------------------
   if (type === "interrupted") {
     if (!confirming) {
       return (
         <button
           onClick={() => setConfirming(true)}
-          className="rounded-md border border-amber-300 px-2 py-0.5 text-meta text-content-warning hover:bg-surface-warning"
+          className="rounded-md border border-content-danger px-2 py-0.5 text-micro text-content-danger hover:bg-surface-danger"
         >
           Reset
         </button>
       );
     }
     return (
-      <div className="mt-1 rounded-md border border-amber-200 bg-surface-warning p-2 text-meta">
-        <p className="mb-2 text-content-warning">
+      <div className="mt-1 rounded-md border border-content-danger bg-surface-danger p-2 text-micro">
+        <p className="mb-2 text-content-danger">
           Reset the interrupted attempt for{" "}
           <span className="font-medium">{studentEmail}</span> on{" "}
-          <span className="font-medium">{assignmentTitle}</span>? This deletes
-          their stuck attempt so they can start the assignment over.
+          <span className="font-medium">{assignmentTitle}</span>? This
+          PERMANENTLY DELETES that attempt and its recording so the student can
+          start the assignment over. It cannot be undone.
         </p>
         <div className="flex items-center gap-2">
           <Button
@@ -103,12 +116,12 @@ export function SubmissionResetButton({
             Cancel
           </Button>
           <Button
-            variant="caution"
+            variant="destructive"
             size="xs"
             onClick={handleReset}
             disabled={loading}
           >
-            {loading ? "Resetting..." : "Yes, reset attempt"}
+            {loading ? "Deleting..." : "Permanently delete attempt"}
           </Button>
         </div>
         {error && <p className="mt-2 text-content-danger">{error}</p>}
@@ -116,31 +129,38 @@ export function SubmissionResetButton({
     );
   }
 
-  // ---- Path 2: allow a retake of a completed submission ------------------
-  // Piece 4: this is no longer destructive. Allowing a retake RETURNS the
-  // student's submission to their practice pool (keeping the recording and the
-  // score) so they can submit again, so it is a plain confirm, not the old
-  // type-RESET, "permanently delete" gate.
+  // ---- Path 2: allow a retake. ROUTINE AND NON-DESTRUCTIVE. ---------------
   const hadScore = priorScoreTotal != null && priorScoreMax != null;
 
   if (!confirming) {
     return (
+      // A quiet, ordinary action: a hairline border is its resting affordance,
+      // and it deliberately does NOT wear the warning colour, because nothing
+      // here is lost.
       <button
         onClick={() => setConfirming(true)}
-        className="rounded-md border border-amber-300 px-2 py-0.5 text-meta text-content-warning hover:bg-surface-warning"
+        className="rounded-md border border-line-secondary px-2 py-0.5 text-micro text-content-secondary hover:bg-surface-tertiary hover:text-content-primary"
       >
         Allow retake
       </button>
     );
   }
   return (
-    <div className="mt-1 rounded-md border border-amber-200 bg-surface-warning p-2 text-meta">
-      <p className="mb-2 text-content-warning">
+    <div className="mt-1 rounded-md border border-line-tertiary bg-surface-secondary p-2 text-micro">
+      <p className="mb-2 text-content-primary">
         Allow <span className="font-medium">{studentEmail}</span> to retake{" "}
         <span className="font-medium">{assignmentTitle}</span>? This returns their
         submission{hadScore ? ` (${priorScoreTotal} / ${priorScoreMax})` : ""} to
         their practice pool so they can submit again. The recording and the score
-        are kept; nothing is deleted. This is recorded in the reset history.
+        are kept.
+      </p>
+      {/* The one consequence that IS a deletion, stated plainly. The returned
+          practice carries its original date, so force-keeping it can push the
+          pool over the cap. */}
+      <p className="mb-2 text-content-secondary">
+        If they already have {KEPT_PRACTICES} saved practices, returning this one
+        drops their oldest other practice and its recording. This is recorded in
+        the reset history.
       </p>
       <div className="flex items-center gap-2">
         <Button
@@ -151,12 +171,7 @@ export function SubmissionResetButton({
         >
           Cancel
         </Button>
-        <Button
-          variant="caution"
-          size="xs"
-          onClick={handleReset}
-          disabled={loading}
-        >
+        <Button size="xs" onClick={handleReset} disabled={loading}>
           {loading ? "Returning..." : "Allow retake"}
         </Button>
       </div>
