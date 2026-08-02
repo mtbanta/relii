@@ -384,11 +384,14 @@ export default async function InstructorSubmissions({
                           </td>
                           <td className="px-2.5 py-2">
                             {/* ONE ACTION GROUP, not four loose things and a
-                                button. View is the primary and leads; the three
-                                downloads sit under it as a labelled cluster with
-                                a hairline above, so a reader sees "open this" and
-                                "take a copy of this" as two ideas rather than
-                                four competing links. */}
+                                button. View leads and the three downloads sit
+                                under it behind a hairline and a "Download"
+                                label, so a reader sees "open this" and "take a
+                                copy of this" as two ideas rather than four
+                                competing links.
+                                Every one of the four is accent-coloured at rest,
+                                so colour marks them all as controls; View is the
+                                lead by WEIGHT alone. */}
                             <div className="flex flex-col items-start gap-1.5">
                               <Link
                                 href={`/instructor/submission/${r.id}`}
@@ -405,32 +408,51 @@ export default async function InstructorSubmissions({
                                   bare icons would be a guessing game. The icon
                                   is decoration beside its own label, so it is
                                   aria-hidden and the link still reads as
-                                  "Video" to a screen reader. */}
+                                  "Video" to a screen reader.
+
+                                  THE RESTING AFFORDANCE MATTERS MORE THAN THE
+                                  ICON. These three used to carry only a hover
+                                  colour, so at rest they inherited the cell's
+                                  text colour and were indistinguishable from the
+                                  row's data. A hover-only treatment cannot
+                                  advertise a control: the reader has to already
+                                  know it is there in order to hover it, and on a
+                                  touch screen there is no hover at all. So the
+                                  accent colour is now on at REST and the
+                                  underline is what hover adds.
+
+                                  That leaves colour unable to mark out the lead
+                                  action, so View is primary by WEIGHT instead. */}
                               {isScored && (
-                                <div className="flex w-full flex-wrap gap-x-2.5 gap-y-1 border-t border-line-tertiary pt-1.5 text-micro text-content-secondary">
-                                  {r.video_path && (
+                                <div className="w-full border-t border-line-tertiary pt-1.5">
+                                  <p className="text-micro text-content-tertiary">
+                                    Download
+                                  </p>
+                                  <div className="mt-0.5 flex flex-wrap gap-x-2.5 gap-y-1 text-micro">
+                                    {r.video_path && (
+                                      <a
+                                        href={`/api/instructor/submission/${r.id}/video`}
+                                        className="inline-flex items-center gap-1 text-content-info hover:underline"
+                                      >
+                                        <Icon icon={IconVideo} />
+                                        Video
+                                      </a>
+                                    )}
                                     <a
-                                      href={`/api/instructor/submission/${r.id}/video`}
-                                      className="inline-flex items-center gap-1 hover:text-content-info hover:underline"
+                                      href={`/api/instructor/submission/${r.id}/transcript`}
+                                      className="inline-flex items-center gap-1 text-content-info hover:underline"
                                     >
-                                      <Icon icon={IconVideo} />
-                                      Video
+                                      <Icon icon={IconFileText} />
+                                      Transcript
                                     </a>
-                                  )}
-                                  <a
-                                    href={`/api/instructor/submission/${r.id}/transcript`}
-                                    className="inline-flex items-center gap-1 hover:text-content-info hover:underline"
-                                  >
-                                    <Icon icon={IconFileText} />
-                                    Transcript
-                                  </a>
-                                  <a
-                                    href={`/api/instructor/submission/${r.id}/csv`}
-                                    className="inline-flex items-center gap-1 hover:text-content-info hover:underline"
-                                  >
-                                    <Icon icon={IconTable} />
-                                    CSV
-                                  </a>
+                                    <a
+                                      href={`/api/instructor/submission/${r.id}/csv`}
+                                      className="inline-flex items-center gap-1 text-content-info hover:underline"
+                                    >
+                                      <Icon icon={IconTable} />
+                                      CSV
+                                    </a>
+                                  </div>
                                 </div>
                               )}
                               {/* Reset / allow-retake control. A scored

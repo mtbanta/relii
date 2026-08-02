@@ -175,15 +175,22 @@ export function RubricScore({
                   onClick={() => toggle(c.name)}
                   aria-expanded={isOpen}
                   aria-controls={panelId}
-                  className="flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-surface-tertiary"
+                  className="flex w-full cursor-pointer items-center justify-between gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-surface-tertiary"
                 >
                   <span className="flex items-center gap-1.5 text-body font-medium text-content-primary">
-                    {/* The chevron is decoration: the button already announces
-                        its state through aria-expanded. Hidden in print, where
+                    {/* The chevron announces the DISCLOSURE, and it carries the
+                        accent colour at REST rather than only on hover. Without
+                        that, this row looked exactly like the item rows beneath
+                        it, which are not controls: a chevron on its own is not an
+                        affordance, and a hover-only treatment cannot advertise a
+                        control at all, since the reader must already know it is
+                        there to hover it and a touch screen has no hover.
+                        The button still announces its own state through
+                        aria-expanded, and the chevron is hidden in print, where
                         everything is expanded and a chevron would lie. */}
                     <Icon
                       icon={isOpen ? IconChevronUp : IconChevronDown}
-                      className="text-content-tertiary print:hidden"
+                      className="text-content-info print:hidden"
                     />
                     {c.name}
                   </span>
