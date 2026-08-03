@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Input, Label } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -42,8 +43,17 @@ export default function LoginPage() {
         onSubmit={handleSubmit}
         className="w-full max-w-sm space-y-4 rounded-xl border border-line-tertiary p-6 shadow-sm"
       >
+        {/* PD-8g: the Beta designation. The brief put it "next to the Relii
+            wordmark in the header, on every page, both audiences"; this screen
+            has no header, so it goes beside the name where the product names
+            itself. It matters here more than anywhere: the login page is the
+            first screen anyone sees. Same Badge primitive as the header, so it
+            is the same pill. */}
         <div className="text-center">
-          <h1 className="text-page-title font-medium">Relii</h1>
+          <h1 className="inline-flex items-baseline gap-1.5 text-page-title font-medium">
+            Relii
+            <Badge tone="info">Beta</Badge>
+          </h1>
           <p className="text-body text-content-secondary">Sign in to your account</p>
         </div>
 

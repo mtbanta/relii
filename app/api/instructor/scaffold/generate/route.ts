@@ -109,7 +109,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "That scenario was not created by persona scaffolding, so there is nothing to carry over.",
+            "That scenario was not created by the AI Persona Framework, so there is nothing to carry over.",
         },
         { status: 400 },
       );

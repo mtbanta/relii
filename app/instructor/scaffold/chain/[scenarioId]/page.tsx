@@ -52,7 +52,7 @@ export default async function ChainPage({
     return (
       <main className="mx-auto w-full max-w-page space-y-4 px-6 pb-10 pt-5">
         <Link href="/instructor/scaffold" className="text-body text-content-secondary underline">
-          Back to Persona Scaffolding
+          Back to AI Persona Framework
         </Link>
         {/* An h2, not an h1: the page title in the shared instructor header
             above is the h1. */}
@@ -70,7 +70,7 @@ export default async function ChainPage({
     return (
       <main className="mx-auto w-full max-w-page space-y-4 px-6 pb-10 pt-5">
         <Link href="/instructor/scaffold" className="text-body text-content-secondary underline">
-          Back to Persona Scaffolding
+          Back to AI Persona Framework
         </Link>
         <h2 className="text-page-title font-medium">Choose this gatekeeper first</h2>
         <p className="text-body text-content-secondary">
@@ -95,7 +95,7 @@ export default async function ChainPage({
           href="/instructor/scaffold"
           className="text-body text-content-secondary underline"
         >
-          Back to Persona Scaffolding
+          Back to AI Persona Framework
         </Link>
         <h2 className="mt-2 text-page-title font-medium">
           Build the decision maker for this case

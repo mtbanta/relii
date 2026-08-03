@@ -2,7 +2,7 @@
 // their name?" for every page under /instructor.
 //
 // It exists because the instructor surface is now several sibling pages
-// (Submissions, Invite Users, Manage Assignments, Roster, Persona Scaffolding)
+// (Submissions, AI Persona Framework, Manage Assignments, Roster, Invite Users)
 // instead of one long page, and each of them needs the same three things: the
 // signed-in user, their role read from the DATABASE (never trusted from the
 // browser), and the profile fields the header shows.

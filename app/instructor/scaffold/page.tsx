@@ -33,7 +33,11 @@ export default async function ScaffoldPage() {
           nav above, so the nav is how you leave it. The heading is an h2,
           because the page title in the shared header is the h1. */}
       <div>
-        <h2 className="text-page-title font-medium">Persona Scaffolding</h2>
+        {/* PD-8g: the destination is called "AI Persona Framework" now. The
+            ROUTE is still /instructor/scaffold, deliberately: renaming the path
+            would break bookmarks and existing links and would show nobody
+            anything. Label only. */}
+        <h2 className="text-page-title font-medium">AI Persona Framework</h2>
         <p className="mt-1 max-w-reading text-body text-content-secondary">
           Describe a sales case and the AI writes two candidate buyer personas
           in the same style as Alex and Jordan. Both are saved turned OFF, so no
@@ -55,7 +59,24 @@ export default async function ScaffoldPage() {
           </p>
         ) : (
           <ul className="divide-y divide-line-tertiary rounded-lg border border-line-tertiary">
-            {recent.map((generation) => (
+            {recent.map((generation) => {
+              // PD-8g: the link says what the page will actually show. While
+              // two candidates are still undecided it opens a COMPARISON, so it
+              // reads "Compare". Once the pick has been made there is nothing
+              // left to compare, so it reads "View Persona".
+              //
+              // "The pick has been made" is the same test the compare page
+              // uses, and it is two conditions rather than one on purpose: a
+              // switched-ON row is the ordinary decided case, and a group that
+              // has come down to ONE row is also decided, because choosing a
+              // winner deletes the loser. That second case is what a chosen
+              // persona later switched off looks like, and testing only for
+              // "enabled" would call it undecided and offer to compare it with
+              // nothing.
+              const chosen =
+                generation.rows.some((row) => row.enabled) ||
+                generation.rows.length === 1;
+              return (
               <li
                 key={generation.groupId}
                 className="flex items-start justify-between gap-4 p-3"
@@ -75,7 +96,7 @@ export default async function ScaffoldPage() {
                     href={`/instructor/scaffold/compare/${generation.groupId}`}
                     className="mt-1 inline-block text-body underline"
                   >
-                    Compare
+                    {chosen ? "View Persona" : "Compare"}
                   </Link>
                 </div>
                 <GenerationActions
@@ -83,7 +104,8 @@ export default async function ScaffoldPage() {
                   rows={generation.rows}
                 />
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </div>

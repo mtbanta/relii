@@ -12,12 +12,21 @@ import { usePathname } from "next/navigation";
 
 // The five destinations, in the order they are shown. Submissions is the
 // default: it lives at /instructor, which is where an instructor lands on login.
+//
+// PD-8g reordered them to the owner's list, which puts the two screens an
+// instructor works in daily (Submissions, then the persona work) before the
+// three they set up once (assignments, roster, invites). Invite Users moved from
+// second to last for the same reason.
+//
+// THE ROUTE FOR THE FOURTH ONE IS STILL /instructor/scaffold. Only the LABEL
+// became "AI Persona Framework": renaming the path would break existing links
+// and bookmarks and would show nobody anything.
 const DESTINATIONS = [
   { href: "/instructor", label: "Submissions" },
-  { href: "/instructor/invites", label: "Invite Users" },
+  { href: "/instructor/scaffold", label: "AI Persona Framework" },
   { href: "/instructor/assignments", label: "Manage Assignments" },
   { href: "/instructor/roster", label: "Roster" },
-  { href: "/instructor/scaffold", label: "Persona Scaffolding" },
+  { href: "/instructor/invites", label: "Invite Users" },
 ];
 
 // Which destination the current page belongs to. Submissions is matched exactly

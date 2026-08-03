@@ -31,6 +31,9 @@ import { Button } from "@/components/ui/button";
 type Assignment = {
   id: string;
   title: string;
+  // company_name is the buyer's company for this assignment (PD-8g). Null means
+  // none was named, which is what every assignment created before it has.
+  company_name: string | null;
   instructions: string | null;
   due_at: string | null;
   // available_date is when the assignment unlocks for students. Null means
@@ -77,6 +80,7 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
   // Form state, seeded from the assignment. Re-seeded whenever we open the form
   // (see startEditing), so Cancel always returns to the saved values.
   const [title, setTitle] = useState(assignment.title);
+  const [companyName, setCompanyName] = useState(assignment.company_name ?? "");
   const [instructions, setInstructions] = useState(assignment.instructions ?? "");
   const [availableDate, setAvailableDate] = useState(
     toDateInputValue(assignment.available_date),
@@ -96,6 +100,7 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
   function startEditing() {
     // Seed the inputs from the latest saved values, then open the form.
     setTitle(assignment.title);
+    setCompanyName(assignment.company_name ?? "");
     setInstructions(assignment.instructions ?? "");
     setAvailableDate(toDateInputValue(assignment.available_date));
     setDueAt(toDateInputValue(assignment.due_at));
@@ -160,6 +165,9 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
       .from("assignments")
       .update({
         title: cleanTitle,
+        // Clearing the company name sets it back to null, the same way clearing
+        // a date does.
+        company_name: companyName.trim() ? companyName.trim() : null,
         instructions: instructions.trim() ? instructions.trim() : null,
         available_date: availableDate ? availableDate : null,
         due_at: dueAt ? dueAt : null,
@@ -194,6 +202,17 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-body font-medium">{assignment.title}</p>
+          {/* PD-8g: the company, on its own line directly under the title,
+              rather than appended to the detail line below. That line is
+              already six facts long, and the company is the one thing on this
+              card an instructor scans for. Hidden when unset, the same way the
+              dates are: no company named is genuinely no company, not a
+              default. */}
+          {assignment.company_name && (
+            <p className="mt-0.5 text-meta text-content-secondary">
+              Company: {assignment.company_name}
+            </p>
+          )}
           <p className="mt-0.5 text-meta text-content-secondary">
             {assignment.scenarioTitle ?? "Scenario"}
             {assignment.personaName ? ` (with ${assignment.personaName})` : ""}{" "}
@@ -231,6 +250,20 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
+      </div>
+
+      <div>
+        <Label className="mb-1">Company name (optional)</Label>
+        <Input
+          type="text"
+          placeholder="Bunzl"
+          value={companyName}
+          onChange={(e) => setCompanyName(e.target.value)}
+        />
+        <p className="mt-1 text-meta text-content-tertiary">
+          The company the buyer works for in this role-play. Leave blank for
+          none.
+        </p>
       </div>
 
       <div>

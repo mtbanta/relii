@@ -104,8 +104,16 @@
      Note how flat this is. There is no 20px or 18px step any more: the mockup
      separates levels by WEIGHT and COLOUR far more than by size, which is what
      lets a whole screen fit in one dense column. */
-  --text-wordmark: 1.125rem; /* 18px, the "Relii" mark in the app header */
-  --text-wordmark--line-height: 1.5rem;
+  /* PD-8g: raised a third, 18px to 24px, on Tom's instruction. Note the
+     consequence, which is deliberate and was checked rather than assumed: the
+     wordmark is now LARGER than the page title (22px), so the header outranks
+     the page heading on size. It still reads as chrome rather than as the
+     subject, because the two are separated by weight, colour and position: the
+     wordmark is accent-coloured, medium weight, and sits in the header row
+     above a rule, while the page title is near-black at the top of the content.
+     Size is the only axis on which it wins. */
+  --text-wordmark: 1.5rem; /* 24px, the "Relii" mark in the app header */
+  --text-wordmark--line-height: 2rem;
   --text-page-title: 1.375rem; /* 22px */
   --text-page-title--line-height: 1.75rem;
   --text-stat: 1.375rem; /* 22px */

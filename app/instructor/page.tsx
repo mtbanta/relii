@@ -28,7 +28,7 @@ import { recordingLengthText } from "@/lib/recording-length";
 import type { SessionScore } from "@/lib/types";
 import { cardClasses } from "@/components/ui/card";
 import { ActionIcon, Icon, IconEye, IconInbox } from "@/components/ui/icon";
-import { SubmissionDownloadMenu } from "@/components/submission-download-menu";
+import { SubmissionDownloads } from "@/components/submission-downloads";
 
 // Compact mode label for the submissions table (matches the mockup: "V+V").
 function modeShort(mode: string): string {
@@ -56,7 +56,7 @@ const SUBMISSION_COLUMNS = 9;
 // only the practice a student selected for submission shows up in this table.
 const TABLE_INSTRUCTIONS = [
   "Review opens the submission with its recording, transcript and rubric score.",
-  "Download offers the video, the transcript, and a CSV of scores.",
+  "Download has three icons: the video, the transcript, and a CSV of scores. A greyed icon means that file does not exist for that submission.",
   "Allow retake, in the Manage column, returns a scored submission to the student's practice pool, keeping the score and recording so they can submit again.",
   "Reset, in the Manage column, permanently deletes an interrupted attempt and its recording.",
   "Only the Practice sessions selected for submission appear here.",
@@ -153,17 +153,33 @@ export default async function InstructorSubmissions({
   // The reset history for the selected assignment, newest first. Read
   // instructor-only with the admin client, server-side (the same pattern the
   // rest of the dashboard uses). Scoped to this assignment.
+  //
+  // PD-8g: student_id came into this select so each entry can show the student's
+  // NAME, resolved from the studentById map this page already built for the
+  // table. No second query, and no change to what the audit table stores.
+  //
+  // THE SNAPSHOT EMAIL IS STILL WRITTEN AND STILL READ, as the fallback. The
+  // audit row keeps the email on purpose, as a record of who it was at the time,
+  // and that is the only thing left to show when the student has since been
+  // deleted (no profile row to join to) or never set a name. A blank student in
+  // an audit log would be worse than an email.
   let resets: ResetHistoryRow[] = [];
   if (selected) {
     const { data } = await admin
       .from("submission_resets")
       .select(
-        "id, student_email, reset_type, prior_score_total, prior_score_max, created_at, instructor_email",
+        "id, student_id, student_email, reset_type, prior_score_total, prior_score_max, created_at, instructor_email",
       )
       .eq("assignment_id", selected.id)
       .order("created_at", { ascending: false })
-      .returns<ResetHistoryRow[]>();
-    resets = data ?? [];
+      .returns<(ResetHistoryRow & { student_id: string | null })[]>();
+    resets = (data ?? []).map((row) => {
+      const student = row.student_id ? studentById.get(row.student_id) : null;
+      return {
+        ...row,
+        studentName: student ? displayName(student) : null,
+      };
+    });
   }
 
   // Build the table rows, one per student, sorted by the name shown. Each row
@@ -520,11 +536,16 @@ export default async function InstructorSubmissions({
                             </Link>
                           </td>
 
-                          {/* DOWNLOAD: one icon opening the three downloads. Only
-                              a scored submission has files worth offering. */}
+                          {/* DOWNLOAD: THREE icons, one per file, reversing
+                              PD-8e's single icon and its <details> menu on the
+                              owner's instruction. Only a scored submission has
+                              files worth offering, so an unscored row still
+                              shows a dash for the whole cell. Within a scored
+                              row, a file that does not exist is DIMMED rather
+                              than dropped, so every row keeps its shape. */}
                           <td className="px-2.5 py-2">
                             {isScored ? (
-                              <SubmissionDownloadMenu
+                              <SubmissionDownloads
                                 sessionId={r.id}
                                 hasVideo={r.video_path != null}
                                 studentName={r.name}

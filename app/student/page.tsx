@@ -361,12 +361,26 @@ export default async function StudentHome() {
                     )}
                   </span>
                 </div>
+                {/* PD-8g: a header over the instructions, so the block reads as
+                    something the instructor wrote FOR this assignment rather
+                    than as loose prose hanging under the title. It takes the
+                    same section heading as "Practice this assignment" further
+                    down the card, so the card has one heading style rather than
+                    two. It follows the card's locked greying, because a locked
+                    card greys as a whole. */}
                 {a.instructions && (
-                  <p
-                    className={`mt-3 text-body leading-relaxed ${locked ? "text-content-tertiary" : "text-content-secondary"}`}
-                  >
-                    {a.instructions}
-                  </p>
+                  <div className="mt-3">
+                    <p
+                      className={`text-body font-medium ${locked ? "text-content-tertiary" : "text-content-primary"}`}
+                    >
+                      Instructions
+                    </p>
+                    <p
+                      className={`mt-0.5 max-w-reading text-body leading-relaxed ${locked ? "text-content-tertiary" : "text-content-secondary"}`}
+                    >
+                      {a.instructions}
+                    </p>
+                  </div>
                 )}
 
                 {/* The official, one-shot graded submission. A conversation-only

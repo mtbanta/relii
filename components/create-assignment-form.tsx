@@ -14,7 +14,13 @@ import {
   MAX_MEETING_MINUTES,
   MIN_MEETING_MINUTES,
 } from "@/lib/meeting-length";
-import { Input, Label, Select, Textarea } from "@/components/ui/field";
+import {
+  FileInput,
+  Input,
+  Label,
+  Select,
+  Textarea,
+} from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { cardClasses } from "@/components/ui/card";
 
@@ -33,6 +39,9 @@ export function CreateAssignmentForm({
 }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
+  // PD-8g: the buyer's company for this assignment, as typed. Empty means "not
+  // set" and saves as null, exactly like the two dates and the meeting length.
+  const [companyName, setCompanyName] = useState("");
   const [scenarioId, setScenarioId] = useState(scenarios[0]?.id ?? "");
   const [requiredMode, setRequiredMode] = useState<"text" | "voice_video">(
     "voice_video",
@@ -105,7 +114,9 @@ export function CreateAssignmentForm({
       required_mode: requiredMode,
       // Optional fields become null when left blank. A null available_date
       // means the assignment is available now; a null due_at means no due date;
-      // a null duration_minutes means the standard 30 minute meeting.
+      // a null duration_minutes means the standard 30 minute meeting; a null
+      // company_name means no company was named for this assignment.
+      company_name: companyName.trim() ? companyName.trim() : null,
       instructions: instructions.trim() ? instructions.trim() : null,
       available_date: availableDate ? availableDate : null,
       due_at: dueAt ? dueAt : null,
@@ -123,6 +134,7 @@ export function CreateAssignmentForm({
 
     setMessage(`Created "${cleanTitle}".`);
     setTitle("");
+    setCompanyName("");
     setInstructions("");
     setAvailableDate("");
     setDueAt("");
@@ -147,6 +159,25 @@ export function CreateAssignmentForm({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
+      </div>
+
+      {/* PD-8g: the buyer's company for this assignment. Written straight from
+          the browser alongside every other field on this form, under the
+          existing "instructors manage assignments" rule, so it needed no new
+          server route. Optional, like the dates and the meeting length: blank
+          saves as null. */}
+      <div>
+        <Label className="mb-1">Company name (optional)</Label>
+        <Input
+          type="text"
+          placeholder="Bunzl"
+          value={companyName}
+          onChange={(e) => setCompanyName(e.target.value)}
+        />
+        <p className="mt-1 text-meta text-content-tertiary">
+          The company the buyer works for in this role-play. Shown on the
+          assignment card below.
+        </p>
       </div>
 
       <div>
@@ -213,6 +244,30 @@ export function CreateAssignmentForm({
           rows={3}
           placeholder="Anything the student should know before they start."
         />
+      </div>
+
+      {/* THE RUBRIC ATTACHMENT: A DELIBERATE PLACEHOLDER, NOT A BUILT FEATURE.
+          It exists to show where the capability is going. It is DISABLED and
+          says so in three ways at once, because a field that looks live and
+          quietly does nothing is worse than no field at all, and worst of all in
+          front of a stakeholder who tries clicking it: the label carries "not
+          yet available", the control cannot be opened, and the line beneath says
+          plainly that the scoring rubric still comes from the scenario.
+          Nothing is wired to it. There is no state, no upload, no Storage
+          bucket, and the insert above does not mention it. */}
+      <div>
+        <Label className="mb-1">
+          Rubric attachment (not yet available)
+        </Label>
+        <FileInput
+          disabled
+          aria-disabled="true"
+          className="opacity-50"
+        />
+        <p className="mt-1 text-meta text-content-tertiary">
+          Attaching your own rubric file is not built yet, so this is switched
+          off. Scoring still uses the rubric attached to the scenario.
+        </p>
       </div>
 
       <div>

@@ -135,7 +135,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "That scenario was not created by persona scaffolding, so it cannot be edited here.",
+          "That scenario was not created by the AI Persona Framework, so it cannot be edited here.",
       },
       { status: 400 },
     );

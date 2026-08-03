@@ -43,7 +43,7 @@ function Blocked({
         href="/instructor/scaffold"
         className="text-body text-content-secondary underline"
       >
-        Back to Persona Scaffolding
+        Back to AI Persona Framework
       </Link>
       {/* An h2, not an h1: the page title in the shared instructor header above
           is the h1. */}

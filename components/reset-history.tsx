@@ -4,13 +4,26 @@
 // selected assignment. The rows are read instructor-only on the server (see the
 // dashboard page); nothing sensitive reaches the browser it should not.
 //
-// Each entry shows: the student (email), the type (an interrupted recovery vs a
+// Each entry shows: the student (by NAME), the type (an interrupted recovery vs a
 // graded retake that returned the submission to the student's practice pool), the
 // score the submission had at that point for a graded retake only, when it
 // happened, and who did it (instructor email). Deliberately simple: no filtering,
 // search, pagination, or export.
+//
+// THE NAME, AND WHY THE STORED EMAIL IS STILL THE FALLBACK (PD-8g). This list
+// showed student_email, which is the email as it was AT THE TIME: submission_resets
+// stores it deliberately as a snapshot, so the log survives the student row being
+// deleted. The name is nicer to read and matches every other instructor surface,
+// so the dashboard now resolves it by joining the audit row's student_id back to
+// profiles and passes it in as studentName.
+//
+// The snapshot email stays as the fallback, and that is the load-bearing part: a
+// reset for a since-deleted student has NO profile to join to, and a student who
+// somehow has no name set has nothing to show. A blank cell in an audit log is
+// worse than an email, so the email is what fills the gap.
 
-// One reset as read for this list (a snapshot row from submission_resets).
+// One reset as read for this list (a snapshot row from submission_resets), plus
+// the name resolved for it by the page that reads it.
 export type ResetHistoryRow = {
   id: string;
   student_email: string;
@@ -19,6 +32,10 @@ export type ResetHistoryRow = {
   prior_score_max: number | null;
   created_at: string;
   instructor_email: string;
+  // The student's display name, resolved from profiles by the dashboard. Null
+  // when the student no longer exists or has no name set, which is exactly when
+  // the stored snapshot email is shown instead.
+  studentName?: string | null;
 };
 
 // A readable date and time. We read it in UTC (like the rest of the dashboard's
@@ -74,7 +91,9 @@ export function ResetHistory({ resets }: { resets: ResetHistoryRow[] }) {
               className="border-b border-line-tertiary pb-2 last:border-0 last:pb-0"
             >
               <p className="text-content-primary">
-                <span className="font-medium">{r.student_email}</span>
+                <span className="font-medium">
+                  {r.studentName || r.student_email}
+                </span>
                 {" · "}
                 {typeLabel}
                 {isRetake && hadScore

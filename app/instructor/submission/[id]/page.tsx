@@ -243,12 +243,32 @@ export default async function InstructorSubmissionPage({
       >
         {isVoice && (
           <section className="min-w-0">
-            <h2 className="mb-2 text-section font-medium text-content-secondary">Recording</h2>
+            {/* PD-8g, and the defect is in the FILE rather than the player. A
+                browser-made WebM carries no duration in its header (MediaRecorder
+                is writing a live stream and cannot know the length in advance),
+                so the player's scrubber reads 0:00 until it has seeked to the
+                end. sessions.recorded_seconds, captured in PD-5, is the
+                authoritative length and now sits beside the player as well as in
+                the header block above; preload="metadata" fetches the header
+                without pulling the whole recording. No change to the recording
+                or upload path. */}
+            <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3">
+              <h2 className="text-section font-medium text-content-secondary">Recording</h2>
+              {videoUrl && (
+                <span className="text-meta text-content-secondary">
+                  {RECORDING_LENGTH_LABEL}:{" "}
+                  <span className="tabular-nums">
+                    {recordingLengthText(session.recorded_seconds)}
+                  </span>
+                </span>
+              )}
+            </div>
             {videoUrl ? (
               <video
                 src={videoUrl}
                 controls
                 playsInline
+                preload="metadata"
                 className="aspect-video w-full rounded-lg border border-line-tertiary bg-black object-contain"
               />
             ) : (

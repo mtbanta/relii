@@ -225,12 +225,38 @@ export default async function ResultsPage({
             printing so the saved PDF is a clean score-and-transcript sheet. */}
         {isVoice && (
           <section className="min-w-0 print:hidden">
-            <h2 className="mb-2 text-section font-medium text-content-secondary">Your recording</h2>
+            {/* PD-8g, AND THE DEFECT IS IN THE FILE RATHER THAN THE PLAYER, so
+                read this before "fixing" the scrubber. The recording is a
+                browser-made WebM (components/voice-conversation.tsx), and a
+                browser-made WebM carries NO DURATION IN ITS HEADER, because
+                MediaRecorder is writing a live stream and cannot know the length
+                in advance. So the player's own scrubber reads 0:00 until it has
+                seeked all the way to the end. Nothing is wrong with the file or
+                the upload; the number simply is not in it.
+                The authoritative length is sessions.recorded_seconds, captured
+                in PD-5, and it now sits beside the player as well as in the
+                header block above. preload="metadata" is on the element so the
+                browser fetches what header there is without downloading the
+                whole recording.
+                DELIBERATELY NOT DONE: remuxing or re-encoding, or any change to
+                the recording upload path. */}
+            <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3">
+              <h2 className="text-section font-medium text-content-secondary">Your recording</h2>
+              {videoUrl && (
+                <span className="text-meta text-content-secondary">
+                  {RECORDING_LENGTH_LABEL}{" "}
+                  <span className="tabular-nums">
+                    {recordingLengthText(session.recorded_seconds)}
+                  </span>
+                </span>
+              )}
+            </div>
             {videoUrl ? (
               <video
                 src={videoUrl}
                 controls
                 playsInline
+                preload="metadata"
                 className="aspect-video w-full rounded-lg border border-line-tertiary bg-black object-contain"
               />
             ) : videoError === "1" ? (

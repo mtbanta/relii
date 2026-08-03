@@ -104,8 +104,16 @@ export function ScaffoldForm() {
           />
         </div>
 
+        {/* IN-FLIGHT ADJUSTMENT, PD-8g, flagged for the owner. This field was
+            called "Persona role", which is the exact label the chain-position
+            select was renamed to further down this same form. Two fields on one
+            form cannot carry the same label, so this one took the narrower name
+            it always meant: the persona's JOB TITLE ("Fleet manager"), which is
+            what it feeds (candidate.role). Label only; the state, the request
+            field and the stored value are all unchanged. Reverting is one
+            string if the owner would rather disambiguate the other way. */}
         <div>
-          <label className={labelClass}>Persona role</label>
+          <label className={labelClass}>Persona job title</label>
           <input
             type="text"
             required
@@ -142,12 +150,19 @@ export function ScaffoldForm() {
           />
         </div>
 
-        {/* Chain position is the ONLY question here. The meeting type follows
-            from it (gatekeeper means a discovery meeting, decision maker means
-            the presentation and close), so it is no longer asked separately and
-            the two can never disagree. */}
+        {/* This is the ONLY question here. The meeting type follows from it
+            (gatekeeper means a discovery meeting, decision maker means the
+            presentation and close), so it is no longer asked separately and the
+            two can never disagree.
+
+            PD-8g RENAMED THE LABEL to "Persona Role". LABEL ONLY: the value is
+            still gatekeeper / decision_maker, it is still sent as chainPosition,
+            it is still stored in chain_role, and PD-2's locked-field logic (this
+            is half of the first locked pair) is untouched. Nothing about what
+            this field DOES changed, and it did not become editable anywhere it
+            was read-only before. */}
         <div>
-          <label className={labelClass}>Chain position</label>
+          <label className={labelClass}>Persona Role</label>
           <select
             value={chainPosition}
             onChange={(e) => setChainPosition(e.target.value)}

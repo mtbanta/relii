@@ -17,6 +17,9 @@ import { Card } from "@/components/ui/card";
 type AssignmentRow = {
   id: string;
   title: string;
+  // company_name is the buyer's company for this assignment (PD-8g). Null means
+  // none was named, which is what every pre-PD-8g assignment has.
+  company_name: string | null;
   required_mode: string;
   due_at: string | null;
   // available_date is when the assignment unlocks for students (PD-3). Null
@@ -50,7 +53,7 @@ export default async function InstructorAssignments() {
   // The assignments THIS instructor created.
   const { data: assignments } = await supabase
     .from("assignments")
-    .select("id, title, required_mode, due_at, available_date, duration_minutes, instructions, scenarios ( title, persona_name )")
+    .select("id, title, company_name, required_mode, due_at, available_date, duration_minutes, instructions, scenarios ( title, persona_name )")
     .eq("created_by", user.id)
     .order("created_at", { ascending: false })
     .returns<AssignmentRow[]>();
@@ -95,7 +98,14 @@ export default async function InstructorAssignments() {
 
       <CreateAssignmentForm scenarios={scenarios ?? []} createdBy={user.id} />
 
-      <div className="mt-4">
+      {/* PD-8g: a header over the list below, so the created assignments read as
+          their own section rather than as loose cards trailing the create form.
+          It is a section heading, the same step the "Recent generations" and
+          "Clean up" headings use on the persona page. */}
+      <div className="mt-5">
+        <h3 className="mb-2 text-card-title font-medium text-content-primary">
+          Published Assignments
+        </h3>
         {assignments && assignments.length > 0 ? (
           <ul className="space-y-2">
             {assignments.map((a) => {
@@ -110,6 +120,7 @@ export default async function InstructorAssignments() {
                     assignment={{
                       id: a.id,
                       title: a.title,
+                      company_name: a.company_name,
                       instructions: a.instructions,
                       due_at: a.due_at,
                       available_date: a.available_date,

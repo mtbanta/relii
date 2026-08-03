@@ -16,6 +16,7 @@
 // app/instructor/layout.tsx.
 import Link from "next/link";
 import { SignOutButton } from "@/components/sign-out-button";
+import { Badge } from "@/components/ui/badge";
 
 export function AppHeader({
   name,
@@ -32,16 +33,28 @@ export function AppHeader({
 }) {
   return (
     <header className="flex items-center justify-between gap-4 py-3">
-      <Link href={homeHref} className="flex items-baseline gap-1.5">
-        <span className="text-wordmark font-medium text-content-info">
+      {/* PD-8g: the wordmark, a "Beta" designation, then the qualifier.
+          The qualifier moved OUT of the link in the same change, so the link is
+          exactly the wordmark: its accessible name is now "Relii" rather than
+          "Relii Beta instructor", and neither the badge nor the word
+          "instructor" is a click target that silently navigates home.
+          The badge is the shared Badge primitive rather than a one-off span, so
+          it carries the same pill shape, size and contrast as every other
+          status pill in the app. */}
+      <div className="flex min-w-0 items-baseline gap-1.5">
+        <Link
+          href={homeHref}
+          className="text-wordmark font-medium text-content-info"
+        >
           Relii
-        </span>
+        </Link>
+        <Badge tone="info">Beta</Badge>
         {qualifier && (
           <span className="text-meta font-normal text-content-tertiary">
             {qualifier}
           </span>
         )}
-      </Link>
+      </div>
 
       {/* Compact, but nothing is hidden: the signed-in person and the account
           they are in are both still on screen, and sign out is still a real

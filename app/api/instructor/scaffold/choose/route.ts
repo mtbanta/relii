@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "That scenario was not created by persona scaffolding, so it cannot be chosen here.",
+          "That scenario was not created by the AI Persona Framework, so it cannot be chosen here.",
       },
       { status: 400 },
     );
@@ -165,7 +165,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "The winner was switched on, but the other candidate could not be checked, so it was left in place. Try discarding it from the scaffolding page.",
+          "The winner was switched on, but the other candidate could not be checked, so it was left in place. Try discarding it from the AI Persona Framework page.",
       },
       { status: 500 },
     );
@@ -201,7 +201,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "The winner was switched on, but the other candidate could not be deleted. You can discard it from the scaffolding page.",
+            "The winner was switched on, but the other candidate could not be deleted. You can discard it from the AI Persona Framework page.",
         },
         { status: 500 },
       );
