@@ -84,17 +84,41 @@ export default function RegisterPage() {
           />
         </Label>
 
+        {/* THE PASSWORD RULES BELOW MIRROR A SUPABASE DASHBOARD SETTING, and
+            nothing in this codebase keeps the two in step. Authentication >
+            Sign In / Up holds the real values: a minimum length of 8, and
+            "Prevent use of leaked passwords" switched ON (every password is
+            checked against HaveIBeenPwned). The minLength and the helper text
+            here are a hand-kept copy of both. Change either setting in the
+            dashboard and this page goes on stating the old rule: no build
+            breaks, no test fails, and nobody is told. That is the same
+            stale-copy pattern as the reset controls and the video item, where
+            what is displayed is a copy of a fact that lives somewhere else.
+
+            The error path is the backstop, and it is verified working (checked
+            against the live project on 2026-08-04). Supabase answers a bad
+            password with error_code weak_password and a message that names the
+            reason, either "Password should be at least 8 characters." or
+            "Password is known to be weak and easy to guess, please choose a
+            different one." The handler above passes signUpError.message
+            straight through instead of collapsing it into a generic failure.
+            KEEP IT THAT WAY: someone whose password is rejected for being
+            breached needs to be told why, not just told it failed. */}
         <Label>
           Password
           <Input
             type="password"
             required
-            minLength={6}
+            minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)} className="mt-1"
           />
           <span className="mt-1 block text-meta font-normal text-content-tertiary">
-            At least 6 characters.
+            <span className="block">At least 8 characters.</span>
+            <span className="block">
+              Common passwords are rejected, so choose something you do not use
+              elsewhere.
+            </span>
           </span>
         </Label>
 
