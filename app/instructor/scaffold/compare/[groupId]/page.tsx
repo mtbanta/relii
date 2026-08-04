@@ -73,7 +73,13 @@ const FIELD_ROWS: FieldRow[] = [
     render: (c) => `${c.company?.size ?? ""} ${c.company?.type ?? ""}`.trim(),
   },
   {
-    label: "Meeting type and chain position",
+    // PD-8g follow-up: "chain position" became "Persona Role", matching the
+    // creation form. The PAIR is kept, because this row genuinely renders both
+    // halves ("Discovery. Gatekeeper."), so a label naming only one of them
+    // would describe half its own cell. Label only: chain_role, meeting_type
+    // and the generation_fields shape are untouched, and chainRoleLabel below
+    // still formats the VALUE, not this label.
+    label: "Meeting type and Persona Role",
     hint: "as saved on the scenario",
     // Read from the SAVED scenario row, not from the model's JSON, so what you
     // see here is exactly what is stored.
@@ -207,9 +213,23 @@ export default async function CompareCandidatesPage({
             instructor when they pick. The paragraph below still changes, which
             is where the state is actually said. */}
         <h2 className="mt-2 text-page-title font-medium">Personas</h2>
+        {/* THIS PARAGRAPH KEYS ON `picked`, NOT ON `decided`, and that is the
+            fix rather than the wording. It used to ask `decided` (is a row
+            switched ON), so the chosen-then-turned-off state fell through to
+            the ELSE branch and told the instructor to "read them field by field
+            and decide which one is the more appropriate buyer" on a page
+            showing one already-chosen persona. Same class of bug as the two
+            cards below, and it was left behind when those were moved onto
+            `picked`: three things on this page describe the pick, and all three
+            have to ask the same question.
+
+            The decided sentence also lost its second half. It said the
+            comparison was "kept below for reference", which is not true: the
+            loser is DELETED when a winner is chosen, so what is below is the
+            chosen persona on its own. */}
         <p className="mt-1 text-body text-content-secondary">
-          {decided
-            ? "You have already picked a winner from this generation. The comparison is kept below for reference."
+          {picked
+            ? "You have already picked a winner from this generation."
             : "Two AI-generated buyer personas built from the same case. Read them field by field and decide which one is the more appropriate buyer."}
         </p>
       </div>

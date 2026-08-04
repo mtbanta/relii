@@ -161,7 +161,11 @@ export async function POST(request: Request) {
     const chainPosition = readText(body, "chainPosition");
     if (chainPosition !== "gatekeeper" && chainPosition !== "decision_maker") {
       return NextResponse.json(
-        { error: "Pick a chain position." },
+        // PD-8g follow-up: names the control the instructor is looking at,
+        // which the creation form now labels "Persona Role". Display string
+        // only; the accepted VALUES are still gatekeeper / decision_maker and
+        // the check above them is unchanged.
+        { error: "Pick a Persona Role." },
         { status: 400 },
       );
     }

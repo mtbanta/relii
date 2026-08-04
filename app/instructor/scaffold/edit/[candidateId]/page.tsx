@@ -152,8 +152,14 @@ export default async function EditCandidatePage({
         </p>
         <dl className="mt-3 space-y-3 text-content-primary">
           <div>
+            {/* PD-8g follow-up: "chain position" became "Persona Role", so all
+                three screens that name this field agree with the creation form.
+                The PAIR is kept, because the value below renders both halves.
+                Label only, and this stays READ-ONLY: it is one of PD-2's three
+                locked pairs, the save route never reads it from the browser,
+                and none of that changed with the name. */}
             <dt className="text-meta font-medium uppercase tracking-wide text-content-secondary">
-              Meeting type and chain position
+              Meeting type and Persona Role
             </dt>
             <dd>
               {meetingTypeLabel(row.meeting_type)}.{" "}
