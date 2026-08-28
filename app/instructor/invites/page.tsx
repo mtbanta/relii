@@ -18,7 +18,10 @@ import { requireInstructor } from "@/lib/instructor-auth";
 export default async function InstructorInvites() {
   // The layout already gated this page; this confirms it again for the page
   // itself, since a page can be requested directly.
-  await requireInstructor();
+  //
+  // GATE 3a: the result is now KEPT rather than discarded, because the single
+  // invite form needs the instructor's class id to put on the invite row.
+  const { classId } = await requireInstructor();
 
   return (
     <main className="mx-auto w-full max-w-page px-6 pb-10 pt-5">
@@ -35,7 +38,7 @@ export default async function InstructorInvites() {
         under &quot;Invited, pending&quot; until that person signs up.
       </p>
 
-      <AddEmailForm />
+      <AddEmailForm classId={classId} />
       <BulkInviteForm />
     </main>
   );

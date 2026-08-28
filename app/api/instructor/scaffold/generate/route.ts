@@ -20,6 +20,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getInstructorClassId } from "@/lib/instructor-auth";
 import {
   generateTwoCandidates,
   meetingTypeForChainPosition,
@@ -67,6 +68,20 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Only instructors can generate personas." },
       { status: 403 },
+    );
+  }
+
+  // GATE 3a: the class these generated personas belong to. This route cannot use
+  // requireInstructor(), which calls redirect() and would throw here instead of
+  // returning JSON, so it calls the shared lookup underneath it directly.
+  const callerClassId = await getInstructorClassId(user.id);
+  if (!callerClassId) {
+    return NextResponse.json(
+      {
+        error:
+          "Your instructor account is not linked to a class, so personas cannot be saved.",
+      },
+      { status: 409 },
     );
   }
 
@@ -266,6 +281,8 @@ export async function POST(request: Request) {
         ...(chain ? { chain } : {}),
       },
       created_by: user.id,
+      // GATE 3a, write path 4 of 9. Both rows of the pair get the same class.
+      class_id: callerClassId,
     }));
 
     // ONE insert for both rows, so a pair can never be half-written.

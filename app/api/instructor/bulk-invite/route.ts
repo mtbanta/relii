@@ -16,6 +16,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { parseCsv, classifyRows, type SkippedRow } from "@/lib/bulk-invite";
+import { getInstructorClassId } from "@/lib/instructor-auth";
 
 export async function POST(request: Request) {
   // 1. The caller must be signed in.
@@ -40,6 +41,25 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Only instructors can bulk invite." },
       { status: 403 },
+    );
+  }
+
+  // 2b. GATE 3a: the class every invite in this file belongs to. It is what the
+  //     signup rule reads to put each student in a class the moment they
+  //     register, so an import that could not find one would produce a whole
+  //     roster of students in no class. Refuse instead.
+  //
+  //     This route cannot use requireInstructor(): that function calls
+  //     redirect(), which is a page mechanism and would throw here instead of
+  //     returning JSON. It calls the shared lookup underneath it directly.
+  const callerClassId = await getInstructorClassId(user.id);
+  if (!callerClassId) {
+    return NextResponse.json(
+      {
+        error:
+          "Your instructor account is not linked to a class, so invites cannot be imported.",
+      },
+      { status: 409 },
     );
   }
 
@@ -115,6 +135,8 @@ export async function POST(request: Request) {
       email: v.email,
       role: v.role,
       added_by: user.id,
+      // GATE 3a, write path 3 of 9 (the batch half).
+      class_id: callerClassId,
     }));
     const { error: batchError } = await admin
       .from("allowed_emails")
@@ -127,7 +149,15 @@ export async function POST(request: Request) {
       for (const v of valid) {
         const { error: rowError } = await admin
           .from("allowed_emails")
-          .insert({ email: v.email, role: v.role, added_by: user.id });
+          // GATE 3a, write path 3 of 9 (the per-row fallback half). It has to
+          // set class_id too, or a batch that hit one duplicate would write
+          // every remaining invite with no class.
+          .insert({
+            email: v.email,
+            role: v.role,
+            added_by: user.id,
+            class_id: callerClassId,
+          });
         if (!rowError) {
           added.push(v.email);
         } else if (rowError.code === "23505") {

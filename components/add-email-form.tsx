@@ -6,7 +6,16 @@ import { Input, Select } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { cardClasses } from "@/components/ui/card";
 
-export function AddEmailForm() {
+export function AddEmailForm({
+  classId,
+}: {
+  // GATE 3a: the class this invite belongs to, handed down by the page from
+  // requireInstructor(). Setting it here is what gives the student a class
+  // MEMBERSHIP row when they register: the signup rule in the database reads
+  // class_id off the invite. An invite with no class produced a student in no
+  // class at all, which is the hole this closes.
+  classId: string | null;
+}) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"student" | "instructor">("student");
   const [message, setMessage] = useState("");
@@ -17,14 +26,28 @@ export function AddEmailForm() {
     e.preventDefault();
     setMessage("");
     setIsError(false);
+
+    // GATE 3a: no class, no invite. An invite with no class produces a student
+    // with no class membership, who then sees an empty dashboard. Refusing here
+    // turns that silent outcome into a readable message.
+    if (!classId) {
+      setIsError(true);
+      setMessage(
+        "Your instructor account is not linked to a class, so invites cannot be sent. Please contact support.",
+      );
+      return;
+    }
+
     setLoading(true);
 
     const supabase = createClient();
     const cleanEmail = email.trim().toLowerCase();
 
+    // GATE 3a, write path 2 of 9. class_id is what the signup rule reads to put
+    // this person in a class the moment they register.
     const { error } = await supabase
       .from("allowed_emails")
-      .insert({ email: cleanEmail, role });
+      .insert({ email: cleanEmail, role, class_id: classId });
 
     setLoading(false);
 

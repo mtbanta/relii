@@ -33,9 +33,16 @@ type ScenarioOption = {
 export function CreateAssignmentForm({
   scenarios,
   createdBy,
+  classId,
 }: {
   scenarios: ScenarioOption[];
   createdBy: string;
+  // GATE 3a: the class this assignment belongs to, handed down by the page from
+  // requireInstructor(). Every row now carries one. It is typed as possibly
+  // empty only because the lookup can come back empty if an instructor's class
+  // was deleted by hand; the guard below refuses to save in that case rather
+  // than writing a row with no owner.
+  classId: string | null;
 }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
@@ -105,6 +112,18 @@ export function CreateAssignmentForm({
       duration = parsed;
     }
 
+    // GATE 3a: no class, no write. An assignment with no class cannot be edited
+    // or deleted afterwards (the security rule that allowed an empty class was
+    // removed in this same piece), so saving one would create a row nobody can
+    // manage. Refusing here turns that into a readable message.
+    if (!classId) {
+      setIsError(true);
+      setMessage(
+        "Your instructor account is not linked to a class, so this cannot be saved. Please contact support.",
+      );
+      return;
+    }
+
     setLoading(true);
     const supabase = createClient();
 
@@ -122,6 +141,8 @@ export function CreateAssignmentForm({
       due_at: dueAt ? dueAt : null,
       duration_minutes: duration,
       created_by: createdBy,
+      // GATE 3a, write path 1 of 9.
+      class_id: classId,
     });
 
     setLoading(false);

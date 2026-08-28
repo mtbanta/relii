@@ -35,7 +35,7 @@ type AssignmentRow = {
 export default async function InstructorAssignments() {
   // The layout already gated this page; this confirms it again for the page
   // itself, and is also how it gets the signed-in instructor's id.
-  const { user } = await requireInstructor();
+  const { user, classId } = await requireInstructor();
 
   const supabase = await createClient();
   const admin = createAdminClient();
@@ -96,7 +96,11 @@ export default async function InstructorAssignments() {
         submission must use. Each student can submit an assignment once.
       </p>
 
-      <CreateAssignmentForm scenarios={scenarios ?? []} createdBy={user.id} />
+      <CreateAssignmentForm
+        scenarios={scenarios ?? []}
+        createdBy={user.id}
+        classId={classId}
+      />
 
       {/* PD-8g: a header over the list below, so the created assignments read as
           their own section rather than as loose cards trailing the create form.

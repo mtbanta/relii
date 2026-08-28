@@ -77,7 +77,11 @@ export async function POST(request: Request) {
   //     session rule in this app is.
   const { data: gradedCheck, error: gradedCheckError } = await admin
     .from("scenarios")
-    .select("rubric_id, enabled")
+    // GATE 3a: class_id is read here so the session row below can carry it. A
+    // session takes its class from its SCENARIO, not its assignment, because
+    // assignment_id is nullable (free practice) while scenario_id never is.
+    // That is the same rule Gate 1's backfill used.
+    .select("rubric_id, enabled, class_id")
     .eq("id", assignment.scenario_id)
     .single();
   if (gradedCheckError || !gradedCheck) {
@@ -165,6 +169,9 @@ export async function POST(request: Request) {
       mode,
       status: "in_progress",
       transcript,
+      // GATE 3a, write path 5 of 9. gradedCheck is this assignment's scenario,
+      // already loaded in step 3b above.
+      class_id: gradedCheck.class_id,
     })
     .select("id")
     .single();

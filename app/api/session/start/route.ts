@@ -71,7 +71,10 @@ export async function POST(request: Request) {
   // 4. Load that scenario's persona so the AI can open the meeting in character.
   const { data: scenario, error: scenarioError } = await admin
     .from("scenarios")
-    .select("id, persona_system_prompt, scenario_context, enabled")
+    // GATE 3a: class_id joins this read so the session row below can carry it.
+    // A session takes its class from its SCENARIO, not its assignment, because
+    // assignment_id is nullable while scenario_id never is.
+    .select("id, persona_system_prompt, scenario_context, enabled, class_id")
     .eq("id", assignment.scenario_id)
     .single();
   if (scenarioError || !scenario) {
@@ -135,6 +138,8 @@ export async function POST(request: Request) {
       mode: "text",
       status: "in_progress",
       transcript: [firstTurn],
+      // GATE 3a, write path 7 of 9.
+      class_id: scenario.class_id,
     })
     .select("id")
     .single();

@@ -118,10 +118,19 @@ export default async function InstructorSubmissions({
   const studentById = new Map(students.map((s) => [s.id, s]));
   const enrolledCount = students.length;
 
-  // ALL assignments, newest first, for the dashboard selector. Per decision B an
+  // Assignments for the dashboard selector, newest first. Per decision B an
   // instructor may see any student's submission, so the selector is not limited
-  // to the assignments this instructor created. Any logged-in user may read
-  // assignments, so the ordinary client is fine.
+  // to the assignments this instructor CREATED.
+  //
+  // GATE 3a CHANGED WHAT THIS RETURNS, and the old comment here (which said any
+  // logged-in user may read assignments, so the ordinary client is fine) is no
+  // longer true. supabase/gate-3a-policies.sql rewrote the "read assignments"
+  // rule from "anyone signed in" to "anyone who owns or belongs to the class",
+  // so this read is now scoped to THIS instructor's class by the database, not
+  // by anything on this line. That is the intended behaviour and it is invisible
+  // while there is one instructor with one class. Reading through the ordinary
+  // client is still correct: this is one of the two instructor reads that
+  // already went through the security rules rather than around them.
   const { data: allAssignments } = await supabase
     .from("assignments")
     .select("id, title, required_mode, scenarios ( title, persona_name )")

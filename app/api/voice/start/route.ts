@@ -70,7 +70,10 @@ export async function POST(request: Request) {
   //     scaffolded persona candidates are written turned off.
   const { data: scenario, error: scenarioError } = await admin
     .from("scenarios")
-    .select("enabled")
+    // GATE 3a: class_id joins this read so the session row below can carry it.
+    // A session takes its class from its SCENARIO, not its assignment, because
+    // assignment_id is nullable while scenario_id never is.
+    .select("enabled, class_id")
     .eq("id", assignment.scenario_id)
     .single();
   if (scenarioError || !scenario) {
@@ -100,6 +103,8 @@ export async function POST(request: Request) {
       mode: "voice_video",
       status: "in_progress",
       transcript: [],
+      // GATE 3a, write path 6 of 9.
+      class_id: scenario.class_id,
     })
     .select("id")
     .single();

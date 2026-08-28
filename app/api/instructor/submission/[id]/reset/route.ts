@@ -90,8 +90,9 @@ export async function POST(
   // 4. Load the ONE target session (scoped to this id only).
   const { data: session, error: sessionError } = await admin
     .from("sessions")
+    // GATE 3a: class_id joins this read so the audit record below can carry it.
     .select(
-      "id, kind, status, created_at, student_id, assignment_id, video_path, score",
+      "id, kind, status, created_at, student_id, assignment_id, video_path, score, class_id",
     )
     .eq("id", id)
     .single();
@@ -137,7 +138,8 @@ export async function POST(
     admin.from("profiles").select("email").eq("id", session.student_id).single(),
     admin
       .from("assignments")
-      .select("title")
+      // GATE 3a: class_id joins this read purely as the fallback described below.
+      .select("title, class_id")
       .eq("id", session.assignment_id)
       .single(),
   ]);
@@ -160,6 +162,12 @@ export async function POST(
     // Only a graded retake carries a prior score; an interrupted attempt has none.
     prior_score_total: type === "retake" ? (score?.total ?? null) : null,
     prior_score_max: type === "retake" ? (score?.max_total ?? null) : null,
+    // GATE 3a, write path 9 of 9. The audit row belongs to the same class as the
+    // session it records. The assignment is a fallback and should never be
+    // needed after the Gate 3a repair backfill: it is here because this record
+    // is the only thing left once the submission is gone, so it must never be
+    // written without an owner.
+    class_id: session.class_id ?? assignment?.class_id ?? null,
   });
   if (auditError) {
     console.error("Writing the reset audit record failed:", auditError);

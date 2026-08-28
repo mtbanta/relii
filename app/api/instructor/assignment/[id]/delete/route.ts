@@ -80,7 +80,8 @@ export async function POST(
   // 4. Load the ONE target assignment (scoped to this id only).
   const { data: assignment, error: assignmentError } = await admin
     .from("assignments")
-    .select("id, title, required_mode, scenario_id")
+    // GATE 3a: class_id joins this read so the audit record below can carry it.
+    .select("id, title, required_mode, scenario_id, class_id")
     .eq("id", id)
     .single();
   if (assignmentError || !assignment) {
@@ -148,7 +149,8 @@ export async function POST(
   //    assignment is gone). Best-effort: a missing scenario just leaves it null.
   const { data: scenario } = await admin
     .from("scenarios")
-    .select("title")
+    // GATE 3a: class_id joins this read purely as the fallback described below.
+    .select("title, class_id")
     .eq("id", assignment.scenario_id)
     .single();
 
@@ -164,6 +166,12 @@ export async function POST(
     required_mode: assignment.required_mode,
     submissions_deleted: submissionsCount,
     practices_deleted: practicesCount,
+    // GATE 3a, write path 8 of 9. The audit row belongs to the same class as the
+    // assignment it records. The scenario is a fallback and should never be
+    // needed after the Gate 3a repair backfill: it is here because this record
+    // is the only thing left once the assignment is gone, so it must never be
+    // written without an owner.
+    class_id: assignment.class_id ?? scenario?.class_id ?? null,
   });
   if (auditError) {
     console.error("Writing the assignment-delete audit record failed:", auditError);
