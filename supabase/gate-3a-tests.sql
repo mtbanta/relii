@@ -62,6 +62,12 @@ order by 1;
 -- Expect ONE row. invite_class and membership_class must both be
 -- "Relii Demo (Historical)". If either says "MISSING", the repair did not reach
 -- this account and step 3 would leave it looking at an empty dashboard.
+--
+-- ==> THIS QUERY NOW RETURNS ZERO ROWS, AND THAT IS CORRECT. <== It passed on
+-- 2026-08-29 and the account was deleted straight afterwards, having served its
+-- purpose. Zero rows here means the account is gone, NOT that the repair
+-- failed. A1 is the check that still means something on a re-run. This query is
+-- left in place as the record of what was proved and how.
 select e.email                                as invited_email,
        coalesce(ic.name, 'MISSING')           as invite_class,
        coalesce(p.role, 'not registered yet') as profile_role,
