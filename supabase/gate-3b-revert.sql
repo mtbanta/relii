@@ -32,9 +32,60 @@
 --   the profiles rule, not the column grants on scenarios, not Storage, and no
 --   data anywhere.
 --
---   IT DOES NOT RE-CREATE public.is_instructor(). Gate 3b deliberately did not
---   drop it, precisely so that this file works. If it is ever dropped in a later
---   piece, this revert stops working and must be updated in the same sitting.
+--   IT DOES RE-CREATE public.is_instructor(), AND THAT SENTENCE USED TO SAY THE
+--   OPPOSITE. Gate 3b deliberately did not drop the function, precisely so that
+--   this file would keep working, and recorded that dropping it later would mean
+--   updating this file in the same sitting. supabase/gate-4a-constraints.sql
+--   dropped it on 2026-08-31, and this is that update. Section 0 below brings it
+--   back before either rule uses it, so this file still works on its own.
+
+
+-- ---------------------------------------------------------------------------
+-- 0. FIRST, BRING BACK public.is_instructor(). ADDED BY GATE 4a.
+-- ---------------------------------------------------------------------------
+-- ==> WHY A GATE 3b FILE GAINED A SECTION LONG AFTER GATE 3b SHIPPED, AND WHY
+--     REMOVING THIS SECTION BREAKS THE WHOLE FILE. <==
+--
+-- Both rules below call public.is_instructor(). When this file was written that
+-- function still existed, and Gate 3b left it alone deliberately so that this
+-- file would keep working. Then supabase/gate-4a-constraints.sql DELETED it,
+-- correctly: Gate 2 moved six rules off it and Gate 3b moved the last two, so by
+-- then it was called by nothing at all.
+--
+-- Without this section, running this file after Gate 4a fails on the very first
+-- rule with "function public.is_instructor() does not exist", and it fails
+-- HALFWAY, leaving one rule reverted and one not. That is the worst possible
+-- state to be in during the emergency that made you open this file.
+--
+-- The alternative was to write "run supabase/gate-4a-revert.sql first" in the
+-- header. A documented two-step is exactly what gets forgotten under pressure,
+-- and this is nine lines, so the file simply carries what it needs.
+--
+-- VERBATIM from supabase/schema.sql lines 87 to 98, with the grant from line
+-- 101. schema.sql line 100 grants a DIFFERENT function (is_email_allowed) and is
+-- deliberately not copied here: the two grants sit next to each other and are
+-- easy to confuse.
+--
+-- "create or replace" means this is correct whether the function is currently
+-- missing (after Gate 4a) or already present (before it). Either way this file
+-- works on its own, which is the whole point.
+
+-- Is the person making this request an instructor?
+create or replace function public.is_instructor()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role = 'instructor'
+  );
+$$;
+
+grant execute on function public.is_instructor() to authenticated;
+
 
 -- Invite list: only instructors can read it. (Verbatim from schema.sql line 116.)
 drop policy if exists "instructors read invite list" on public.allowed_emails;

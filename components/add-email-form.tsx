@@ -6,6 +6,56 @@ import { Input, Select } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { cardClasses } from "@/components/ui/card";
 
+// GATE 4a. WHICH OF TWO SITUATIONS THE DUPLICATE ACTUALLY IS, ANSWERED BY ONE
+// EXTRA READ RATHER THAN GUESSED AT IN THE WORDING.
+//
+// allowed_emails.email is the PRIMARY KEY, so an address exists at most once
+// across the whole system rather than once per class. That is deliberate: an
+// address belongs to exactly one instructor's invite list.
+//
+// Before Gate 3b, "already on the invite list" was a complete answer, because
+// there was one list and every instructor could see all of it. After Gate 3b the
+// Roster shows only YOUR class, so that sentence became a dead end for the case
+// where somebody else holds the invite: it points at a list the reader cannot
+// see and offers nothing to do next.
+//
+// ==> WHY A READ AND NOT JUST BETTER WORDING. A sentence like "if they are not
+//     on your Roster, another instructor invited them" is true in both cases and
+//     still makes the reader do the diagnosis, just with better manners. The
+//     whole point of this fix is that the app should do the diagnosis. One read
+//     on a failure path, for about thirty people, is not a cost worth optimising
+//     against a message that is simply correct. <==
+//
+// HOW THE READ ANSWERS IT WITHOUT ANY CLASS COMPARISON HERE: since Gate 3b the
+// read rule on allowed_emails is public.instructs_class(class_id), so this
+// browser read can only ever return rows from a class this instructor owns. A
+// row comes back: it is yours. Nothing comes back: it exists (the insert just
+// said so) and it is not yours.
+//
+// IT NEVER NAMES THE OTHER INSTRUCTOR OR THEIR CLASS. Knowing that an invite
+// exists elsewhere is what lets you act on it; knowing who holds it is not, and
+// this page has no business leaking it.
+async function duplicateInviteMessage(
+  supabase: ReturnType<typeof createClient>,
+  email: string,
+): Promise<string> {
+  const { data, error } = await supabase
+    .from("allowed_emails")
+    .select("email")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (error) {
+    // The lookup itself failed, so we genuinely do not know which case this is.
+    // Say only what is certain rather than asserting the wrong one.
+    return `${email} has already been invited. If they are not on your Roster, ask your administrator.`;
+  }
+  if (data) {
+    return `${email} is already on your invite list.`;
+  }
+  return `${email} was invited by another instructor, so they cannot be invited again. Ask your administrator.`;
+}
+
 export function AddEmailForm({
   classId,
 }: {
@@ -49,19 +99,20 @@ export function AddEmailForm({
       .from("allowed_emails")
       .insert({ email: cleanEmail, role, class_id: classId });
 
-    setLoading(false);
-
     if (error) {
+      // Code 23505 is a duplicate primary key: this address is already in
+      // allowed_emails SOMEWHERE, which is not the same as being on YOUR list.
+      const text =
+        error.code === "23505"
+          ? await duplicateInviteMessage(supabase, cleanEmail)
+          : "Could not add that email. Please try again.";
+      setLoading(false);
       setIsError(true);
-      // Code 23505 is a duplicate primary key (email already on the list).
-      if (error.code === "23505") {
-        setMessage(`${cleanEmail} is already on the invite list.`);
-      } else {
-        setMessage("Could not add that email. Please try again.");
-      }
+      setMessage(text);
       return;
     }
 
+    setLoading(false);
     setMessage(`Added ${cleanEmail} as ${role}.`);
     setEmail("");
   }

@@ -14,7 +14,12 @@
 // browser only sends the raw file text and shows the result.
 import { NextResponse } from "next/server";
 import { requireInstructorRequest } from "@/lib/class-scope";
-import { parseCsv, classifyRows, type SkippedRow } from "@/lib/bulk-invite";
+import {
+  parseCsv,
+  classifyRows,
+  alreadyInvitedReason,
+  type SkippedRow,
+} from "@/lib/bulk-invite";
 
 export async function POST(request: Request) {
   // 1 and 2, plus the caller's class, in one call. GATE 3b replaced the
@@ -78,16 +83,23 @@ export async function POST(request: Request) {
   //        instructor has already invited an address, this route cannot insert it
   //        at all. Scoped to this class the address would look new, the insert
   //        would be attempted, and the instructor would get a raw duplicate-key
-  //        error instead of the readable "Already on the invite list" they get
-  //        now. The listing is scoped; the fact check is not. See
-  //        lib/class-scope.ts.
+  //        error instead of a readable reason. The listing is scoped; the fact
+  //        check is not. See lib/class-scope.ts.
   //
   //        THAT COLLISION IS REAL AND IT IS PARKED FOR GATE 5 as a design
   //        ruling, not a bug to fix here: a student taking two instructors'
   //        courses can only ever be invited by one of them. <==
+  //
+  // GATE 4a ADDED class_id TO THE FIRST READ AND NOTHING ELSE. It costs no extra
+  // round trip: the same read answers both questions at once, "does this address
+  // exist anywhere" (global, and it has to be) and "whose class invited it",
+  // which is what turns a dead-end skip reason into one the instructor can act
+  // on. The four possible reasons live in alreadyInvitedReason() in
+  // lib/bulk-invite.ts, so the dedup here and the collision handler further down
+  // cannot drift apart.
   const { data: invites, error: invitesError } = await admin
     .from("allowed_emails")
-    .select("email");
+    .select("email, class_id");
   const { data: profiles, error: profilesError } = await admin
     .from("profiles")
     .select("email");
@@ -103,8 +115,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const existingInvites = new Set(
-    (invites ?? []).map((i) => i.email.toLowerCase()),
+  // Every invited address, mapped to the class that invited it.
+  const inviteClassByEmail = new Map<string, string | null>(
+    (invites ?? []).map((i) => [i.email.toLowerCase(), i.class_id]),
   );
   const registeredUsers = new Set(
     (profiles ?? []).map((p) => p.email.toLowerCase()),
@@ -114,8 +127,9 @@ export async function POST(request: Request) {
   //    reported with a reason.
   const { valid, skipped } = classifyRows(
     rows,
-    existingInvites,
+    inviteClassByEmail,
     registeredUsers,
+    classId,
   );
 
   // 6. Insert the valid rows. Try one batch first; on a duplicate-key race
@@ -125,6 +139,11 @@ export async function POST(request: Request) {
   //    existing nullable column; no schema change).
   const added: string[] = [];
   const skippedAtInsert: SkippedRow[] = [];
+  // GATE 4a: the rows that collided at the MOMENT OF INSERT rather than at the
+  // dedup above. Their position in skippedAtInsert is remembered so the exact
+  // reason can be filled in afterwards, in one read for the whole batch rather
+  // than one read per row.
+  const collidedAtInsert: { index: number; email: string }[] = [];
 
   if (valid.length > 0) {
     const toInsert = valid.map((v) => ({
@@ -157,9 +176,15 @@ export async function POST(request: Request) {
         if (!rowError) {
           added.push(v.email);
         } else if (rowError.code === "23505") {
+          // GATE 4a. A collision HERE, rather than at the dedup above, means the
+          // address was added by somebody else in the moments between that read
+          // and this insert. So its class is not in inviteClassByEmail and has
+          // to be looked up. The reason below is a safe fallback that is
+          // replaced with the exact one after the loop.
+          collidedAtInsert.push({ index: skippedAtInsert.length, email: v.email });
           skippedAtInsert.push({
             value: v.email,
-            reason: "Already on the invite list",
+            reason: "Already invited",
           });
         } else {
           console.error("Inserting an invite row failed:", rowError);
@@ -169,6 +194,31 @@ export async function POST(request: Request) {
           });
         }
       }
+    }
+  }
+
+  // GATE 4a. Give every insert-time collision the same exact reason the dedup
+  // gives, so one CSV upload can never report the same situation two different
+  // ways depending on which check happened to catch it. This runs only on a
+  // genuine race, so it is one extra read that almost never happens; if it
+  // fails, the fallback reason set above stands and nothing else is affected.
+  if (collidedAtInsert.length > 0) {
+    const { data: late } = await admin
+      .from("allowed_emails")
+      .select("email, class_id")
+      .in(
+        "email",
+        collidedAtInsert.map((c) => c.email),
+      );
+    const lateClassByEmail = new Map<string, string | null>(
+      (late ?? []).map((i) => [i.email.toLowerCase(), i.class_id]),
+    );
+    for (const c of collidedAtInsert) {
+      skippedAtInsert[c.index].reason = alreadyInvitedReason(
+        lateClassByEmail.get(c.email),
+        classId,
+        registeredUsers.has(c.email),
+      );
     }
   }
 

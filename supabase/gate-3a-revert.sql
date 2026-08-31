@@ -105,6 +105,31 @@ create policy "instructors manage assignments"
 --
 -- instructs_class() is NOT dropped: it is Gate 2's, and rubrics, scenarios,
 -- sessions and both audit logs still use it.
+--
+-- ==> THIS DROP WAS AUDITED ON 2026-08-31 AND IS CORRECT. IT IS ALSO THE ONE
+--     LINE IN THIS FILE MOST LIKELY TO BECOME WRONG LATER, SO HERE IS THE TEST
+--     FOR IT. <==
+--
+-- The audit happened because supabase/gate-2-revert.sql had a line of exactly
+-- this shape that HAD gone wrong: it dropped instructs_class(), which Gate 3a
+-- later built can_read_class() on top of, so a Gate 2 revert silently broke
+-- every Gate 3a read rule. That line was deleted. The rule it produced:
+--
+--   A REVERT UNDOES ONLY WHAT ITS OWN PIECE ADDED. Dropping a helper is correct
+--   only while nothing OUTSIDE that piece has come to depend on it.
+--
+-- THIS LINE PASSES TODAY. can_read_class() was created by Gate 3a and is called
+-- by exactly three things, all of them Gate 3a's own read rules on rubrics,
+-- scenarios and assignments, and sections 1 to 3 above replace all three before
+-- this line runs. Gate 3b's two invite rules use instructs_class(), not this
+-- one, and Gate 4a added no rule at all. Checked by search on 2026-08-31.
+--
+-- WHAT WOULD MAKE IT WRONG, and it is the only thing that would: any LATER piece
+-- writing a rule or a function that calls can_read_class(). Because these are
+-- old-style SQL functions whose body is a string, Postgres records NO dependency
+-- on what a function body calls, so it would NOT stop this drop. It would
+-- succeed, and the thing built on top would fail the next time somebody used it.
+-- IF YOU ADD A CALLER, delete this line the same way the Gate 2 one was deleted.
 drop function if exists public.can_read_class(uuid);
 
 

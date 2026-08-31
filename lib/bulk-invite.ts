@@ -1,8 +1,9 @@
 // Pure logic for bulk invite via CSV. It parses the uploaded text into two-column
 // (email, role) rows, then classifies each row as VALID or SKIPPED-with-a-reason.
 // It does NO database work and holds NO secrets: the route handler
-// (app/api/instructor/bulk-invite/route.ts) reads the existing invites and
-// registered users, hands them to classifyRows, and inserts only the valid rows.
+// (app/api/instructor/bulk-invite/route.ts) reads the existing invites (with the
+// class that invited each one) and the registered users, hands them to
+// classifyRows, and inserts only the valid rows.
 // Keeping the rules here in one place (like lib/submission.ts and lib/practice.ts)
 // makes them easy to read and reason about.
 
@@ -74,16 +75,87 @@ export function parseCsv(text: string): ParsedRow[] {
   return looksLikeHeader ? rows.slice(1) : rows;
 }
 
-// Classify each parsed row against the existing data. `existingInvites` and
-// `registeredUsers` are sets of LOWERCASED emails (built by the route from
-// allowed_emails and profiles), so every comparison here is case-insensitive,
-// the same way the signup trigger matches. The first matching rule wins, so the
-// reason shown is the most specific one, and the whole file is never rejected:
-// bad rows are collected into `skipped`, good rows into `valid`.
+// GATE 4a. THE FOUR MESSAGES FOR AN ADDRESS THAT CANNOT BE INVITED AGAIN, in
+// one place, because the bulk route needs the same wording in two different
+// spots (the dedup below, and a collision at the moment of insert).
+//
+// ==> WHY THIS TAKES A CLASS AT ALL, WHICH IS THE WHOLE POINT OF THE FIX. <==
+// allowed_emails.email is the PRIMARY KEY, so an address exists AT MOST ONCE
+// across the entire system, not once per class. That is a deliberate decision:
+// an address belongs to exactly one instructor's invite list.
+//
+// Before Gate 3b that made "already on the invite list" a complete answer,
+// because there was one list and every instructor could see it. After Gate 3b
+// the invite list is scoped to your own class, so that sentence became a dead
+// end: it tells instructor B that an address is on a list they cannot see, on a
+// Roster that does not show it, with nothing they can do next.
+//
+// So the reason has to say WHOSE list, and point somewhere. It never names the
+// other instructor or their class: knowing that an invite exists elsewhere is
+// what lets you act, knowing who holds it is not.
+//
+// `inviteClassId` is the class on the existing allowed_emails row.
+// `undefined` means there is no invite row at all, which should be impossible
+// for a registered user (registering requires being invited first) but is
+// handled rather than assumed.
+export function alreadyInvitedReason(
+  inviteClassId: string | null | undefined,
+  callerClassId: string,
+  isRegistered: boolean,
+): string {
+  if (inviteClassId === undefined) {
+    // No invite row at all, so the only way to be here is being registered.
+    return "Already a registered user";
+  }
+  if (inviteClassId === null) {
+    // An invite row carrying no class. Gate 4a made that impossible at the
+    // database level, so this cannot happen; it is handled anyway, because
+    // "unreachable" should not quietly mean "answers the wrong thing if it ever
+    // is reached". We genuinely do not know whose list it is, so this says only
+    // what is certain and still points somewhere.
+    return isRegistered
+      ? "Already a registered user (ask your administrator)"
+      : "Already invited (ask your administrator)";
+  }
+
+  const yours = inviteClassId === callerClassId;
+
+  if (isRegistered) {
+    return yours
+      ? "Already a registered user in your class"
+      : "Already registered with another instructor (ask your administrator)";
+  }
+  return yours
+    ? "Already on your invite list"
+    : "Invited by another instructor (ask your administrator)";
+}
+
+// Classify each parsed row against the existing data. `inviteClassByEmail` maps
+// every invited address to the class that invited it, and `registeredUsers` is a
+// set of addresses that have registered. Both are keyed on LOWERCASED emails
+// (built by the route from allowed_emails and profiles), so every comparison
+// here is case-insensitive, the same way the signup trigger matches. The first
+// matching rule wins, so the reason shown is the most specific one, and the
+// whole file is never rejected: bad rows are collected into `skipped`, good rows
+// into `valid`.
+//
+// GATE 4a CHANGED THE FIRST OF THOSE TWO FROM A SET TO A MAP, and required
+// `callerClassId` alongside it, for the reason written out on
+// alreadyInvitedReason() above.
+//
+// ==> BOTH INPUTS ARE STILL BUILT GLOBALLY BY THE ROUTE, AND THAT IS NOT AN
+//     OVERSIGHT. Whether an address can be inserted at all is a GLOBAL fact,
+//     because the email is the primary key. Scoping either of them would let the
+//     insert be attempted and fail with a raw duplicate-key error instead of a
+//     readable reason. The listing is scoped; the fact check is not. See the
+//     rule written out at the top of lib/class-scope.ts. What Gate 4a added is
+//     the CLASS on each global fact, which is what makes the reason exact
+//     instead of merely polite. <==
 export function classifyRows(
   rows: ParsedRow[],
-  existingInvites: Set<string>,
+  inviteClassByEmail: Map<string, string | null>,
   registeredUsers: Set<string>,
+  callerClassId: string,
 ): ClassifyResult {
   const valid: ValidRow[] = [];
   const skipped: SkippedRow[] = [];
@@ -112,15 +184,24 @@ export function classifyRows(
       skipped.push({ value: email, reason: "Duplicate within this file" });
       continue;
     }
-    // Registered is checked before invite-list because a registered user is also
-    // on the invite list; "already a registered user" is the more informative
-    // reason of the two.
-    if (registeredUsers.has(email)) {
-      skipped.push({ value: email, reason: "Already a registered user" });
-      continue;
-    }
-    if (existingInvites.has(email)) {
-      skipped.push({ value: email, reason: "Already on the invite list" });
+    // Registered and invited used to be two separate checks here, with
+    // registered first because it was the more informative of the two reasons.
+    // GATE 4a merged them into one, because the reason now depends on BOTH
+    // facts together plus the class: "registered in your class" and "registered
+    // with another instructor" are different situations and need to read
+    // differently. A registered user is also always on the invite list, so
+    // seeing both at once is normal rather than a conflict.
+    const isRegistered = registeredUsers.has(email);
+    const isInvited = inviteClassByEmail.has(email);
+    if (isRegistered || isInvited) {
+      skipped.push({
+        value: email,
+        reason: alreadyInvitedReason(
+          inviteClassByEmail.get(email),
+          callerClassId,
+          isRegistered,
+        ),
+      });
       continue;
     }
 
