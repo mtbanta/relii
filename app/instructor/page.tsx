@@ -22,6 +22,7 @@ import {
 import { ResetHistory } from "@/components/reset-history";
 import type { ResetHistoryRow } from "@/components/reset-history";
 import { requireInstructor } from "@/lib/instructor-auth";
+import { loadClassStudents } from "@/lib/class-scope";
 import { isSubmissionLocked } from "@/lib/submission";
 import { displayName } from "@/lib/name";
 import { recordingLengthText } from "@/lib/recording-length";
@@ -94,7 +95,10 @@ export default async function InstructorSubmissions({
 
   // The layout already gated this page; this confirms it again for the page
   // itself, which is also how it gets the signed-in user.
-  await requireInstructor();
+  //
+  // GATE 3b: the class id is now KEPT rather than discarded, because the student
+  // list below is scoped to it.
+  const { classId } = await requireInstructor();
 
   const supabase = await createClient();
 
@@ -104,17 +108,22 @@ export default async function InstructorSubmissions({
   // database security rule needs to change.
   const admin = createAdminClient();
 
-  // The registered STUDENTS. This view needs them for two things only: the
-  // "enrolled" count on the Submissions tile, and the id -> name/email map the
-  // table shows. The full roster of every user (both roles, plus the pending
-  // invites) belongs to the Roster page and is read there.
-  const { data: studentProfiles } = await admin
-    .from("profiles")
-    .select("id, email, first_name, last_name")
-    .eq("role", "student")
-    .order("email", { ascending: true });
-
-  const students = studentProfiles ?? [];
+  // The registered STUDENTS IN THIS INSTRUCTOR'S CLASS. This view needs them for
+  // two things only: the "enrolled" count on the Submissions tile, and the
+  // id -> name/email map the table shows. The full roster (both roles, plus the
+  // pending invites) belongs to the Roster page and is read there.
+  //
+  // GATE 3b SCOPED THIS, and it CHANGES WHAT THE "ENROLLED" TILE MEANS: from
+  // every student in the system to every student in this class. That is correct
+  // and it is the point of the gate. It is invisible today with one instructor,
+  // which is exactly why it needs testing deliberately rather than by looking at
+  // the screen.
+  //
+  // Fails closed: an instructor with no class gets an empty list, not everybody.
+  //
+  // A submission from somebody outside this map renders as "Unknown student"
+  // rather than resolving a name, which is the safe direction to fail in.
+  const students = classId ? await loadClassStudents(admin, classId) : [];
   const studentById = new Map(students.map((s) => [s.id, s]));
   const enrolledCount = students.length;
 
@@ -146,6 +155,28 @@ export default async function InstructorSubmissions({
   // Read the selected assignment's SUBMISSIONS only (kind = submission), so
   // practice sessions never appear anywhere in this dashboard. Read with the
   // admin client, server-side.
+  //
+  // ==> GATE 3b DELIBERATELY DID NOT ADD ".eq(class_id, classId)" HERE, AND THAT
+  //     IS NOT AN OVERSIGHT. Two separate reasons, and the second is the load
+  //     bearing one.
+  //
+  //     FIRST, IT WOULD BE REDUNDANT. This read is filtered by selected.id, and
+  //     `selected` is picked out of `selectorList`, which is read with the
+  //     ORDINARY client and therefore already scoped by the Gate 3a "read
+  //     assignments" rule. A foreign assignment id typed into the web address
+  //     matches nothing in that list and falls back to this instructor's own
+  //     newest assignment. The selector is already tamper-safe.
+  //
+  //     SECOND, AND THIS IS WHY IT WOULD BE ACTIVELY WRONG: sessions.class_id
+  //     comes from the SCENARIO (Gate 1's rule, because assignment_id is
+  //     nullable for free practice while scenario_id is not), while
+  //     assignments.class_id comes from the CREATING INSTRUCTOR. Nothing in the
+  //     schema prevents an assignment from pointing at a scenario in another
+  //     class, so those two columns can legitimately disagree. A class filter
+  //     here would then hide REAL submissions from the instructor who owns the
+  //     assignment, silently. Not reachable today (the create-assignment
+  //     dropdown reads scenarios through the rules, so it can only offer
+  //     same-class scenarios), and parked for Gate 5 as a design ruling. <==
   let submissions: SubmissionRow[] = [];
   if (selected) {
     const { data } = await admin
@@ -162,6 +193,13 @@ export default async function InstructorSubmissions({
   // The reset history for the selected assignment, newest first. Read
   // instructor-only with the admin client, server-side (the same pattern the
   // rest of the dashboard uses). Scoped to this assignment.
+  //
+  // GATE 3b ADDED NO CLASS FILTER HERE EITHER, for the reason above plus one of
+  // its own: submission_resets.class_id is a PLAIN uuid with no foreign key (Gate
+  // 1 made both audit logs snapshots on purpose, so that deleting an account or
+  // an assignment can never blank a log entry). Filtering an audit log on a
+  // column nothing enforces risks silently dropping a record of something that
+  // really happened, which is worse than showing it.
   //
   // PD-8g: student_id came into this select so each entry can show the student's
   // NAME, resolved from the studentById map this page already built for the

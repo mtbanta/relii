@@ -324,6 +324,13 @@ select 'member half: students who belong to a class',
 --     all still on instructs_class or is_instructor, none of them changed by
 --     Gate 3a. This is here so a later session can see at a glance that Gate 3a
 --     did not quietly "finish the job" on the two allowed_emails rules.
+--
+--     ==> READ THIS BEFORE RE-RUNNING C5 AFTER 2026-08-29. GATE 3b SCOPED THE
+--         TWO allowed_emails RULES, on purpose, and it was the piece whose job
+--         that was. So both of them now say instructs_class(class_id) rather
+--         than is_instructor(), and that is CORRECT rather than a regression in
+--         this check. The other three rows are unchanged. The current-state
+--         version of this query is number 2 in supabase/gate-3b-tests.sql. <==
 select tablename, policyname, qual
   from pg_policies
  where schemaname = 'public'

@@ -64,6 +64,18 @@ export default async function InstructorAssignments() {
   // names the counts. Read with the admin client, because instructors cannot
   // read practice rows through ordinary browser rules. The delete route
   // re-counts server-side before acting, so these numbers are only for display.
+  //
+  // ==> GATE 3b LOOKED AT THIS PAGE AND CHANGED NOTHING ON IT. Both reads above
+  //     use the ORDINARY client, so Gate 3a's rules already scope them to this
+  //     instructor's class; this page is one of the two that were scoped by
+  //     policy alone. And this admin read is the fourth of the four places where
+  //     a class filter would be WRONG rather than merely redundant: it is
+  //     derived from ownAssignmentIds, which came from an already-scoped list,
+  //     and it is a FACT CHECK (will the delete succeed) rather than a listing.
+  //     Both foreign keys behind it are "on delete restrict" and neither knows
+  //     anything about classes, so an undercount here would offer a delete that
+  //     then fails at the database. The rule is written out once in
+  //     lib/class-scope.ts. <==
   const assignmentCounts = new Map<
     string,
     { submissions: number; practices: number }

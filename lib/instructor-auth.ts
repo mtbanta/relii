@@ -18,6 +18,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export type InstructorProfile = {
   role: string;
+  // GATE 3b added email. The Roster now builds the signed-in instructor's own
+  // row from this profile rather than from a query, because scoping the Roster
+  // to one class means the instructor is the OWNER of it and not a member, so a
+  // membership query would render an instructor section with nobody in it. The
+  // email is what displayName() falls back to when no name is set, and
+  // user.email is optional on the auth object, so reading it here is what makes
+  // that row impossible to render blank.
+  email: string;
   first_name: string | null;
   last_name: string | null;
 };
@@ -68,9 +76,12 @@ export async function getInstructorClassId(
 //
 // GATE 3a added classId. It is the class that every row this instructor creates
 // belongs to. NOTHING HERE FILTERS ANYTHING: this function still answers "who is
-// this and are they an instructor", and returning the class id is the whole
-// change. Scoping what each page READS is Gate 3b's job, deliberately kept out
-// of here so that work can be audited on its own.
+// this and are they an instructor".
+//
+// GATE 3b is what uses it to filter. Pages take the classId from here and scope
+// their own reads with it; API routes cannot call this function at all (it calls
+// redirect(), a page mechanism) and use requireInstructorRequest() in
+// lib/class-scope.ts instead, which wraps getInstructorClassId above.
 export async function requireInstructor(): Promise<{
   user: { id: string; email?: string };
   profile: InstructorProfile;
@@ -87,7 +98,7 @@ export async function requireInstructor(): Promise<{
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, first_name, last_name")
+    .select("role, email, first_name, last_name")
     .eq("id", user.id)
     .single();
 

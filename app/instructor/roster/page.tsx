@@ -1,49 +1,90 @@
-// ROSTER: everyone with access to Relii, grouped by status. Registered students
-// (each with the delete action), registered instructors (display only), and the
-// invites that have not been used yet.
+// ROSTER: everyone in YOUR CLASS with access to Relii, grouped by status. Your
+// registered students (each with the delete action), yourself (display only),
+// and the invites for your class that have not been used yet.
 //
-// Moved from the old single instructor page unchanged, along with the two reads
-// it needs: every profile, and the whole invite list.
+// GATE 3b SCOPED THIS PAGE, and it is the one whose appearance changes most. It
+// used to list every profile and every invite in the whole system. It now lists
+// one class. With a single instructor that is the same set of people; with two
+// it is the point of the entire isolation gate.
+//
+// ==> THE FAILURE THIS PAGE IS MOST LIKELY TO HIT, written here because it looks
+//     like a bug and is not obvious from the code: CLASS MEMBERSHIP IS STUDENTS
+//     ONLY. An instructor OWNS a class through classes.instructor_id and is not
+//     a row in class_members. So "everyone in this class" written as a
+//     membership query returns the students and NOBODY ELSE, and the Registered
+//     instructors section renders empty. That is why the instructor half below
+//     is not a query at all: it is the signed-in instructor's own profile,
+//     which cannot come back empty. <==
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DeleteStudentButton } from "@/components/delete-student-button";
 import { UninviteButton } from "@/components/uninvite-button";
 import { requireInstructor } from "@/lib/instructor-auth";
+import { loadClassStudents } from "@/lib/class-scope";
 import { displayName, hasName } from "@/lib/name";
 
 export default async function InstructorRoster() {
   // The layout already gated this page; this confirms it again for the page
-  // itself, and is also how it knows which account is "you".
-  const { user } = await requireInstructor();
+  // itself, and is also how it knows which account is "you" and which class is
+  // yours.
+  const { user, profile, classId } = await requireInstructor();
 
   // The admin (service-role) client reads data ordinary browser rules do not
   // allow (other people's emails). It runs only here on the server; the key
   // never reaches the browser, so no database security rule needs to change.
   const admin = createAdminClient();
 
-  // Every REGISTERED user (both roles).
-  const { data: allProfiles } = await admin
-    .from("profiles")
-    .select("id, email, role, first_name, last_name")
-    .order("email", { ascending: true });
+  // YOUR registered students. Fails closed: an instructor with no class sees an
+  // empty student list rather than everybody's students.
+  const students = classId ? await loadClassStudents(admin, classId) : [];
 
-  const profilesAll = allProfiles ?? [];
-  const students = profilesAll.filter((p) => p.role === "student");
-  const registeredInstructors = profilesAll.filter(
-    (p) => p.role === "instructor",
-  );
+  // YOU. Not a query, for the reason at the top of this file: you own this class
+  // rather than being a member of it, so a membership read would leave this
+  // section empty and look broken. requireInstructor() reads email alongside the
+  // name fields precisely so this row can never render blank (displayName falls
+  // back to the email when no name is set).
+  //
+  // It is a list of one today. It stays a LIST because co-instructors are a
+  // later feature, and when they arrive this is where they join.
+  const registeredInstructors = [
+    {
+      id: user.id,
+      email: profile.email,
+      first_name: profile.first_name,
+      last_name: profile.last_name,
+    },
+  ];
 
-  // The full invite list. A person's status is derived by matching emails
-  // (case-insensitive, the same way the signup trigger does): an invite whose
-  // email has no matching profile row is a PENDING invite; one that does match a
-  // profile is already registered (and appears in the registered lists above).
-  const { data: invites } = await admin
-    .from("allowed_emails")
-    .select("email, role")
-    .order("email", { ascending: true });
+  // YOUR class's invite list.
+  const { data: invites } = classId
+    ? await admin
+        .from("allowed_emails")
+        .select("email, role")
+        .eq("class_id", classId)
+        .order("email", { ascending: true })
+    : { data: [] };
+
+  // ==> THIS READ STAYS GLOBAL ON PURPOSE, and it is the second of the four
+  //     places in the app where a scoped read would be wrong. The rule is
+  //     written out once in lib/class-scope.ts: THE LISTING IS SCOPED, THE FACT
+  //     CHECK IS NOT.
+  //
+  //     "Has this email registered yet" is a GLOBAL fact. allowed_emails.email
+  //     is the primary key, so an address exists once across the whole system,
+  //     and the person who accepted it has an account or does not.
+  //
+  //     WHAT SCOPING IT WOULD DO: an instructor-role invite that you sent, and
+  //     that the person accepted, would stop matching any profile in your class,
+  //     because a new instructor gets a class of their OWN at signup. Your Roster
+  //     would then show them as "Invited, pending" forever, and offer an
+  //     Un-invite that the route correctly refuses. Reading every email and
+  //     rendering none of them outside this class is the honest version.
+  //
+  //     Nothing from this read is displayed. Only the yes/no it produces is.
+  const { data: everyProfile } = await admin.from("profiles").select("email");
 
   const registeredEmails = new Set(
-    profilesAll.map((p) => p.email.toLowerCase()),
+    (everyProfile ?? []).map((p) => p.email.toLowerCase()),
   );
   const pendingInvites = (invites ?? []).filter(
     (i) => !registeredEmails.has(i.email.toLowerCase()),
@@ -58,7 +99,10 @@ export default async function InstructorRoster() {
           capped at the reading measure now that the page is 1120px wide. The
           wording is unchanged. */}
       <div className="mb-4 max-w-reading space-y-0.5 text-body text-content-secondary">
-        <p>Everyone with access to Relii, grouped by status.</p>
+        {/* GATE 3b: the wording follows the scoping. This page shows one
+            class, so promising "everyone with access to Relii" would now be
+            false. */}
+        <p>Everyone in your class with access to Relii, grouped by status.</p>
         <p>
           Registered users have signed up; pending invites are on the invite list
           but have not registered yet.

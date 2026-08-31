@@ -3,19 +3,27 @@
 // rubric score (the same content the student results screen renders), the
 // full transcript, and, for a voice+video submission, the recording inline.
 //
-// Security: this route is gated on the server. It confirms the caller is an
+// Security: this page is gated on the server. It confirms the caller is an
 // instructor (read from the database, not trusted from the browser), reads the
-// submission with the admin client, and mints the short-lived signed video link
-// with the admin client AFTER that gate, exactly the way the student results
-// page mints it after its ownership check. So NO Storage rule needs to change.
+// submission with the admin client, CONFIRMS THE SUBMISSION IS IN THE CALLER'S
+// OWN CLASS (Gate 3b), and mints the short-lived signed video link with the
+// admin client only after all of that, exactly the way the student results page
+// mints it after its ownership check. So NO Storage rule needs to change.
+//
+// GATE 3b: the class check is the whole reason this page is in the piece. The
+// service-role client bypasses Row Level Security, so before it, an instructor
+// could open ANY student's submission by id and watch the recording. Storage
+// cannot help here (it has no instructor rule at all, by design), so the scoping
+// is done in this file and the ORDER MATTERS: the refusal is above the
+// createSignedUrl call, so a foreign recording is never given a URL at all.
 //
 // It is read-only: there are no professor-finalization controls here (confirming
 // or adjusting the grade, the emotional-impact critique, a reviewed toggle).
 // Those are deliberately held until after Stage 6.
 import Link from "next/link";
-import { redirect, notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireInstructor } from "@/lib/instructor-auth";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
 import { displayName, hasName } from "@/lib/name";
 // PD-5 moved this formatting into lib so the student's view of the same session
@@ -42,19 +50,11 @@ export default async function InstructorSubmissionPage({
 }) {
   const { id } = await params;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  // Confirm the caller is an instructor, read from the database.
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (profile?.role !== "instructor") redirect("/student");
+  // GATE 3b replaced the hand-written signed-in and role check that used to sit
+  // here with the shared requireInstructor(). It does the same two redirects in
+  // the same order and ALSO returns the class this instructor owns, which is what
+  // the check below compares against.
+  const { classId } = await requireInstructor();
 
   const admin = createAdminClient();
 
@@ -63,13 +63,30 @@ export default async function InstructorSubmissionPage({
   const { data: session } = await admin
     .from("sessions")
     .select(
-      "id, kind, mode, status, student_id, assignment_id, scenario_id, transcript, score, video_path, submitted_at, recorded_seconds",
+      "id, kind, mode, status, student_id, assignment_id, scenario_id, transcript, score, video_path, submitted_at, recorded_seconds, class_id",
     )
     .eq("id", id)
     .eq("kind", "submission")
     .single();
 
   if (!session) notFound();
+
+  // GATE 3b, THE GUARD. The submission must belong to the class this instructor
+  // owns. FAILS CLOSED: a submission with no class is refused just as firmly as
+  // one belonging to somebody else, because "this row belongs to nobody" must
+  // never mean "so anybody may have it". After the Gate 3a repair no row is in
+  // that state.
+  //
+  // It is the SAME notFound() the line above uses, deliberately, so that a
+  // caller cannot tell an id that does not exist from one that is not theirs.
+  if (!classId || session.class_id !== classId) {
+    console.warn(
+      `Gate 3b refused a cross-class submission view: submission ${id} is in class ${
+        session.class_id ?? "none"
+      }, caller class ${classId ?? "none"}.`,
+    );
+    notFound();
+  }
 
   const score = (session.score ?? null) as SessionScore | null;
   const transcript = (session.transcript ?? []) as TranscriptTurn[];

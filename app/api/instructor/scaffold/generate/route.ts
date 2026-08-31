@@ -18,9 +18,7 @@
 // OPENAI_API_KEY. The key never reaches the browser, and there is no web search
 // or any other external tool involved: model knowledge only.
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { getInstructorClassId } from "@/lib/instructor-auth";
+import { requireInstructorRequest, refuseOutsideClass } from "@/lib/class-scope";
 import {
   generateTwoCandidates,
   meetingTypeForChainPosition,
@@ -47,43 +45,20 @@ function readText(body: Record<string, unknown>, key: string): string {
 }
 
 export async function POST(request: Request) {
-  // 1. The caller must be signed in.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  // 1 and 2, plus the caller's class, in one call. GATE 3b replaced the
+  // signed-in check and the profiles role check that used to be written out
+  // here, and identically in ten sibling routes, with the shared guard in
+  // lib/class-scope.ts. It answers the same two questions and one new one:
+  // WHICH CLASS may this caller act inside.
+  //
+  // It cannot be requireInstructor(): that calls redirect(), a page mechanism,
+  // which throws here instead of returning a JSON error.
+  const gate = await requireInstructorRequest("generate personas");
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: gate.status });
   }
+  const { admin, classId, userId } = gate;
 
-  // 2. The caller must be an instructor, verified on the server against the
-  //    database. Any instructor may scaffold (design decision 6: no new role).
-  const admin = createAdminClient();
-  const { data: caller, error: callerError } = await admin
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (callerError || caller?.role !== "instructor") {
-    return NextResponse.json(
-      { error: "Only instructors can generate personas." },
-      { status: 403 },
-    );
-  }
-
-  // GATE 3a: the class these generated personas belong to. This route cannot use
-  // requireInstructor(), which calls redirect() and would throw here instead of
-  // returning JSON, so it calls the shared lookup underneath it directly.
-  const callerClassId = await getInstructorClassId(user.id);
-  if (!callerClassId) {
-    return NextResponse.json(
-      {
-        error:
-          "Your instructor account is not linked to a class, so personas cannot be saved.",
-      },
-      { status: 409 },
-    );
-  }
 
   // 3. Read and check the form inputs.
   let body: Record<string, unknown>;
@@ -104,13 +79,29 @@ export async function POST(request: Request) {
   if (chainFromScenarioId) {
     const { data: gatekeeper, error: gatekeeperError } = await admin
       .from("scenarios")
-      .select("id, persona_name, chain_role, enabled, generation_group_id, generation_fields")
+      // GATE 3b: class_id joins this read for the ownership check below.
+      .select(
+        "id, persona_name, chain_role, enabled, generation_group_id, generation_fields, class_id",
+      )
       .eq("id", chainFromScenarioId)
       .single();
     if (gatekeeperError || !gatekeeper) {
       return NextResponse.json(
         { error: "That gatekeeper persona was not found." },
         { status: 404 },
+      );
+    }
+
+    // GATE 3b. The gatekeeper being chained FROM must be in the caller's own
+    // class. This is a READ hole rather than a write one, and it is the subtle
+    // one in this route: the chain copies the gatekeeper's stored case details
+    // into the new persona's text, so without this check an instructor could
+    // extract another class's generated case by chaining from its id.
+    const outside = refuseOutsideClass(gatekeeper.class_id, classId, "persona");
+    if (outside) {
+      return NextResponse.json(
+        { error: "That gatekeeper persona was not found." },
+        { status: outside.status },
       );
     }
 
@@ -280,9 +271,9 @@ export async function POST(request: Request) {
         inputs,
         ...(chain ? { chain } : {}),
       },
-      created_by: user.id,
+      created_by: userId,
       // GATE 3a, write path 4 of 9. Both rows of the pair get the same class.
-      class_id: callerClassId,
+      class_id: classId,
     }));
 
     // ONE insert for both rows, so a pair can never be half-written.

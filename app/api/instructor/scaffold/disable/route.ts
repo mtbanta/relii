@@ -20,32 +20,22 @@
 // Jordan, and every hand-written scenario cannot be switched off through here.
 // That guard is what keeps this route to scaffolded cases only.
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireInstructorRequest, refuseOutsideClass } from "@/lib/class-scope";
 
 export async function POST(request: Request) {
-  // 1. The caller must be signed in.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  // 1 and 2, plus the caller's class, in one call. GATE 3b replaced the
+  // signed-in check and the profiles role check that used to be written out
+  // here, and identically in ten sibling routes, with the shared guard in
+  // lib/class-scope.ts. It answers the same two questions and one new one:
+  // WHICH CLASS may this caller act inside.
+  //
+  // It cannot be requireInstructor(): that calls redirect(), a page mechanism,
+  // which throws here instead of returning a JSON error.
+  const gate = await requireInstructorRequest("switch a persona off");
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: gate.status });
   }
-
-  // 2. The caller must be an instructor, verified server-side.
-  const admin = createAdminClient();
-  const { data: caller, error: callerError } = await admin
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (callerError || caller?.role !== "instructor") {
-    return NextResponse.json(
-      { error: "Only instructors can switch a persona off." },
-      { status: 403 },
-    );
-  }
+  const { admin, classId } = gate;
 
   // 3. Read the target id.
   let scenarioId: string | undefined;
@@ -63,13 +53,25 @@ export async function POST(request: Request) {
   //    puts Alex and Jordan out of reach.
   const { data: scenario, error: scenarioError } = await admin
     .from("scenarios")
-    .select("id, title, generation_group_id")
+    // GATE 3b: class_id joins this read for the ownership check below.
+    .select("id, title, generation_group_id, class_id")
     .eq("id", scenarioId)
     .single();
   if (scenarioError || !scenario) {
     return NextResponse.json(
       { error: "That persona was not found." },
       { status: 404 },
+    );
+  }
+
+  // 4b. GATE 3b. The persona must be in the caller's own class, so one
+  //     instructor can never switch off a live case another instructor's students
+  //     are being assigned.
+  const outside = refuseOutsideClass(scenario.class_id, classId, "persona");
+  if (outside) {
+    return NextResponse.json(
+      { error: "That persona was not found." },
+      { status: outside.status },
     );
   }
   if (!scenario.generation_group_id) {

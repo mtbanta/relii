@@ -9,8 +9,8 @@
 // that is narrative only: there is no prerequisite, no unlock, and nothing in
 // the database links the two rows. Either can be assigned on its own.
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { notFound } from "next/navigation";
+import { requireInstructor } from "@/lib/instructor-auth";
 import { loadCandidateById } from "@/lib/scaffold-candidates";
 import { ChainForm } from "@/components/chain-form";
 import { cardClasses } from "@/components/ui/card";
@@ -24,20 +24,16 @@ export default async function ChainPage({
 
   // Instructor-gated, like every other scaffolding page. The generate route
   // checks the caller's role again for itself.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  // GATE 3b replaced the hand-written signed-in and role check that used to sit
+  // here with the shared requireInstructor(). Same two redirects in the same
+  // order, plus the class this instructor owns, which the scoped read needs.
+  // Fails closed: no class, no gatekeeper.
+  const { classId } = await requireInstructor();
+  if (!classId) notFound();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (profile?.role !== "instructor") redirect("/student");
-
-  const gatekeeper = await loadCandidateById(scenarioId);
+  // A gatekeeper in another class reads as null and falls into the notFound
+  // below, exactly like an id that does not exist.
+  const gatekeeper = await loadCandidateById(scenarioId, classId);
   const candidate = gatekeeper?.generation_fields?.candidate;
   const inputs = gatekeeper?.generation_fields?.inputs;
 

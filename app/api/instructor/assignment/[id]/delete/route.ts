@@ -30,8 +30,7 @@
 // assignment_id, so it can never touch another assignment's data, and it never
 // deletes the students themselves, only their sessions FOR this assignment.
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireInstructorRequest, refuseOutsideClass } from "@/lib/class-scope";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
 
 export async function POST(
@@ -40,32 +39,19 @@ export async function POST(
 ) {
   const { id } = await params;
 
-  // 1. The caller must be signed in.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  // 1 and 2, plus the caller's class, in one call. GATE 3b replaced the
+  // signed-in check and the profiles role check that used to be written out
+  // here, and identically in ten sibling routes, with the shared guard in
+  // lib/class-scope.ts. It answers the same two questions and one new one:
+  // WHICH CLASS may this caller act inside.
+  //
+  // It cannot be requireInstructor(): that calls redirect(), a page mechanism,
+  // which throws here instead of returning a JSON error.
+  const gate = await requireInstructorRequest("delete assignments");
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: gate.status });
   }
-
-  const admin = createAdminClient();
-
-  // 2. The caller must be an instructor, verified on the server against the
-  //    database. We also read their email here for the audit snapshot. Any
-  //    instructor may manage any assignment (the "instructors manage
-  //    assignments" rule is FOR ALL), so this is not creator-restricted.
-  const { data: caller, error: callerError } = await admin
-    .from("profiles")
-    .select("role, email")
-    .eq("id", user.id)
-    .single();
-  if (callerError || caller?.role !== "instructor") {
-    return NextResponse.json(
-      { error: "Only instructors can delete assignments." },
-      { status: 403 },
-    );
-  }
+  const { admin, classId, userId, email } = gate;
 
   // 3. Read the destructive acknowledgment from the body (only meaningful for
   //    the in-use case; a clean delete does not need it).
@@ -81,6 +67,7 @@ export async function POST(
   const { data: assignment, error: assignmentError } = await admin
     .from("assignments")
     // GATE 3a: class_id joins this read so the audit record below can carry it.
+    // GATE 3b: and so the check immediately below has something to compare.
     .select("id, title, required_mode, scenario_id, class_id")
     .eq("id", id)
     .single();
@@ -88,6 +75,23 @@ export async function POST(
     return NextResponse.json(
       { error: "That assignment was not found. It may already be deleted." },
       { status: 404 },
+    );
+  }
+
+  // 4b. GATE 3b. The assignment must be in the caller's own class. This is the
+  //     most destructive route in the app: the in-use path permanently destroys
+  //     students' submissions and their recordings. Until now any instructor
+  //     could aim it at any other instructor's assignment by id.
+  //
+  //     The old comment on the role check above said that any instructor may
+  //     manage any assignment because the rule was FOR ALL. That was true when it
+  //     was written and it is the exact hole this gate closes, so it is gone
+  //     rather than reworded.
+  const outside = refuseOutsideClass(assignment.class_id, classId, "assignment");
+  if (outside) {
+    return NextResponse.json(
+      { error: "That assignment was not found. It may already be deleted." },
+      { status: outside.status },
     );
   }
 
@@ -157,8 +161,8 @@ export async function POST(
   // 7. Write the audit record FIRST. If this fails we delete nothing, so an
   //    in-use assignment is never destroyed without a record of it.
   const { error: auditError } = await admin.from("assignment_deletes").insert({
-    instructor_id: user.id,
-    instructor_email: caller.email,
+    instructor_id: userId,
+    instructor_email: email,
     assignment_id: assignment.id,
     assignment_title: assignment.title,
     scenario_id: assignment.scenario_id,

@@ -13,35 +13,23 @@
 // instructor, and the target must be a student (which also blocks deleting
 // yourself or another instructor).
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireInstructorRequest, refuseNonMemberStudent } from "@/lib/class-scope";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
 
 export async function POST(request: Request) {
-  // 1. The caller must be signed in.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  // 1 and 2, plus the caller's class, in one call. GATE 3b replaced the
+  // signed-in check and the profiles role check that used to be written out
+  // here, and identically in ten sibling routes, with the shared guard in
+  // lib/class-scope.ts. It answers the same two questions and one new one:
+  // WHICH CLASS may this caller act inside.
+  //
+  // It cannot be requireInstructor(): that calls redirect(), a page mechanism,
+  // which throws here instead of returning a JSON error.
+  const gate = await requireInstructorRequest("delete students");
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: gate.status });
   }
-
-  const admin = createAdminClient();
-
-  // 2. The caller must be an instructor. We verify this on the server against
-  //    the database; we never trust the browser to tell us who is an instructor.
-  const { data: caller, error: callerError } = await admin
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (callerError || caller?.role !== "instructor") {
-    return NextResponse.json(
-      { error: "Only instructors can delete students." },
-      { status: 403 },
-    );
-  }
+  const { admin, classId, userId } = gate;
 
   // 3. Read the target student id from the request.
   let studentId: string | undefined;
@@ -57,7 +45,7 @@ export async function POST(request: Request) {
 
   // 3b. Backstop: an instructor can never delete their own account. (The
   //     student-role check below already blocks this, but we guard it directly.)
-  if (studentId === user.id) {
+  if (studentId === userId) {
     return NextResponse.json(
       { error: "You cannot delete your own account." },
       { status: 403 },
@@ -82,6 +70,21 @@ export async function POST(request: Request) {
       { error: "Only students can be deleted, not instructors." },
       { status: 403 },
     );
+  }
+
+  // 4b. GATE 3b. The student must be IN THE CALLER'S CLASS. This is the one
+  //     target check in the whole piece that is not a column comparison, and the
+  //     reason is worth knowing: a student's class is not a field on their
+  //     profile, it is a row in class_members. An instructor OWNS a class through
+  //     classes.instructor_id and is never a member of one, so "which class is
+  //     this person in" is a membership lookup.
+  //
+  //     Fails closed: no membership row means refused. This route permanently
+  //     deletes an account, every session under it and every recorded video, so
+  //     "I could not confirm they are mine" must never mean "go ahead".
+  const notMine = await refuseNonMemberStudent(admin, classId, studentId);
+  if (notMine) {
+    return NextResponse.json({ error: notMine.error }, { status: notMine.status });
   }
 
   // 5. STORAGE FIRST. Remove every video file in the student's folder. Their
@@ -137,6 +140,14 @@ export async function POST(request: Request) {
   //    The invite list is keyed by email (lowercased when added), so we match on
   //    the lowercased email. (No wildcard matching, so emails with underscores
   //    are handled correctly.)
+  //
+  //    GATE 3b ADDED NO class_id FILTER TO THIS DELETE, deliberately. The class
+  //    check is at step 4b, above every effect; by the time we are here the
+  //    student has been confirmed as this instructor's own and their account is
+  //    already gone. allowed_emails.email is the primary key, so there is exactly
+  //    ONE row for this address in the whole system, and it must go or the
+  //    address could re-register with no account behind it. A class filter here
+  //    could leave that row stranded.
   const { error: inviteError } = await admin
     .from("allowed_emails")
     .delete()

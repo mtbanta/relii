@@ -32,8 +32,7 @@
 // (interrupted: remove the recording then delete the row; retake: turn the row
 // back into a practice and re-run the retention cap keeping the returned one).
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireInstructorRequest, refuseOutsideClass } from "@/lib/class-scope";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
 import { isSubmissionLocked } from "@/lib/submission";
 import { prunePractices } from "@/lib/practice";
@@ -47,30 +46,19 @@ export async function POST(
 ) {
   const { id } = await params;
 
-  // 1. The caller must be signed in.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  // 1 and 2, plus the caller's class, in one call. GATE 3b replaced the
+  // signed-in check and the profiles role check that used to be written out
+  // here, and identically in ten sibling routes, with the shared guard in
+  // lib/class-scope.ts. It answers the same two questions and one new one:
+  // WHICH CLASS may this caller act inside.
+  //
+  // It cannot be requireInstructor(): that calls redirect(), a page mechanism,
+  // which throws here instead of returning a JSON error.
+  const gate = await requireInstructorRequest("reset submissions");
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: gate.status });
   }
-
-  const admin = createAdminClient();
-
-  // 2. The caller must be an instructor, verified on the server against the
-  //    database. We also read their email here for the audit snapshot.
-  const { data: caller, error: callerError } = await admin
-    .from("profiles")
-    .select("role, email")
-    .eq("id", user.id)
-    .single();
-  if (callerError || caller?.role !== "instructor") {
-    return NextResponse.json(
-      { error: "Only instructors can reset submissions." },
-      { status: 403 },
-    );
-  }
+  const { admin, classId, userId, email } = gate;
 
   // 3. Read the requested path from the body.
   let type: ResetType | undefined;
@@ -91,6 +79,7 @@ export async function POST(
   const { data: session, error: sessionError } = await admin
     .from("sessions")
     // GATE 3a: class_id joins this read so the audit record below can carry it.
+    // GATE 3b: and so the check immediately below has something to compare.
     .select(
       "id, kind, status, created_at, student_id, assignment_id, video_path, score, class_id",
     )
@@ -100,6 +89,17 @@ export async function POST(
     return NextResponse.json(
       { error: "That submission was not found. It may already be reset." },
       { status: 404 },
+    );
+  }
+
+  // 4b. GATE 3b. The submission must be in the caller's own class. The
+  //     "interrupted" path DELETES the row and its recording, so this guard sits
+  //     above every effect below it, and above the audit write.
+  const outside = refuseOutsideClass(session.class_id, classId, "submission");
+  if (outside) {
+    return NextResponse.json(
+      { error: "That submission was not found. It may already be reset." },
+      { status: outside.status },
     );
   }
 
@@ -149,8 +149,8 @@ export async function POST(
   // 7. Write the audit record FIRST. If this fails we delete nothing, so a reset
   //    is never performed without a record of it.
   const { error: auditError } = await admin.from("submission_resets").insert({
-    instructor_id: user.id,
-    instructor_email: caller.email,
+    instructor_id: userId,
+    instructor_email: email,
     student_id: session.student_id,
     student_email: student?.email ?? "unknown",
     assignment_id: session.assignment_id,

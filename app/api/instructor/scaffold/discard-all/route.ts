@@ -27,8 +27,7 @@
 // Instructor-gated with the role read from the database, service-role key,
 // server-side only. Candidates have no recordings, so there is no Storage step.
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireInstructorRequest } from "@/lib/class-scope";
 import { planBulkDiscard } from "@/lib/scaffold-candidates";
 
 // The word the admin has to type. Deliberately not "DELETE", so muscle memory
@@ -36,28 +35,19 @@ import { planBulkDiscard } from "@/lib/scaffold-candidates";
 const CONFIRM_WORD = "DISCARD";
 
 export async function POST(request: Request) {
-  // 1. The caller must be signed in.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  // 1 and 2, plus the caller's class, in one call. GATE 3b replaced the
+  // signed-in check and the profiles role check that used to be written out
+  // here, and identically in ten sibling routes, with the shared guard in
+  // lib/class-scope.ts. It answers the same two questions and one new one:
+  // WHICH CLASS may this caller act inside.
+  //
+  // It cannot be requireInstructor(): that calls redirect(), a page mechanism,
+  // which throws here instead of returning a JSON error.
+  const gate = await requireInstructorRequest("discard generated personas");
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: gate.status });
   }
-
-  // 2. The caller must be an instructor, verified server-side.
-  const admin = createAdminClient();
-  const { data: caller, error: callerError } = await admin
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (callerError || caller?.role !== "instructor") {
-    return NextResponse.json(
-      { error: "Only instructors can discard generated personas." },
-      { status: 403 },
-    );
-  }
+  const { admin, classId } = gate;
 
   // 3. Read the mode.
   let preview = false;
@@ -75,7 +65,13 @@ export async function POST(request: Request) {
   //    any delete in every case.
   let plan;
   try {
-    plan = await planBulkDiscard();
+    // GATE 3b: the sweep now covers THIS CLASS ONLY. It can never count or
+    //          delete another instructor's candidates, and the preview the
+    //          instructor confirms is the same scoped list the delete acts on.
+    //          Whether each of those rows is safe to delete is still decided by
+    //          the GLOBAL countScenarioUsage inside the plan; see the rule in
+    //          lib/class-scope.ts.
+    plan = await planBulkDiscard(classId);
   } catch (error) {
     console.error("Planning the bulk discard failed:", error);
     return NextResponse.json(
@@ -114,6 +110,14 @@ export async function POST(request: Request) {
   // 7. Delete by EXPLICIT ID LIST, never by a "everything generated" sweep, so
   //    the delete can only reach rows this route counted and cleared one by one.
   //    The generation-group filter stays on as a second lock.
+  //
+  //    GATE 3b: `ids` COMES FROM THE SCOPED PLAN ABOVE, which is the only thing
+  //    keeping this bulk delete inside one class. There is no .eq("class_id")
+  //    on the statement itself, and there does not need to be, because a row can
+  //    only reach `ids` by having come back from planBulkDiscard(classId). That
+  //    is the "derived from an already-verified read" rule from lib/class-scope.ts.
+  //    ==> IF planBulkDiscard IS EVER CHANGED TO RETURN ROWS FROM MORE THAN ONE
+  //        CLASS, THIS DELETE WIDENS WITH IT AND NOTHING HERE WOULD SAY SO. <==
   const ids = plan.deletable.map((row) => row.id);
   const { error: deleteError } = await admin
     .from("scenarios")

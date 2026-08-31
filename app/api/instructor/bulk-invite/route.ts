@@ -13,55 +13,28 @@
 // case-insensitive dedup happen here on the server so they cannot be spoofed; the
 // browser only sends the raw file text and shows the result.
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireInstructorRequest } from "@/lib/class-scope";
 import { parseCsv, classifyRows, type SkippedRow } from "@/lib/bulk-invite";
-import { getInstructorClassId } from "@/lib/instructor-auth";
 
 export async function POST(request: Request) {
-  // 1. The caller must be signed in.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
-  }
-
-  const admin = createAdminClient();
-
-  // 2. The caller must be an instructor, verified on the server against the
-  //    database (never trusting the browser), the same way uninvite does.
-  const { data: caller, error: callerError } = await admin
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (callerError || caller?.role !== "instructor") {
-    return NextResponse.json(
-      { error: "Only instructors can bulk invite." },
-      { status: 403 },
-    );
-  }
-
-  // 2b. GATE 3a: the class every invite in this file belongs to. It is what the
-  //     signup rule reads to put each student in a class the moment they
-  //     register, so an import that could not find one would produce a whole
-  //     roster of students in no class. Refuse instead.
+  // 1 and 2, plus the caller's class, in one call. GATE 3b replaced the
+  // signed-in check and the profiles role check that used to be written out
+  // here, and identically in ten sibling routes, with the shared guard in
+  // lib/class-scope.ts. It answers the same two questions and one new one:
+  // WHICH CLASS may this caller act inside.
   //
-  //     This route cannot use requireInstructor(): that function calls
-  //     redirect(), which is a page mechanism and would throw here instead of
-  //     returning JSON. It calls the shared lookup underneath it directly.
-  const callerClassId = await getInstructorClassId(user.id);
-  if (!callerClassId) {
-    return NextResponse.json(
-      {
-        error:
-          "Your instructor account is not linked to a class, so invites cannot be imported.",
-      },
-      { status: 409 },
-    );
+  // It cannot be requireInstructor(): that calls redirect(), a page mechanism,
+  // which throws here instead of returning a JSON error.
+  const gate = await requireInstructorRequest("bulk invite");
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: gate.status });
   }
+  const { admin, classId, userId } = gate;
+
+  // GATE 3a's class lookup used to be written out again here. GATE 3b folded it
+  // into the shared guard above, which refuses a caller with no class before this
+  // route gets a chance to run, so an import can never produce a whole roster of
+  // students in no class.
 
   // 3. Read the CSV text from the request.
   let csv: unknown;
@@ -89,6 +62,29 @@ export async function POST(request: Request) {
   // 4. Build the two dedup sets from the database, the same way the roster and
   //    the uninvite route do: LOWERCASED emails, so every comparison is
   //    case-insensitive (matching the signup trigger).
+  //
+  //    ==> GATE 3b ADDED NO TARGET CHECK TO THIS ROUTE AND LEFT BOTH OF THESE
+  //        READS GLOBAL. It is the only one of the eleven with nothing to scope,
+  //        and that is not an oversight in either half.
+  //
+  //        NOTHING TO SCOPE: this route only WRITES. It has no target row handed
+  //        to it by id, and every invite it creates is stamped with the caller's
+  //        own class (Gate 3a write path 3). The shared guard above already
+  //        refuses a caller who owns no class.
+  //
+  //        WHY THE DEDUP STAYS GLOBAL, and this is the load bearing half:
+  //        allowed_emails.email is the PRIMARY KEY, so an address can exist only
+  //        ONCE across the entire system, not once per class. If another
+  //        instructor has already invited an address, this route cannot insert it
+  //        at all. Scoped to this class the address would look new, the insert
+  //        would be attempted, and the instructor would get a raw duplicate-key
+  //        error instead of the readable "Already on the invite list" they get
+  //        now. The listing is scoped; the fact check is not. See
+  //        lib/class-scope.ts.
+  //
+  //        THAT COLLISION IS REAL AND IT IS PARKED FOR GATE 5 as a design
+  //        ruling, not a bug to fix here: a student taking two instructors'
+  //        courses can only ever be invited by one of them. <==
   const { data: invites, error: invitesError } = await admin
     .from("allowed_emails")
     .select("email");
@@ -134,9 +130,9 @@ export async function POST(request: Request) {
     const toInsert = valid.map((v) => ({
       email: v.email,
       role: v.role,
-      added_by: user.id,
+      added_by: userId,
       // GATE 3a, write path 3 of 9 (the batch half).
-      class_id: callerClassId,
+      class_id: classId,
     }));
     const { error: batchError } = await admin
       .from("allowed_emails")
@@ -155,8 +151,8 @@ export async function POST(request: Request) {
           .insert({
             email: v.email,
             role: v.role,
-            added_by: user.id,
-            class_id: callerClassId,
+            added_by: userId,
+            class_id: classId,
           });
         if (!rowError) {
           added.push(v.email);

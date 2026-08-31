@@ -32,8 +32,7 @@
 // run with the service-role key, server-side only, like every other destructive
 // route here.
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireInstructorRequest, refuseOutsideClass } from "@/lib/class-scope";
 import {
   countScenarioUsage,
   isUsed,
@@ -43,28 +42,19 @@ import {
 import type { CandidateRow } from "@/lib/scaffold-candidates";
 
 export async function POST(request: Request) {
-  // 1. The caller must be signed in.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  // 1 and 2, plus the caller's class, in one call. GATE 3b replaced the
+  // signed-in check and the profiles role check that used to be written out
+  // here, and identically in ten sibling routes, with the shared guard in
+  // lib/class-scope.ts. It answers the same two questions and one new one:
+  // WHICH CLASS may this caller act inside.
+  //
+  // It cannot be requireInstructor(): that calls redirect(), a page mechanism,
+  // which throws here instead of returning a JSON error.
+  const gate = await requireInstructorRequest("choose a persona");
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: gate.status });
   }
-
-  // 2. The caller must be an instructor, verified server-side.
-  const admin = createAdminClient();
-  const { data: caller, error: callerError } = await admin
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (callerError || caller?.role !== "instructor") {
-    return NextResponse.json(
-      { error: "Only instructors can choose a persona." },
-      { status: 403 },
-    );
-  }
+  const { admin, classId } = gate;
 
   // 3. Read the winner's id.
   let winnerId: string | undefined;
@@ -81,8 +71,9 @@ export async function POST(request: Request) {
   // 4. Load the chosen row.
   const { data: winner, error: winnerError } = await admin
     .from("scenarios")
+    // GATE 3b: class_id joins this read for the ownership check below.
     .select(
-      "id, title, persona_name, meeting_type, chain_role, enabled, generation_group_id, generation_fields",
+      "id, title, persona_name, meeting_type, chain_role, enabled, generation_group_id, generation_fields, class_id",
     )
     .eq("id", winnerId)
     .single();
@@ -90,6 +81,23 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "That candidate was not found. It may already be deleted." },
       { status: 404 },
+    );
+  }
+
+  // 4a. GATE 3b. The candidate must be in the caller's own class. Choosing a
+  //     winner switches it ON and DELETES the losing candidate, so this refusal
+  //     sits above both effects.
+  //
+  //     The group read at step 5 needs no second class filter: it is derived from
+  //     this row's own generation_group_id, and a generation group never spans
+  //     two classes (both rows are written by one insert in the generate route,
+  //     with one class id). GUARD THE ROW YOU WERE HANDED BY ID; a read derived
+  //     from an already-checked row needs no filter of its own.
+  const outside = refuseOutsideClass(winner.class_id, classId, "candidate");
+  if (outside) {
+    return NextResponse.json(
+      { error: "That candidate was not found. It may already be deleted." },
+      { status: outside.status },
     );
   }
 

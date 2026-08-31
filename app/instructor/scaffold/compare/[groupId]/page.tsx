@@ -21,8 +21,8 @@
 // be deleted because something was using it, the group still has two rows but
 // the pick has definitely been made.
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { notFound } from "next/navigation";
+import { requireInstructor } from "@/lib/instructor-auth";
 import {
   loadGenerationGroup,
   chainRoleLabel,
@@ -155,20 +155,17 @@ export default async function CompareCandidatesPage({
   const { groupId } = await params;
 
   // Instructor-gated, the same way the scaffolding page is.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  // GATE 3b replaced the hand-written signed-in and role check that used to sit
+  // here with the shared requireInstructor(). It does exactly the same two things
+  // in the same order (login redirect, then student redirect) and ALSO returns
+  // the class this instructor owns, which is what the scoped read below needs.
+  // Fails closed: no class, no comparison.
+  const { classId } = await requireInstructor();
+  if (!classId) notFound();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (profile?.role !== "instructor") redirect("/student");
-
-  const rows = await loadGenerationGroup(groupId);
+  const rows = await loadGenerationGroup(groupId, classId);
+  // Empty now means one of two things, and they are deliberately indistinguishable
+  // from outside: the group does not exist, or it belongs to another class.
   if (rows.length === 0) notFound();
 
   // The winner, if this generation has already been decided. Any switched-on row

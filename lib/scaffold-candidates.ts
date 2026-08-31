@@ -8,6 +8,22 @@
 // SERVER ONLY. Every function here uses the service-role admin client, so it
 // must never be imported into a Client Component. Both callers are
 // instructor-gated pages that check the caller's role before reading.
+//
+// GATE 3b. Every LOADER below now takes the caller's classId and filters on it,
+// because the service-role client bypasses Row Level Security completely and a
+// role check alone let any instructor read, edit and discard any other
+// instructor's generated personas.
+//
+// THE classId PARAMETER IS REQUIRED, NOT OPTIONAL, AND THAT IS THE POINT. An
+// optional one would silently default to "no filter" at any call site somebody
+// forgot, which is the exact failure this gate exists to remove. Required means
+// the build fails until every caller has been updated, so the compiler is what
+// proves nothing was missed rather than a careful reading.
+//
+// ==> ONE FUNCTION HERE IS DELIBERATELY NOT SCOPED: countScenarioUsage(). It
+//     looks like an inconsistency and it is not. The reason is written out at
+//     the function itself, and the general rule it follows is written out once
+//     in lib/class-scope.ts. <==
 import { createAdminClient } from "@/lib/supabase/admin";
 import type {
   PersonaCandidate,
@@ -80,17 +96,22 @@ function candidateIndex(row: CandidateRow): number {
 // from one reload to the next.
 export async function loadGenerationGroup(
   groupId: string,
+  classId: string,
 ): Promise<CandidateRow[]> {
   const admin = createAdminClient();
 
   const { data, error } = await admin
     .from("scenarios")
     .select(CANDIDATE_COLUMNS)
-    .eq("generation_group_id", groupId);
+    .eq("generation_group_id", groupId)
+    // GATE 3b: another class's generation is not found rather than refused, so
+    // the caller cannot tell an id that does not exist from one that is not
+    // theirs.
+    .eq("class_id", classId);
 
-  // An unknown or malformed group id (someone editing the web address) comes
-  // back as an error or as nothing. Either way the page shows "not found"
-  // rather than breaking.
+  // An unknown or malformed group id (someone editing the web address), or one
+  // belonging to another class, comes back as an error or as nothing. Either way
+  // the page shows "not found" rather than breaking.
   if (error || !data) return [];
 
   const rows = data as unknown as CandidateRow[];
@@ -101,6 +122,7 @@ export async function loadGenerationGroup(
 // gatekeeper's own generated fields to show what will carry over).
 export async function loadCandidateById(
   id: string,
+  classId: string,
 ): Promise<CandidateRow | null> {
   const admin = createAdminClient();
 
@@ -108,6 +130,9 @@ export async function loadCandidateById(
     .from("scenarios")
     .select(CANDIDATE_COLUMNS)
     .eq("id", id)
+    // GATE 3b: a candidate in another class reads as null, and every caller
+    // already treats null as "not found".
+    .eq("class_id", classId)
     .single();
 
   if (error || !data) return null;
@@ -140,6 +165,7 @@ export type GenerationSummary = {
 // database for distinct groups, because two rows per generation means a handful
 // of rows covers plenty of generations and the grouping is trivial here.
 export async function loadRecentGenerations(
+  classId: string,
   limit = 8,
 ): Promise<GenerationSummary[]> {
   const admin = createAdminClient();
@@ -148,6 +174,9 @@ export async function loadRecentGenerations(
     .from("scenarios")
     .select(CANDIDATE_COLUMNS)
     .not("generation_group_id", "is", null)
+    // GATE 3b: the Recent generations list shows this class's generations only.
+    // Invisible with one instructor and one class, real with two.
+    .eq("class_id", classId)
     .order("created_at", { ascending: false })
     .limit(limit * 2 + 10);
 
@@ -228,6 +257,26 @@ export function isUsed(usage: ScenarioUsage | undefined): boolean {
 
 // Count sessions and assignments for a set of scenario ids in two queries,
 // whether that set is one candidate or every candidate in the database.
+//
+// ==> GATE 3b: THIS COUNT STAYS GLOBAL. DO NOT SCOPE IT TO A CLASS. It is the
+//     one function in this file with no classId parameter, which looks like an
+//     oversight next to the five loaders above and is not. <==
+//
+// THE LISTING IS SCOPED. THE SAFETY CHECK IS NOT. Every loader above answers
+// "what may this instructor SEE", so it is class-scoped. This answers "will the
+// database let this row be deleted", and the constraints it is checking are
+// global: sessions.scenario_id and assignments.scenario_id are both declared
+// "on delete restrict" (supabase/stage-2-data-model.sql) and neither knows
+// anything about classes.
+//
+// WHAT SCOPING IT WOULD DO, precisely: a scenario used by ANOTHER class would
+// count as zero, report as unused, and the page would offer a Discard. The
+// delete would then fail at the database with a raw foreign-key error that the
+// instructor cannot read, cannot act on, and cannot avoid. The count must tell
+// the truth about the whole database or the delete-if-unused rule stops working.
+//
+// The same rule, and the four places in the app that follow it, are written out
+// once in lib/class-scope.ts.
 export async function countScenarioUsage(
   scenarioIds: string[],
 ): Promise<Map<string, ScenarioUsage>> {
@@ -464,14 +513,19 @@ const PLAN_COLUMNS = "id, title, persona_name, enabled, generation_group_id";
 // Every generated candidate in the database, sorted into the three buckets.
 // This is what the bulk "discard all unused" both previews and acts on, so the
 // count the admin approves and the rows that are deleted come from one place.
-export async function planBulkDiscard(): Promise<DiscardPlan> {
+export async function planBulkDiscard(classId: string): Promise<DiscardPlan> {
   const admin = createAdminClient();
 
   const { data, error } = await admin
     .from("scenarios")
     .select(PLAN_COLUMNS)
     // THE line that keeps Alex and Jordan out of this entirely.
-    .not("generation_group_id", "is", null);
+    .not("generation_group_id", "is", null)
+    // GATE 3b: "discard all unused test generations" now sweeps THIS class only.
+    // It can never reach, count or delete another instructor's candidates. Note
+    // that this scopes WHICH ROWS ARE CONSIDERED; whether each of them is safe to
+    // delete is still decided by the global countScenarioUsage above.
+    .eq("class_id", classId);
 
   if (error) {
     throw new Error(`Could not read the generated personas: ${error.message}`);
@@ -481,14 +535,22 @@ export async function planBulkDiscard(): Promise<DiscardPlan> {
 }
 
 // The same sorting, for the rows of ONE generation group.
-export async function planGroupDiscard(groupId: string): Promise<DiscardPlan> {
+export async function planGroupDiscard(
+  groupId: string,
+  classId: string,
+): Promise<DiscardPlan> {
   const admin = createAdminClient();
 
   const { data, error } = await admin
     .from("scenarios")
     .select(PLAN_COLUMNS)
     .eq("generation_group_id", groupId)
-    .not("generation_group_id", "is", null);
+    .not("generation_group_id", "is", null)
+    // GATE 3b: a group in another class plans as EMPTY, and the discard route
+    // already turns an empty plan into "that generation was not found". So the
+    // class check needs no extra branch in the route; it falls into the refusal
+    // that was already there.
+    .eq("class_id", classId);
 
   if (error) {
     throw new Error(`Could not read this generation: ${error.message}`);

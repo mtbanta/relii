@@ -23,9 +23,17 @@ export default async function ScaffoldPage() {
   // The shared instructor layout already gated this page (signed in, an
   // instructor, and past the name gate); this confirms it again for the page
   // itself, since a page can be requested directly.
-  await requireInstructor();
+  //
+  // GATE 3b: the class id is now KEPT rather than discarded, because Recent
+  // generations lists THIS class's generations only.
+  const { classId } = await requireInstructor();
 
-  const recent = await loadRecentGenerations();
+  // FAILS CLOSED. An instructor with no class sees no generations rather than
+  // everybody's. After the Gate 3a repair that cannot happen, which is exactly
+  // why the empty case shows nothing instead of falling back to an unscoped
+  // read. The generate form below still renders; its route refuses with a
+  // readable message for the same reason.
+  const recent = classId ? await loadRecentGenerations(classId) : [];
 
   return (
     <main className="mx-auto w-full max-w-page space-y-5 px-6 pb-10 pt-5">

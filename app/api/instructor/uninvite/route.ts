@@ -14,34 +14,22 @@
 // refuses and points the instructor at the student Delete action instead, so
 // un-invite can never interfere with a registered user.
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireInstructorRequest, refuseOutsideClass } from "@/lib/class-scope";
 
 export async function POST(request: Request) {
-  // 1. The caller must be signed in.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  // 1 and 2, plus the caller's class, in one call. GATE 3b replaced the
+  // signed-in check and the profiles role check that used to be written out
+  // here, and identically in ten sibling routes, with the shared guard in
+  // lib/class-scope.ts. It answers the same two questions and one new one:
+  // WHICH CLASS may this caller act inside.
+  //
+  // It cannot be requireInstructor(): that calls redirect(), a page mechanism,
+  // which throws here instead of returning a JSON error.
+  const gate = await requireInstructorRequest("remove invites");
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: gate.status });
   }
-
-  const admin = createAdminClient();
-
-  // 2. The caller must be an instructor. We verify this on the server against
-  //    the database; we never trust the browser to tell us who is an instructor.
-  const { data: caller, error: callerError } = await admin
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (callerError || caller?.role !== "instructor") {
-    return NextResponse.json(
-      { error: "Only instructors can remove invites." },
-      { status: 403 },
-    );
-  }
+  const { admin, classId } = gate;
 
   // 3. Read the target email from the request. The invite list stores emails
   //    lowercased (the invite form lowercases before inserting), so we compare
@@ -63,7 +51,8 @@ export async function POST(request: Request) {
   //    nothing to un-invite.
   const { data: invite, error: inviteReadError } = await admin
     .from("allowed_emails")
-    .select("email")
+    // GATE 3b: class_id joins this read for the ownership check below.
+    .select("email, class_id")
     .eq("email", cleanEmail)
     .maybeSingle();
   if (inviteReadError) {
@@ -80,11 +69,35 @@ export async function POST(request: Request) {
     );
   }
 
+  // 4b. GATE 3b. The invite must belong to the caller's own class, so one
+  //     instructor can never withdraw another instructor's invitation. Same
+  //     wording as the line above, so a caller cannot tell "not invited" from
+  //     "not yours".
+  const outside = refuseOutsideClass(invite.class_id, classId, "invite");
+  if (outside) {
+    return NextResponse.json(
+      { error: "That email is not on the invite list." },
+      { status: outside.status },
+    );
+  }
+
   // 5. VERIFY IT IS PENDING. The email must NOT belong to a registered user.
   //    profiles.email is stored as the user typed it at signup, so we compare
   //    case-insensitively in code (an exact-but-case-insensitive match, with no
   //    wildcard risk from emails that contain an underscore). At this scale (a
   //    couple dozen users, hundreds at most) reading the emails is trivial.
+  //
+  //    ==> GATE 3b LEFT THIS READ GLOBAL ON PURPOSE. It is one of the four
+  //        places in the app where scoping would be wrong, and the rule is
+  //        written out once in lib/class-scope.ts: THE LISTING IS SCOPED, THE
+  //        FACT CHECK IS NOT. "Has this address registered" is a global fact
+  //        (allowed_emails.email is the primary key, so an address exists once
+  //        across the whole system). Scoped to one class, an invited person who
+  //        registered as an INSTRUCTOR would read as still pending, because a new
+  //        instructor gets a class of their own at signup, and this route would
+  //        then happily delete a registered user's invite row. The invite it acts
+  //        on is already scoped by the check above; this only decides whether the
+  //        deletion is safe. <==
   const { data: profiles, error: profilesError } = await admin
     .from("profiles")
     .select("email");

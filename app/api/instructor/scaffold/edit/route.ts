@@ -21,8 +21,7 @@
 //   4. The rebuild must be provably faithful before it is allowed to overwrite
 //      anything (the chain resolution and the round-trip check).
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireInstructorRequest, refuseOutsideClass } from "@/lib/class-scope";
 import { validateCandidate } from "@/lib/persona-scaffold";
 import type { PersonaCandidate, HiddenFact } from "@/lib/persona-scaffold";
 import { assembleScenario } from "@/lib/persona-assembly";
@@ -72,30 +71,19 @@ function readHiddenFacts(value: unknown): HiddenFact[] {
 }
 
 export async function POST(request: Request) {
-  // 1. The caller must be signed in.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  // 1 and 2, plus the caller's class, in one call. GATE 3b replaced the
+  // signed-in check and the profiles role check that used to be written out
+  // here, and identically in ten sibling routes, with the shared guard in
+  // lib/class-scope.ts. It answers the same two questions and one new one:
+  // WHICH CLASS may this caller act inside.
+  //
+  // It cannot be requireInstructor(): that calls redirect(), a page mechanism,
+  // which throws here instead of returning a JSON error.
+  const gate = await requireInstructorRequest("edit a persona");
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: gate.status });
   }
-
-  // 2. The caller must be an instructor, verified on the server against the
-  //    database and never trusted from the browser. The edit page checks this
-  //    too, but a route is reachable on its own.
-  const admin = createAdminClient();
-  const { data: caller, error: callerError } = await admin
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (callerError || caller?.role !== "instructor") {
-    return NextResponse.json(
-      { error: "Only instructors can edit a persona." },
-      { status: 403 },
-    );
-  }
+  const { admin, classId } = gate;
 
   // 3. Read the request.
   let body: Record<string, unknown>;
@@ -114,8 +102,9 @@ export async function POST(request: Request) {
   // 4. Load the row being edited.
   const { data: row, error: rowError } = await admin
     .from("scenarios")
+    // GATE 3b: class_id joins this read for the ownership check below.
     .select(
-      "id, title, persona_name, meeting_type, chain_role, enabled, generation_group_id, generation_fields, scenario_context, persona_system_prompt",
+      "id, title, persona_name, meeting_type, chain_role, enabled, generation_group_id, generation_fields, scenario_context, persona_system_prompt, class_id",
     )
     .eq("id", candidateId)
     .single();
@@ -123,6 +112,21 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "That candidate was not found. It may already be deleted." },
       { status: 404 },
+    );
+  }
+
+  // 4a. GATE 3b. The candidate must be in the caller's own class. This route
+  //     rewrites a persona's scenario_context and persona_system_prompt, which is
+  //     the hidden text a role-play actually runs on, so an unscoped edit here
+  //     would let one instructor silently rewrite another's case.
+  //
+  //     The group read further down needs no second class filter: it is derived
+  //     from this row's own generation_group_id, and a group never spans classes.
+  const outside = refuseOutsideClass(row.class_id, classId, "candidate");
+  if (outside) {
+    return NextResponse.json(
+      { error: "That candidate was not found. It may already be deleted." },
+      { status: outside.status },
     );
   }
 

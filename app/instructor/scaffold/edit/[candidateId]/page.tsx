@@ -68,9 +68,13 @@ export default async function EditCandidatePage({
 }) {
   const { candidateId } = await params;
 
-  await requireInstructor();
+  // GATE 3b: the class id is now kept, so this page can only open a candidate
+  // that belongs to the signed-in instructor's class. Fails closed: no class,
+  // no candidate.
+  const { classId } = await requireInstructor();
+  if (!classId) notFound();
 
-  const row = await loadCandidateById(candidateId);
+  const row = await loadCandidateById(candidateId, classId);
   const candidate = row?.generation_fields?.candidate;
   const inputs = row?.generation_fields?.inputs;
 
@@ -82,7 +86,7 @@ export default async function EditCandidatePage({
   // Editing is for candidates BEFORE a winner is chosen. Checked here at page
   // load as well as in the save route, so a tab left open since before the pick
   // shows an explanation instead of a form whose save would be refused.
-  const group = await loadGenerationGroup(row.generation_group_id);
+  const group = await loadGenerationGroup(row.generation_group_id, classId);
   if (group.some((other) => other.enabled)) {
     return (
       <Blocked groupId={row.generation_group_id} heading="This case is already decided">
