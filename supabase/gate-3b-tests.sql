@@ -34,7 +34,18 @@
 --    ships and the SQL is forgotten, this query is the only thing that catches
 --    it.
 --
---    EXPECTED: still_on_is_instructor = 0, and now_on_instructs_class = 2.
+--    EXPECTED: still_on_is_instructor = 0, now_on_instructs_class = 8, and
+--    on_can_read_class = 3. CONFIRMED against the live database 2026-08-31.
+--
+--    THE ONLY NUMBER THAT PROVES THE MIGRATION RAN IS THE FIRST ONE. The other
+--    two are the whole schema, not this file's two rules, and an earlier draft
+--    of this comment wrongly said 2 by describing them as if they were:
+--      8 on instructs_class = Gate 2's six (manage rubrics, manage scenarios,
+--        manage assignments, the instructor half of the sessions read, and the
+--        two audit log reads) PLUS Gate 3b's two allowed_emails rules.
+--      3 on can_read_class  = Gate 3a's read rubrics, read scenarios, read
+--        assignments.
+--    If instructs_class reads 6 rather than 8, this file has not been run.
 select
   count(*) filter (
     where coalesce(qual, '') like '%is_instructor%'
