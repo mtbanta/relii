@@ -53,18 +53,16 @@ export default async function InstructorAssignments() {
   // The assignments THIS instructor created.
   const { data: assignments } = await supabase
     .from("assignments")
-    // ==> "scenarios!assignments_scenario_id_fkey" NAMES WHICH FOREIGN KEY TO
-    //     FOLLOW, AND REMOVING THE "!..." PART BREAKS THIS PAGE SILENTLY. <==
-    //     Gate 4a added a SECOND foreign key between assignments and scenarios
-    //     (assignments_scenario_same_class_fkey, which enforces that both sit in
-    //     the same class). Supabase resolves an embedded join like this by
-    //     finding THE foreign key between the two tables; with two of them it
-    //     refuses to guess and returns an error instead of rows. This line
-    //     ignores `error` and reads only `data`, so the page then renders EMPTY
-    //     with nothing in the logs and nothing on screen to explain it. That is
-    //     exactly what happened in production on 2026-08-31. The hint is not
-    //     decoration and it is not a style choice.
-    .select("id, title, company_name, required_mode, due_at, available_date, duration_minutes, instructions, scenarios!assignments_scenario_id_fkey ( title, persona_name )")
+    // The SHORT embed form is correct here, and it is safe for a reason rather
+    // than by luck: there is exactly ONE foreign key between assignments and
+    // scenarios, the composite assignments_scenario_same_class_fkey, which
+    // carries the plain reference AND the same-class rule. Gate 4a briefly had
+    // two keys between these tables, which made this join ambiguous; Supabase
+    // returned an error instead of rows, this line reads only `data`, and the
+    // page rendered EMPTY with nothing on screen and nothing in the logs.
+    // ==> IF A SECOND FOREIGN KEY IS EVER ADDED BETWEEN THESE TWO TABLES, THIS
+    //     LINE BREAKS EXACTLY THAT WAY AGAIN. See PROJECT_STATE Open Issues. <==
+    .select("id, title, company_name, required_mode, due_at, available_date, duration_minutes, instructions, scenarios ( title, persona_name )")
     .eq("created_by", user.id)
     .order("created_at", { ascending: false })
     .returns<AssignmentRow[]>();
