@@ -271,6 +271,98 @@ end $$;
 
 
 -- ===========================================================================
+-- 5. THE DELETE BACKSTOP. TWO MORE DELIBERATE ATTEMPTS THAT MUST FAIL.
+-- ===========================================================================
+-- ==> RUN THIS ON ITS OWN. LIKE QUERY 4 IT ENDS IN A RED ERROR ON PURPOSE, AND
+--     THAT ERROR IS THE REPORT. NOTHING IS LEFT BEHIND. <==
+--
+-- WHY THIS EXISTS SEPARATELY FROM QUERY 4. Query 4 proves the rules refuse a
+-- CLASS MISMATCH. It says nothing about DELETION, which is a different promise
+-- made by the same constraints: "on delete restrict".
+--
+-- THAT PROMISE CARRIES REAL WEIGHT NOW. Gate 4a dropped the three single-column
+-- foreign keys (assignments_scenario_id_fkey, scenarios_rubric_id_fkey,
+-- sessions_scenario_id_fkey) because the composite rules replaced them. Delete
+-- protection used to come from those. It now comes ONLY from the composites, so
+-- the claim that nothing was lost deserves a test rather than an argument.
+--
+-- ==> AND IT IS THE PROPERTY GATE 4b IS BUILT ON. The cascade delete works by
+--     deleting in order (sessions, assignments, scenarios, rubrics, then
+--     allowed_emails and class_members, then the class) and relies on the wrong
+--     order failing LOUDLY. If these two checks ever stop passing, that delete
+--     silently starts destroying content instead of refusing. <==
+--
+-- WHAT THE APP DOES FIRST, and why it is not a substitute. countScenarioUsage()
+-- in lib/scaffold-candidates.ts counts the sessions and assignments using a
+-- scenario and refuses in the UI with a readable sentence, so a person never
+-- normally reaches the database at all. That is the front line. This is the
+-- backstop behind it, for a count that is wrong, a race, or a future code path
+-- that forgets to ask.
+do $$
+declare
+  target_scenario uuid;
+  target_rubric   uuid;
+  report          text := '';
+  passed          integer := 0;
+  failed          integer := 0;
+  skipped         integer := 0;
+  summary         text;
+begin
+  -- 1. A scenario that an assignment or a session still points at.
+  select s.id into target_scenario
+    from public.scenarios s
+   where exists (select 1 from public.assignments a  where a.scenario_id  = s.id)
+      or exists (select 1 from public.sessions    se where se.scenario_id = s.id)
+   limit 1;
+
+  if target_scenario is null then
+    report := report || chr(10) || '| TEST 1  SKIPPED: no scenario is currently in use, so this cannot be exercised. The rule is then UNTESTED, not proven.';
+    skipped := skipped + 1;
+  else
+    begin
+      delete from public.scenarios where id = target_scenario;
+      report := report || chr(10) || '| TEST 1  *** FAILED *** A scenario still in use was DELETED. Deleting a class in the wrong order would now destroy student work instead of refusing.';
+      failed := failed + 1;
+    exception when others then
+      report := report || chr(10) || '| TEST 1  PASSED. Refused, SQLSTATE ' || sqlstate || ': ' || sqlerrm;
+      passed := passed + 1;
+    end;
+  end if;
+
+  -- 2. A rubric that a scenario still points at.
+  select r.id into target_rubric
+    from public.rubrics r
+   where exists (select 1 from public.scenarios s where s.rubric_id = r.id)
+   limit 1;
+
+  if target_rubric is null then
+    report := report || chr(10) || '| TEST 2  SKIPPED: no rubric is currently used by any scenario. The rule is then UNTESTED, not proven.';
+    skipped := skipped + 1;
+  else
+    begin
+      delete from public.rubrics where id = target_rubric;
+      report := report || chr(10) || '| TEST 2  *** FAILED *** A rubric still in use was DELETED.';
+      failed := failed + 1;
+    exception when others then
+      report := report || chr(10) || '| TEST 2  PASSED. Refused, SQLSTATE ' || sqlstate || ': ' || sqlerrm;
+      passed := passed + 1;
+    end;
+  end if;
+
+  if failed > 0 then
+    summary := '>>> ' || failed || ' TEST(S) FAILED. DELETE PROTECTION IS GONE. Show this to Claude before Gate 4b is built. <<<';
+  elsif skipped > 0 then
+    summary := 'All ' || passed || ' test(s) that could run PASSED, and ' || skipped || ' were skipped for lack of data.';
+  else
+    summary := 'BOTH TESTS PASSED. Delete protection survived losing the single-column keys.';
+  end if;
+
+  raise exception E'GATE 4A DELETE BACKSTOP TEST FINISHED. THIS ERROR IS DELIBERATE AND IS HOW THE TEST UNDOES ITSELF. NOTHING WAS DELETED.\n\n%\n%\n\n(passed %, failed %, skipped %)',
+    summary, report, passed, failed, skipped;
+end $$;
+
+
+-- ===========================================================================
 -- WHAT GATE 4a HANDS TO GATE 4b AND GATE 5.
 -- ===========================================================================
 -- Nothing below is a query. It is the handoff, written here rather than only in
