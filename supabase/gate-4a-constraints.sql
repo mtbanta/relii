@@ -8,17 +8,44 @@
 -- in this file, including bringing back the function section 4 deletes. Read it
 -- before you run this, not after.
 --
--- ==> RUN THIS BEFORE THE NEW CODE IS DEPLOYED, WHICH IS THIS PROJECT'S NORMAL
---     ORDER AND THE OPPOSITE OF GATE 3a's. NOTHING BREAKS IF YOU DO. <==
+-- ===========================================================================
+-- ==> DO NOT RUN SECTION 3 UNTIL THE FOREIGN KEY HINTS ARE LIVE ON
+--     relii.vercel.app. THIS FILE ONCE SAID THE OPPOSITE AND THE OPPOSITE WAS
+--     WRONG, IN PRODUCTION, ON 2026-08-31. <==
+-- ===========================================================================
+-- WHAT HAPPENED, written out because it is the single most expensive thing this
+-- piece got wrong and the mistake is very easy to make again.
 --
--- Two reasons rather than an assertion. First, both browser forms that write
--- through the security rules already refuse to write when they have no class:
--- Gate 3a added those guards and they have been live since 2026-08-29. Second,
--- the scenario dropdown on the create-assignment form reads through the security
--- rules, so it can only ever offer scenarios from the instructor's own class.
--- The deployed app therefore cannot produce a row that breaks any of the three
--- new rules or leaves a class empty. The code half of Gate 4a is four error
--- messages that only appear on a failure path, so nothing here waits on it.
+-- Section 3 adds assignments_scenario_same_class_fkey ALONGSIDE the existing
+-- assignments_scenario_id_fkey. Postgres is perfectly happy with two foreign
+-- keys between the same pair of tables. THE SUPABASE API IS NOT.
+--
+-- Supabase resolves an embedded join, written in the app as
+-- "scenarios ( title, persona_name )", by finding THE foreign key between the
+-- two tables. With TWO it refuses to guess and returns an error instead of rows.
+-- All three of the app's embedded reads destructure only `data` and ignore
+-- `error`, so those pages rendered EMPTY: Manage Assignments, the instructor
+-- dashboard selector (which empties the Submissions page with it), and THE
+-- STUDENT HOME. No error on screen, nothing in the logs, and every row still
+-- perfectly intact in the database.
+--
+-- THE FIX, already applied in the app: each of the three reads now names the key
+-- to follow, "scenarios!assignments_scenario_id_fkey ( ... )". That hint is
+-- valid whether or not the second key exists, so the deploy is safe to ship
+-- first and is the reason this file is now second.
+--
+-- SO THE ORDER FOR THIS PIECE IS GATE 3a's, NOT THIS PROJECT'S USUAL ONE:
+--   1. Sections 0, 1 and 2 (the requirement and the unique pairs) are safe at
+--      any time and were run on 2026-08-31 without incident.
+--   2. The deploy carrying the three hints goes live on relii.vercel.app.
+--   3. THEN this file is re-run, which is what adds section 3's rules.
+--
+-- Sections 1 and 2 really are safe before the deploy, and the original reasoning
+-- for that still holds: both browser write forms already refuse to write without
+-- a class (Gate 3a), and the create-assignment dropdown reads through the
+-- security rules so it can only offer same-class scenarios. NONE OF THAT WAS
+-- WRONG. What was wrong was checking the new rules against Postgres and never
+-- against the API layer every one of these pages reads through.
 --
 -- ===========================================================================
 -- WHAT THIS FILE IS FOR
@@ -234,7 +261,17 @@ end $$;
 -- The single-column links these sit alongside (assignments.scenario_id,
 -- scenarios.rubric_id, sessions.scenario_id) are all LEFT IN PLACE. The new
 -- rules are additional, not replacements. Removing a live link is a bigger
--- change than this piece was asked to make, and keeping both costs nothing.
+-- change than this piece was asked to make.
+--
+-- ==> "KEEPING BOTH COSTS NOTHING" IS WHAT THIS COMMENT USED TO SAY AND IT IS
+--     FALSE. It costs an embedded join, because the Supabase API cannot choose
+--     between two foreign keys and errors instead. See the warning at the top of
+--     this file. Every embedded read in the app now names its key explicitly,
+--     which is what makes keeping both safe. IF YOU EVER ADD A NEW EMBEDDED READ
+--     BETWEEN assignments AND scenarios, scenarios AND rubrics, OR sessions AND
+--     scenarios, IT MUST NAME ITS FOREIGN KEY THE SAME WAY. There are exactly
+--     three such reads today, all assignments to scenarios: app/student/page.tsx,
+--     app/instructor/page.tsx and app/instructor/assignments/page.tsx. <==
 --
 -- "on delete restrict on update restrict" matches the links already on these
 -- tables: a scenario that is in use cannot be deleted, and a class cannot be

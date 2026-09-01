@@ -53,7 +53,18 @@ export default async function InstructorAssignments() {
   // The assignments THIS instructor created.
   const { data: assignments } = await supabase
     .from("assignments")
-    .select("id, title, company_name, required_mode, due_at, available_date, duration_minutes, instructions, scenarios ( title, persona_name )")
+    // ==> "scenarios!assignments_scenario_id_fkey" NAMES WHICH FOREIGN KEY TO
+    //     FOLLOW, AND REMOVING THE "!..." PART BREAKS THIS PAGE SILENTLY. <==
+    //     Gate 4a added a SECOND foreign key between assignments and scenarios
+    //     (assignments_scenario_same_class_fkey, which enforces that both sit in
+    //     the same class). Supabase resolves an embedded join like this by
+    //     finding THE foreign key between the two tables; with two of them it
+    //     refuses to guess and returns an error instead of rows. This line
+    //     ignores `error` and reads only `data`, so the page then renders EMPTY
+    //     with nothing in the logs and nothing on screen to explain it. That is
+    //     exactly what happened in production on 2026-08-31. The hint is not
+    //     decoration and it is not a style choice.
+    .select("id, title, company_name, required_mode, due_at, available_date, duration_minutes, instructions, scenarios!assignments_scenario_id_fkey ( title, persona_name )")
     .eq("created_by", user.id)
     .order("created_at", { ascending: false })
     .returns<AssignmentRow[]>();
