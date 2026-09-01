@@ -41,7 +41,10 @@ export default async function InstructorLayout({
           qualifier="instructor"
           homeHref="/instructor"
         />
-        <InstructorNav />
+        {/* GATE 4b: the Administration link appears only for a super admin. The
+            flag comes from the profile this layout already read; it draws a link
+            and grants nothing. */}
+        <InstructorNav isSuperAdmin={profile.is_super_admin} />
       </div>
 
       {children}

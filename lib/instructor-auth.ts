@@ -28,6 +28,15 @@ export type InstructorProfile = {
   email: string;
   first_name: string | null;
   last_name: string | null;
+  // GATE 4b added this, and it is read for ONE purpose: deciding whether to draw
+  // the Administration link in the instructor nav. IT FILTERS NOTHING AND
+  // BRANCHES NOTHING ELSE. A super admin is an ordinary instructor everywhere on
+  // this surface, with one class and no wider sight, which is what locked
+  // decision 3 requires: the super admin exception must not be threaded through
+  // the instructor surface, because that is where isolation bugs come from. The
+  // /admin routes do their own check with their own guard (lib/super-admin.ts),
+  // so this value being wrong could only ever hide or show a link.
+  is_super_admin: boolean;
 };
 
 // GATE 3a: which class does this instructor own?
@@ -96,9 +105,17 @@ export async function requireInstructor(): Promise<{
     redirect("/login");
   }
 
+  // GATE 4b added is_super_admin to this select. It is not a new query, and the
+  // "read own profile" policy already covers it: a user reads their own row and
+  // only their own. The column cannot be forged from the browser either, because
+  // profiles has no update policy at all.
+  //
+  // ==> supabase/gate-4b-super-admin.sql HAS TO HAVE BEEN RUN BEFORE THIS CODE
+  //     IS LIVE. This read is on EVERY instructor page, so a missing column
+  //     breaks the whole instructor surface, not just the new section. <==
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, email, first_name, last_name")
+    .select("role, email, first_name, last_name, is_super_admin")
     .eq("id", user.id)
     .single();
 

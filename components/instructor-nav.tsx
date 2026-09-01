@@ -40,8 +40,18 @@ function isCurrent(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function InstructorNav() {
+// GATE 4b: the sixth destination, drawn only for a super admin.
+//
+// ==> IT IS A LINK, NOT A PERMISSION. Everything under /admin has its own guard
+//     (lib/super-admin.ts) which reads the flag from the database on every page
+//     and every route, so hiding or showing this changes what is EASY to reach
+//     and never what is ALLOWED. An ordinary instructor who types /admin is sent
+//     back to Submissions whether or not this link was drawn for them. <==
+export function InstructorNav({ isSuperAdmin = false }: { isSuperAdmin?: boolean }) {
   const pathname = usePathname();
+  const destinations = isSuperAdmin
+    ? [...DESTINATIONS, { href: "/admin", label: "Administration" }]
+    : DESTINATIONS;
 
   return (
     <nav
@@ -49,7 +59,7 @@ export function InstructorNav() {
       className="border-b border-line-tertiary"
     >
       <ul className="flex flex-wrap gap-x-5 gap-y-1">
-        {DESTINATIONS.map((d) => {
+        {destinations.map((d) => {
           const current = isCurrent(pathname, d.href);
           return (
             <li key={d.href}>

@@ -136,6 +136,32 @@ export default async function StudentHome() {
     return <NameGate email={user.email ?? ""} />;
   }
 
+  // GATE 4b: is this student in a class at all?
+  //
+  // ==> IT SHOULD ALWAYS BE YES, AND THAT IS THE POINT. Every student gets their
+  //     membership from the signup rule when they register, and deleting a class
+  //     deletes the accounts that belonged only to it rather than leaving them
+  //     behind. So this is a message for a state that should not occur: a
+  //     deletion that stopped part way through, or a row changed by hand.
+  //     Without it, such a student is told "You have no assignments yet. They
+  //     will appear here once your instructor creates one", which is untrue and
+  //     leaves them waiting for something that will never come. The same state
+  //     is surfaced to the super admin as "Students in no class".
+  //
+  // ==> IT MUST USE THE SERVICE-ROLE KEY, AND THIS IS NOT A SHORTCUT. Gate 1
+  //     switched Row Level Security ON for class_members with NO policies, so a
+  //     read through the ordinary logged-in client returns zero rows FOR
+  //     EVERYBODY. Written that way, this check would tell every student in the
+  //     system that they are in no class. It is the same trap Gate 3b named on
+  //     the instructor side: a membership read that renders a perfectly healthy
+  //     surface as empty. This read is server-side and asks only about the
+  //     signed-in user's own membership. <==
+  const { count: membershipCount } = await createAdminClient()
+    .from("class_members")
+    .select("class_id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+  const inNoClass = (membershipCount ?? 0) === 0;
+
   // The assignments this student can do, with each one's scenario embedded.
   //
   // Ordered by AVAILABLE DATE, soonest first, so the semester reads in the order
@@ -261,10 +287,20 @@ export default async function StudentHome() {
       </h2>
 
       {!assignments || assignments.length === 0 ? (
-        <p className="text-content-secondary">
-          You have no assignments yet. They will appear here once your instructor
-          creates one.
-        </p>
+        inNoClass ? (
+          // GATE 4b. A state that should never occur; see the note where
+          // inNoClass is worked out. It names the person to ask, because
+          // nothing this student can do on their own will change it.
+          <p className="text-content-secondary">
+            You are not currently in a class, so there is nothing to show here
+            yet. Please contact your instructor or administrator.
+          </p>
+        ) : (
+          <p className="text-content-secondary">
+            You have no assignments yet. They will appear here once your
+            instructor creates one.
+          </p>
+        )
       ) : (
         <>
           {/* PD-7: a plain, always-on notice for the whole assignments area, so
