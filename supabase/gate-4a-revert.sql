@@ -8,6 +8,8 @@
 -- WHAT IT DOES. It puts the database back exactly as it was before Gate 4a:
 --   1. Removes the three same-class rules.
 --   2. Removes the two unique pairs those rules needed.
+--   2b. RE-CREATES the three single-column foreign keys the migration dropped,
+--      and it does so BEFORE step 3 for a reason written out at that section.
 --   3. Makes all seven class_id columns optional again.
 --   4. Brings back public.is_instructor(), word for word from
 --      supabase/schema.sql lines 87 to 98, with its grant from line 101.
@@ -16,10 +18,13 @@
 --     a function sounds permanent and is not: its definition is nine lines of
 --     text and section 4 below holds a verbatim copy. <==
 --
--- THE ORDER IN THIS FILE IS THE REVERSE OF THE MIGRATION'S, AND IT HAS TO BE.
--- A unique pair cannot be removed while a rule still points at it, so the three
--- rules come out first. Running these sections out of order fails with "cannot
--- drop constraint because other objects depend on it".
+-- THE ORDER IN THIS FILE IS THE REVERSE OF THE MIGRATION'S, AND IT HAS TO BE,
+-- FOR TWO SEPARATE REASONS. First, a unique pair cannot be removed while a rule
+-- still points at it, so the three rules come out ahead of section 2; running
+-- those out of order fails with "cannot drop constraint because other objects
+-- depend on it". Second, and this one fails SILENTLY rather than loudly, section
+-- 2b has to sit above section 3 so that no moment exists in which class_id is
+-- optional and nothing enforces the reference. See section 2b.
 --
 -- WHAT IT DOES NOT DO. It does not touch the Gate 2, Gate 3a or Gate 3b
 -- security rules, the column permissions on scenarios, Storage, or any data
@@ -60,6 +65,43 @@ alter table public.sessions    drop constraint if exists sessions_scenario_same_
 -- they do nothing at all, so they go too.
 alter table public.rubrics   drop constraint if exists rubrics_id_class_unique;
 alter table public.scenarios drop constraint if exists scenarios_id_class_unique;
+
+
+-- ---------------------------------------------------------------------------
+-- 2b. Put the three single-column links back. THIS MUST COME BEFORE SECTION 3.
+-- ---------------------------------------------------------------------------
+-- ==> THE POSITION OF THIS SECTION IS THE POINT, NOT MERELY ITS PRESENCE. DO NOT
+--     TIDY IT DOWN NEXT TO THE OTHER "add constraint" LINES. <==
+--
+-- Section 3b of supabase/gate-4a-constraints.sql DROPPED these three, because
+-- the composite rules replaced them: a key over (scenario_id, class_id) already
+-- requires scenario_id to name a real scenario, so keeping both was pure
+-- redundancy, and the redundancy cost an outage (see that file).
+--
+-- Section 1 above has now removed the composites, so at this moment those
+-- references are enforced by NOTHING and have to be restored.
+--
+-- WHY IT CANNOT WAIT UNTIL AFTER SECTION 3. Section 3 makes class_id optional
+-- again. A composite key SKIPS its check entirely when any column of the pair is
+-- empty (MATCH SIMPLE), so if the order were reversed there would be a window,
+-- mid-revert, in which class_id may be empty and no rule of either kind stands
+-- behind scenario_id or rubric_id. Restoring the single-column links first means
+-- the reference is enforced continuously from the start of this file to the end.
+--
+-- These three definitions are VERBATIM the ones read back out of the live
+-- database on 2026-09-01, before they were dropped, rather than reconstructed
+-- from the original migration.
+alter table public.assignments drop constraint if exists assignments_scenario_id_fkey;
+alter table public.assignments add constraint assignments_scenario_id_fkey
+  foreign key (scenario_id) references public.scenarios (id) on delete restrict;
+
+alter table public.scenarios drop constraint if exists scenarios_rubric_id_fkey;
+alter table public.scenarios add constraint scenarios_rubric_id_fkey
+  foreign key (rubric_id) references public.rubrics (id) on delete restrict;
+
+alter table public.sessions drop constraint if exists sessions_scenario_id_fkey;
+alter table public.sessions add constraint sessions_scenario_id_fkey
+  foreign key (scenario_id) references public.scenarios (id) on delete restrict;
 
 
 -- ---------------------------------------------------------------------------

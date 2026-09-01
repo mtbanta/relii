@@ -29,16 +29,16 @@
 -- STUDENT HOME. No error on screen, nothing in the logs, and every row still
 -- perfectly intact in the database.
 --
--- THE FIX, already applied in the app: each of the three reads now names the key
--- to follow, "scenarios!assignments_scenario_id_fkey ( ... )". That hint is
--- valid whether or not the second key exists, so the deploy is safe to ship
--- first and is the reason this file is now second.
+-- THE FIX THAT WAS KEPT is section 3b, which drops the single-column key so that
+-- one path remains and the short embed form is unambiguous again. An interim fix
+-- that named the key in each embed was shipped first and then removed, because a
+-- naming convention enforced by nothing is a permanent trap whose failure mode is
+-- a blank page.
 --
--- SO THE ORDER FOR THIS PIECE IS GATE 3a's, NOT THIS PROJECT'S USUAL ONE:
---   1. Sections 0, 1 and 2 (the requirement and the unique pairs) are safe at
---      any time and were run on 2026-08-31 without incident.
---   2. The deploy carrying the three hints goes live on relii.vercel.app.
---   3. THEN this file is re-run, which is what adds section 3's rules.
+-- ON A DATABASE THAT HAS NEVER RUN THIS FILE, sections 3 and 3b are one
+-- statement apart, so the ambiguous window is measured in milliseconds inside a
+-- single run and no deploy ordering is needed. THE ORDER ONLY MATTERED WHILE THE
+-- APP CARRIED THE HINTS, which it no longer does.
 --
 -- Sections 1 and 2 really are safe before the deploy, and the original reasoning
 -- for that still holds: both browser write forms already refuse to write without
@@ -258,20 +258,42 @@ end $$;
 -- therefore only ever offer same-class options. That is a fact about today's
 -- code. These are rules.
 --
--- The single-column links these sit alongside (assignments.scenario_id,
--- scenarios.rubric_id, sessions.scenario_id) are all LEFT IN PLACE. The new
--- rules are additional, not replacements. Removing a live link is a bigger
--- change than this piece was asked to make.
+-- ==> THESE THREE RULES REPLACE THE SINGLE-COLUMN LINKS THEY WERE ORIGINALLY
+--     ADDED ALONGSIDE, AND SECTION 3b BELOW DROPS THOSE. THIS FILE ONCE KEPT
+--     BOTH AND SAID THE REDUNDANCY COST NOTHING. IT COST AN OUTAGE. <==
 --
--- ==> "KEEPING BOTH COSTS NOTHING" IS WHAT THIS COMMENT USED TO SAY AND IT IS
---     FALSE. It costs an embedded join, because the Supabase API cannot choose
---     between two foreign keys and errors instead. See the warning at the top of
---     this file. Every embedded read in the app now names its key explicitly,
---     which is what makes keeping both safe. IF YOU EVER ADD A NEW EMBEDDED READ
---     BETWEEN assignments AND scenarios, scenarios AND rubrics, OR sessions AND
---     scenarios, IT MUST NAME ITS FOREIGN KEY THE SAME WAY. There are exactly
---     three such reads today, all assignments to scenarios: app/student/page.tsx,
---     app/instructor/page.tsx and app/instructor/assignments/page.tsx. <==
+-- Postgres is perfectly happy with two foreign keys between the same pair of
+-- tables. THE SUPABASE API IS NOT: it resolves an embedded join, written in the
+-- app as "scenarios ( title, persona_name )", by finding THE foreign key between
+-- the two tables, and with two it returns an error instead of rows. Every such
+-- read in the app reads only `data` and ignores `error`, so three pages rendered
+-- EMPTY with nothing on screen and nothing in the logs, including the student
+-- home. That happened in production on 2026-08-31.
+--
+-- THE FIRST FIX WAS TO NAME THE KEY IN EACH EMBED. It worked and it was wrong as
+-- a permanent answer: a convention enforced by nothing, whose failure mode is a
+-- blank page, which would fire on code written months later by somebody who
+-- never read the comment. THE ANSWER KEPT IS THE ONE BELOW: one foreign key path
+-- per table pair, so the short embed form is unambiguous again and there is no
+-- rule to remember.
+--
+-- WHY DROPPING THEM LOSES NOTHING. A composite key over (scenario_id, class_id)
+-- referencing (id, class_id) already requires scenario_id to name a real
+-- scenario. It is the single-column rule plus the class rule, in one. Both
+-- columns are required as of section 1, so MATCH SIMPLE always enforces it.
+--
+-- ==> AND THAT IS EXACTLY WHY supabase/gate-4a-revert.sql RE-CREATES THE THREE
+--     SINGLE-COLUMN KEYS BEFORE IT RELAXES "not null", NOT AFTER. Relaxed first,
+--     there is a moment mid-revert where class_id may be empty, MATCH SIMPLE
+--     skips the whole check, and NOTHING enforces the reference at all. The
+--     position of that section is the point, not merely its presence. <==
+--
+-- VERIFIED AGAINST THE LIVE API BEFORE THIS WAS WRITTEN, not taken from the
+-- documentation, and this is the check to repeat if anyone doubts it: request
+-- /rest/v1/assignments?select=id,scenarios(title) with no hint. Two keys returns
+-- HTTP 300 and PGRST201 listing both candidates. One key returns HTTP 200 and
+-- rows. The same was confirmed for scenarios to rubrics and sessions to
+-- scenarios.
 --
 -- "on delete restrict on update restrict" matches the links already on these
 -- tables: a scenario that is in use cannot be deleted, and a class cannot be
@@ -298,6 +320,27 @@ alter table public.sessions
   foreign key (scenario_id, class_id)
   references public.scenarios (id, class_id)
   on delete restrict on update restrict;
+
+
+-- ---------------------------------------------------------------------------
+-- 3b. Drop the three single-column links the rules above replace.
+-- ---------------------------------------------------------------------------
+-- ONE FOREIGN KEY PATH PER TABLE PAIR. This is what lets the app write
+-- "scenarios ( title, persona_name )" instead of naming a key every time.
+--
+-- Each of these is fully contained in the composite rule directly above it, so
+-- nothing is lost. They are dropped rather than kept because keeping them is
+-- what broke three pages on 2026-08-31; the reasoning is written out in
+-- section 3.
+--
+-- "if exists" means this is correct on a database where they were never created
+-- and on one where this file has already run. Note that re-running
+-- supabase/stage-2-data-model.sql will NOT bring them back, because that file
+-- creates them inline on "create table if not exists" and the tables exist.
+alter table public.assignments drop constraint if exists assignments_scenario_id_fkey;
+alter table public.scenarios   drop constraint if exists scenarios_rubric_id_fkey;
+alter table public.sessions    drop constraint if exists sessions_scenario_id_fkey;
+
 
 -- ===========================================================================
 -- ==> THE SKIP-IF-EMPTY BEHAVIOUR EXPLAINED AT THE TOP OF THIS FILE IS A
