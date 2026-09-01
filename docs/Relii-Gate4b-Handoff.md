@@ -87,11 +87,17 @@ time.
    instructor who owns no class. That is the database's own rule
    (`classes.instructor_id` is `on delete restrict`) said out loud rather than
    hidden.
-4. **The crafted requests, below.** The single most important test in the piece.
-5. On the throwaway class page: **Export this class**, open the CSV, and confirm
-   it holds every row about to be destroyed (students, invites, rubric, persona,
-   assignment, sessions with their transcripts and scores, the recording list,
-   the audit rows). Then type `REMOVE` and complete the delete.
+4. **The crafted requests, below.** The single most important test in the piece,
+   and the deletion itself happens in the middle of that sequence rather than
+   here, so that the refusal tests run against a class that still exists.
+5. **Export, and read the file.** However you do the deletion (the panel button
+   or the console), open the CSV first and confirm it holds every row about to
+   be destroyed: students, invites, rubric, persona, assignment, sessions with
+   their transcripts and scores, the recording list, and the audit rows. Also
+   read the warning block at the top, which says the recordings themselves are
+   not in the file. Then complete the delete with the typed word `REMOVE`.
+   **Open the panel at least once** even if you delete from the console, to see
+   that the confirm step stays unavailable until an export has been taken.
 6. Afterwards: your own instructor surface, the student surface and all three
    downloads still work for the class that was not deleted. The throwaway
    student can no longer sign in, because that account is gone.
@@ -111,11 +117,21 @@ Sign in as yourself on `relii.vercel.app`, open the browser devtools console
 carries your session cookie automatically, which is why this is done there and
 not with curl.**
 
-First get the class id: open the throwaway class from `/admin` and copy the id
-out of the address bar (`/admin/class/THE-ID-IS-HERE`).
+> **The order below matters.** The real deletion sits in the middle of it on
+> purpose: the three refusal tests before it need a class that still exists, and
+> the last one needs a token that has just been spent. Running them in a
+> different order does not fail, it passes for the wrong reason, which is worse.
+> In particular, the substitution test cannot be run after the class is gone,
+> because it would then be refused for not finding the class rather than by the
+> check it exists to exercise.
+
+Get two class ids first. Open each class from `/admin` and copy the id out of the
+address bar (`/admin/class/THE-ID-IS-HERE`): the throwaway class, and your own
+(the historical one).
 
 ```js
 const CLASS_ID = "paste-the-throwaway-class-id-here";
+const MY_CLASS_ID = "paste-your-own-class-id-here";
 const del = (body) =>
   fetch(`/api/admin/class/${CLASS_ID}/delete`, {
     method: "POST",
@@ -124,7 +140,8 @@ const del = (body) =>
   }).then((r) => r.json().then((j) => ({ status: r.status, ...j })));
 ```
 
-**1. No token at all.** This is the crafted request that skips the export button.
+**1. No token at all.** This is the crafted request that skips the export button,
+and it is the one the whole mechanism exists to refuse.
 
 ```js
 await del({ confirm: "REMOVE" });
@@ -138,24 +155,12 @@ await del({ confirm: "REMOVE", token: "00000000-0000-0000-0000-000000000000" });
 ```
 Expect `400` and "That export is not valid."
 
-**3. A token that has already been used.** Run this AFTER the real delete in
-click-through item 5, reusing the token from it. To capture that token, export
-through the console rather than the button:
-
-```js
-const ex = await fetch(`/api/admin/class/${CLASS_ID}/export`, { method: "POST" }).then((r) => r.json());
-ex.token;                                  // keep this
-await del({ confirm: "REMOVE", token: ex.token });   // the real delete
-await del({ confirm: "REMOVE", token: ex.token });   // the replay
-```
-The replay must give `400` and "That export has already been used."
-
-**4. A valid token issued for a DIFFERENT class.** The substitution attack, and
+**3. A valid token issued for a DIFFERENT class.** The substitution attack, and
 the reason the delete compares the token's class with the class in the address.
 
 ```js
 // Export YOUR OWN class. Exporting changes nothing; it only reads and issues a token.
-const other = await fetch(`/api/admin/class/${YOUR_OWN_CLASS_ID}/export`, { method: "POST" }).then((r) => r.json());
+const other = await fetch(`/api/admin/class/${MY_CLASS_ID}/export`, { method: "POST" }).then((r) => r.json());
 // Aim that token at the THROWAWAY class.
 await del({ confirm: "REMOVE", token: other.token });
 ```
@@ -167,10 +172,49 @@ Expect `400` and "That export was taken for a different class."
 > deleted anyway. A throwaway token aimed at your own class would destroy the
 > historical class if the check failed. Same test, opposite consequence.
 
-**5. Worth adding, since it takes ten seconds:** confirm an ordinary instructor
-cannot reach the route at all. Sign in as the second instructor account and run
-the same `del({ confirm: "REMOVE" })`. Expect `403`, "Only a super admin can
-delete a class."
+This leaves a real row in `class_exports` for your own class, with `used_at`
+empty. That is expected, not an anomaly: it is an export somebody took and did
+not act on, and query 6 of the tests will show it.
+
+**4. An ordinary instructor cannot reach the route at all.** Ten seconds, and it
+is the only thing standing between another instructor and every class in the
+system. Sign in as the second instructor account, paste the same `del` helper,
+and run:
+
+```js
+await del({ confirm: "REMOVE" });
+```
+Expect `403`, "Only a super admin can delete a class."
+
+**Now do the real deletion**, back as yourself. Do it here in the console rather
+than with the panel button, so the token is in a variable for test 5. This is
+the same thing the panel does, which is the point: the panel has no power the
+console does not.
+
+```js
+const ex = await fetch(`/api/admin/class/${CLASS_ID}/export`, { method: "POST" }).then((r) => r.json());
+// Save the file before going on: this is click-through item 5, and the CSV is
+// the only record of this class that will exist afterwards.
+const blob = new Blob([ex.csv], { type: "text/csv" });
+const a = document.createElement("a");
+a.href = URL.createObjectURL(blob);
+a.download = ex.filename;
+a.click();
+
+// Then, once you have opened it and checked it:
+await del({ confirm: "REMOVE", token: ex.token });
+```
+Expect `ok: true` and a `removed` list. If you would rather use the panel button
+for the deletion itself, do that instead and read the token afterwards out of
+query 6 of `supabase/gate-4b-tests.sql`; test 5 needs it either way.
+
+**5. A token that has already been used.** The replay, immediately after.
+
+```js
+await del({ confirm: "REMOVE", token: ex.token });
+```
+Expect `400` and "That export has already been used." (The class is gone by now,
+and the token check comes first, so this is refused for the right reason.)
 
 ## What is new in the database
 

@@ -95,9 +95,15 @@ export async function POST(
 
   // 2. The cheap checks first, so a request that was never going to succeed
   //    does no reading at all.
+  // EVERY REFUSAL BELOW SAYS WHETHER THE EXPORT HAS TO BE TAKEN AGAIN, in a
+  // retryExport field. Only the server knows: a wrong confirm word leaves a
+  // perfectly good token, while a spent, stale, foreign or no-longer-matching
+  // one has to be replaced. Without it the page would have to guess from the
+  // wording, and it guessed wrong in the safe direction, sending the operator
+  // back to re-export after a refusal that never touched their token.
   if (confirm !== CONFIRM_WORD) {
     return NextResponse.json(
-      { error: `Type ${CONFIRM_WORD} to confirm this deletion.` },
+      { error: `Type ${CONFIRM_WORD} to confirm this deletion.`, retryExport: false },
       { status: 400 },
     );
   }
@@ -106,6 +112,7 @@ export async function POST(
       {
         error:
           "This class has not been exported. Export it first: the delete cannot run without the token the export issues.",
+        retryExport: true,
       },
       { status: 400 },
     );
@@ -121,7 +128,7 @@ export async function POST(
   //    the refusal say the right thing.
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token)) {
     return NextResponse.json(
-      { error: "That export is not valid. Export this class again." },
+      { error: "That export is not valid. Export this class again.", retryExport: true },
       { status: 400 },
     );
   }
@@ -134,7 +141,7 @@ export async function POST(
   if (tokenError) {
     console.error("Reading the export token failed:", token, tokenError);
     return NextResponse.json(
-      { error: "Could not check the export. Nothing was deleted." },
+      { error: "Could not check the export. Nothing was deleted.", retryExport: false },
       { status: 500 },
     );
   }
@@ -143,7 +150,7 @@ export async function POST(
     // The wording never distinguishes them: there is nothing useful to learn
     // from the difference and something to learn from being told.
     return NextResponse.json(
-      { error: "That export is not valid. Export this class again." },
+      { error: "That export is not valid. Export this class again.", retryExport: true },
       { status: 400 },
     );
   }
@@ -158,19 +165,20 @@ export async function POST(
       {
         error:
           "That export was taken for a different class, so it cannot authorise this deletion. Export this class.",
+        retryExport: true,
       },
       { status: 400 },
     );
   }
   if (tokenRow.used_at) {
     return NextResponse.json(
-      { error: "That export has already been used. Export this class again." },
+      { error: "That export has already been used. Export this class again.", retryExport: true },
       { status: 400 },
     );
   }
   if (Date.now() - new Date(tokenRow.created_at as string).getTime() > EXPORT_TOKEN_TTL_MS) {
     return NextResponse.json(
-      { error: "That export is more than an hour old. Export this class again." },
+      { error: "That export is more than an hour old. Export this class again.", retryExport: true },
       { status: 400 },
     );
   }
@@ -183,7 +191,7 @@ export async function POST(
   } catch (error) {
     console.error("Rebuilding the class snapshot failed:", classId, error);
     return NextResponse.json(
-      { error: "Could not read this class. Nothing was deleted." },
+      { error: "Could not read this class. Nothing was deleted.", retryExport: false },
       { status: 500 },
     );
   }
@@ -201,6 +209,10 @@ export async function POST(
         error:
           "This class has changed since the export, so the export no longer describes what would be destroyed. Export it again and check the new file." +
           (changed.length > 0 ? ` What changed: ${changed.join(", ")}.` : ""),
+        // The token is untouched and still unused, but it can never match again
+        // unless the class goes back to exactly how it was, so the honest answer
+        // is still "export again".
+        retryExport: true,
       },
       { status: 409 },
     );
@@ -222,13 +234,13 @@ export async function POST(
   if (claimError) {
     console.error("Claiming the export token failed:", token, claimError);
     return NextResponse.json(
-      { error: "Could not start the deletion. Nothing was deleted." },
+      { error: "Could not start the deletion. Nothing was deleted.", retryExport: false },
       { status: 500 },
     );
   }
   if (!claimed || claimed.length === 0) {
     return NextResponse.json(
-      { error: "That export has already been used. Export this class again." },
+      { error: "That export has already been used. Export this class again.", retryExport: true },
       { status: 400 },
     );
   }

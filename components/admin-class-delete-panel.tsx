@@ -99,10 +99,16 @@ export function ClassDeletePanel({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(data?.error || "Could not delete this class.");
-        // The token is spent whether or not the run finished, so the export step
-        // has to be taken again.
-        setExported(null);
-        setTyped("");
+        // WHETHER THE EXPORT HAS TO BE TAKEN AGAIN IS THE SERVER'S ANSWER, not
+        // this page's guess. A refusal that never touched the token (a wrong
+        // confirm word, a read that failed) leaves a perfectly good one, and
+        // clearing it anyway would send the operator back to re-export for
+        // nothing. A spent, stale, foreign or no-longer-matching token has to be
+        // replaced, and the server says so.
+        if (data?.retryExport !== false) {
+          setExported(null);
+          setTyped("");
+        }
         setLoading(false);
         return;
       }

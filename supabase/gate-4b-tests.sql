@@ -25,6 +25,26 @@
 
 
 -- ===========================================================================
+-- 0. WHAT A STORED RECORDING'S PATH ACTUALLY LOOKS LIKE. Run this once.
+-- ===========================================================================
+-- EXPECTED: a handful of names in the form
+--   3f2a....-....-....-....-............/9c81....-....-....-....-............webm
+-- that is, <owner-account-id>/<session-id>.webm, WITH NO BUCKET NAME IN FRONT.
+--
+-- WHY THIS IS WORTH TEN SECONDS BEFORE THE REST: queries 3 and 5 identify the
+-- OWNER of a file by taking the part of the name before the first "/" and
+-- matching it against an account id. If the stored name turned out to carry
+-- anything else in front, that match would fail for EVERY file, and query 5
+-- would report every recording in the system as belonging to no account, which
+-- reads as a catastrophe rather than as a broken query. Confirm the shape first
+-- and the later numbers can be trusted.
+select name, (storage.foldername(name))[1] as first_folder
+from storage.objects
+where bucket_id = 'session-videos'
+limit 3;
+
+
+-- ===========================================================================
 -- 1. THE FLAG EXISTS AND IS SET ON EXACTLY THE ACCOUNTS INTENDED.
 -- ===========================================================================
 -- EXPECTED: exactly ONE row, michaeltbanta@gmail.com.
