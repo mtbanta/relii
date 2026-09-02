@@ -128,7 +128,20 @@ are still added. That partial success is the point.
 below are written as promise chains rather than `const x = await ...`, because
 Safari's console reads `await` on the right of a declaration as a variable name
 and stops with "Unexpected identifier". Paste each into the console while signed
-in as an ordinary instructor on relii.vercel.app.
+in as an ordinary instructor.
+
+==> **TWO THINGS ABOUT SAFARI'S CONSOLE BEFORE YOU RUN THESE, both of which look
+like a hung request and are not.**
+
+**Set the console filter to "All" first.** If "Evaluations" and "Errors" are
+selected, the `console.log` line these snippets print is a **Log** and is hidden,
+so a refusal shows only as a red "Failed to load resource" line with no detail,
+and a SUCCESS shows nothing at all. Safari says so in a yellow banner reading
+"There are unread messages that have been filtered", with a Clear Filters button.
+
+**`Promise {status: "pending"}` is not a spinner.** Safari prints the value of
+the expression at the instant you press return, and never updates it in place.
+The answer arrives as a separate line underneath. <==
 
 **Request A, the single-invite route:**
 
@@ -147,6 +160,10 @@ administrator to add them." **A 200 here is a failure of the whole ruling**, and
 it is the reason this route exists: before Gate 6 this write went straight from
 the browser through the security rules, which check the class and say nothing at
 all about the role.
+
+**A 404 here means the deploy is not live yet**, because this route did not exist
+before Gate 6. So the 403 doubles as proof that the browser is talking to the new
+build, whichever domain you are on.
 
 **Request B, the bulk route:**
 
