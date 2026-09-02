@@ -45,13 +45,34 @@ Supabase treats them as separate users.
 5. **Invite Users**: invite `michaeltbanta+throwaway-student@gmail.com` as a
    student.
 6. Sign out. Register that address the same way and enter a name.
-7. **As the throwaway student, do one real graded submission with the webcam
-   on**, and let it score. Budget about ten minutes: this is the step that
-   cannot be faked, and without a recording in Storage the most important half
-   of the delete goes untested.
-8. Optional but worth it: back as the throwaway instructor, **Reset** that
-   submission once. That writes a `submission_resets` row, which exercises the
-   audit-log half of the export and of the "left in place on purpose" rule.
+7. **As the throwaway student, do one real voice and video PRACTICE with the
+   webcam on.** Budget about ten minutes: this is the step that cannot be faked.
+   Without a recording in Storage, the most important half of the delete, the
+   one irreplaceable thing in the system, goes untested.
+
+==> A GRADED SUBMISSION IS NOT AVAILABLE ON A GENERATED PERSONA TODAY, and the
+    owner found this while building the throwaway set on 2026-09-02. An
+    AI-generated persona cannot have a rubric attached to its assignment, so it
+    cannot be graded; attaching one is Phase 2 work. THIS DOES NOT BLOCK GATE 4b,
+    and the reason is that a PRACTICE IS A SESSION TOO: it carries the class (from
+    its scenario) and a voice and video practice writes a real recording to
+    Storage. The delete removes sessions by CLASS, not by kind, and takes its
+    storage paths from sessions.video_path, so every code path in the cascade is
+    exercised by practices alone. What is lost is export CONTENT, not delete
+    behaviour: two sections of the CSV read "(none)" instead of holding rows, a
+    scored submission's score and submitted_at, and submission_resets. <==
+
+8. Optional, five minutes, and it is the only way to put a real audit row in the
+   export while a graded submission is unavailable: create a SECOND throwaway
+   assignment on the same persona, do one practice on it, then delete that
+   assignment through Manage Assignments. Deleting an IN-USE assignment writes an
+   `assignment_deletes` row carrying the class, which is what the export's audit
+   section is for.
+
+**WHEN PHASE 2 LANDS, ONE THING HERE HAS TO BE RE-TESTED:** export a class that
+contains a SCORED submission and confirm the score, the transcript and any reset
+log rows are in the CSV. That is an export-content check, not a delete check, and
+it is the only part of this piece the 2026-09-02 testing could not reach.
 
 ## Half one: the SQL you run
 
@@ -64,7 +85,8 @@ time.
 2. `gate-4b-tests.sql` query 1: the flag is on exactly one account.
 3. Query 2: `class_exports` exists, with no policies and no foreign keys.
 4. Query 3, **before the delete**: the inventory of the throwaway class. Keep
-   the numbers. "sessions with a recording" must be at least 1.
+   the numbers. "sessions with a recording" must be at least 1. Practices count:
+   the line asks about sessions, not about graded submissions.
 5. Do the click-through below, including the delete.
 6. Query 4, **after the delete**: every count 0, except the two audit logs,
    which are left in place deliberately.
@@ -125,6 +147,15 @@ not with curl.**
 > because it would then be refused for not finding the class rather than by the
 > check it exists to exercise.
 
+> **Every snippet below avoids `await`, and that is not a style choice.** Safari's
+> console accepts `await` as a statement on its own but NOT on the right-hand
+> side of a `const`: it reads `await` as a variable name and stops on the next
+> word with "Unexpected identifier 'fetch'". Chrome allows it, Safari does not,
+> and the owner uses Safari. Promise chains (`.then(...)`) work in both, so that
+> is what these use. If you re-paste the preamble in the same console session you
+> will get "Cannot declare a redeclared variable"; reload the page first, or just
+> do not re-paste it.
+
 Get two class ids first. Open each class from `/admin` and copy the id out of the
 address bar (`/admin/class/THE-ID-IS-HERE`): the throwaway class, and your own
 (the historical one).
@@ -144,27 +175,29 @@ const del = (body) =>
 and it is the one the whole mechanism exists to refuse.
 
 ```js
-await del({ confirm: "REMOVE" });
+del({ confirm: "REMOVE" }).then(console.log);
 ```
-Expect `400` and "This class has not been exported."
+Expect `status: 400` and "This class has not been exported."
 
 **2. A made-up token.**
 
 ```js
-await del({ confirm: "REMOVE", token: "00000000-0000-0000-0000-000000000000" });
+del({ confirm: "REMOVE", token: "00000000-0000-0000-0000-000000000000" }).then(console.log);
 ```
-Expect `400` and "That export is not valid."
+Expect `status: 400` and "That export is not valid."
 
 **3. A valid token issued for a DIFFERENT class.** The substitution attack, and
 the reason the delete compares the token's class with the class in the address.
 
 ```js
-// Export YOUR OWN class. Exporting changes nothing; it only reads and issues a token.
-const other = await fetch(`/api/admin/class/${MY_CLASS_ID}/export`, { method: "POST" }).then((r) => r.json());
-// Aim that token at the THROWAWAY class.
-await del({ confirm: "REMOVE", token: other.token });
+// Export YOUR OWN class, then aim its token at the THROWAWAY class.
+// Exporting changes nothing; it only reads and issues a token.
+fetch(`/api/admin/class/${MY_CLASS_ID}/export`, { method: "POST" })
+  .then((r) => r.json())
+  .then((other) => del({ confirm: "REMOVE", token: other.token }))
+  .then(console.log);
 ```
-Expect `400` and "That export was taken for a different class."
+Expect `status: 400` and "That export was taken for a different class."
 
 > **Run it in exactly that direction and never the other way round.** A token
 > from your own class aimed at the throwaway class is safe: if the check ever
@@ -182,9 +215,9 @@ system. Sign in as the second instructor account, paste the same `del` helper,
 and run:
 
 ```js
-await del({ confirm: "REMOVE" });
+del({ confirm: "REMOVE" }).then(console.log);
 ```
-Expect `403`, "Only a super admin can delete a class."
+Expect `status: 403`, "Only a super admin can delete a class."
 
 **Now do the real deletion**, back as yourself. Do it here in the console rather
 than with the panel button, so the token is in a variable for test 5. This is
@@ -192,17 +225,24 @@ the same thing the panel does, which is the point: the panel has no power the
 console does not.
 
 ```js
-const ex = await fetch(`/api/admin/class/${CLASS_ID}/export`, { method: "POST" }).then((r) => r.json());
-// Save the file before going on: this is click-through item 5, and the CSV is
-// the only record of this class that will exist afterwards.
-const blob = new Blob([ex.csv], { type: "text/csv" });
-const a = document.createElement("a");
-a.href = URL.createObjectURL(blob);
-a.download = ex.filename;
-a.click();
+// Line 1. Export, and keep the result where the next lines can reach it.
+fetch(`/api/admin/class/${CLASS_ID}/export`, { method: "POST" })
+  .then((r) => r.json())
+  .then((j) => { window.ex = j; console.log("token", j.token, j.counts); });
+```
 
-// Then, once you have opened it and checked it:
-await del({ confirm: "REMOVE", token: ex.token });
+```js
+// Line 2. Save the file. This is click-through item 5, and the CSV is the only
+// record of this class that will exist afterwards.
+var a = document.createElement("a");
+a.href = URL.createObjectURL(new Blob([window.ex.csv], { type: "text/csv" }));
+a.download = window.ex.filename;
+a.click();
+```
+
+```js
+// Line 3. Only once you have opened the file and checked it.
+del({ confirm: "REMOVE", token: window.ex.token }).then(console.log);
 ```
 Expect `ok: true` and a `removed` list. If you would rather use the panel button
 for the deletion itself, do that instead and read the token afterwards out of
@@ -211,9 +251,9 @@ query 6 of `supabase/gate-4b-tests.sql`; test 5 needs it either way.
 **5. A token that has already been used.** The replay, immediately after.
 
 ```js
-await del({ confirm: "REMOVE", token: ex.token });
+del({ confirm: "REMOVE", token: window.ex.token }).then(console.log);
 ```
-Expect `400` and "That export has already been used." (The class is gone by now,
+Expect `status: 400` and "That export has already been used." (The class is gone by now,
 and the token check comes first, so this is refused for the right reason.)
 
 ## What is new in the database
