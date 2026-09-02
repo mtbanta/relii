@@ -131,11 +131,23 @@ order by 1;
 --     that passes by construction. The export record survives the delete on
 --     purpose and still holds the class id, so this asks about the real one. <==
 --
--- EXPECTED: every count 0, EXCEPT the two audit logs, which are left in place
--- deliberately (Gate 1 gave them no link to classes so that no later delete
--- could remove or blank a log entry; the export carries them too). Their rows
--- now point at a class id that no longer exists, which is the log working as
--- designed.
+-- EXPECTED: every count 0, with ONE READING NOTE ON THE TWO AUDIT LOGS.
+--
+-- "EXPECTED TO REMAIN" means "if any existed, they must STILL BE HERE". It does
+-- NOT mean the number has to be above zero. A throwaway class usually produces
+-- neither: submission_resets needs a graded submission to reset, and
+-- assignment_deletes is only written when an IN-USE assignment is deleted. Zero
+-- on both lines is the normal result and is not a failure.
+--
+-- TO TELL "there were none" FROM "something removed them", which is the only
+-- thing worth knowing here, read the counts column on the used row in query 6.
+-- It records what the class held AT EXPORT TIME. If it says zero there too,
+-- there was nothing to keep.
+--
+-- They are left in place deliberately: Gate 1 gave them no link to classes so
+-- that no later delete could remove or blank a log entry, and the export carries
+-- them as well. Their rows now point at a class id that no longer exists, which
+-- is the log working as designed.
 with target as (
   select class_id from public.class_exports
   where used_at is not null
