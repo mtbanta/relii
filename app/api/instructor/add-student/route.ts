@@ -210,6 +210,26 @@ export async function POST(request: Request) {
   //
   //     Both steps are safe to repeat, so the message on a partial failure says
   //     to run it again. <==
+  //
+  // ==> AND THE MEMBERSHIP MOVE ITSELF IS DELETE-THEN-INSERT RATHER THAN
+  //     INSERT-THEN-DELETE, WHICH LOOKS LIKE THE RISKIER ORDER AND IS THE
+  //     RECOVERABLE ONE. These are two API calls, so one of them can fail.
+  //
+  //     DELETE THEN INSERT: a failure between them leaves the student in NO
+  //     class. That is visible (their home page says so in as many words, from
+  //     the Gate 4b one-liner) and RE-RUNNING THIS ROUTE FIXES IT COMPLETELY:
+  //     they read as an orphan, and an orphan is adopted.
+  //
+  //     INSERT THEN DELETE: a failure between them leaves the student in TWO
+  //     classes. class_members is keyed (class_id, user_id) so both rows are
+  //     legal, nothing on screen says anything, it breaks the invariant Gate
+  //     4b's cascade delete depends on when it decides whether to delete an
+  //     account, AND RE-RUNNING THIS ROUTE DOES NOT FIX IT: the "already in this
+  //     class" branch above returns before reaching either write.
+  //
+  //     So the safer-looking order produces the silent, unfixable state and the
+  //     riskier-looking one produces the loud, self-healing state. Query 4 of
+  //     supabase/gate-6-checks.sql is the standing check for the second. <==
   if (leaving.length > 0) {
     const { error: removeError } = await admin
       .from("class_members")

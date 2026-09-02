@@ -168,24 +168,37 @@ and request B must add the row. Un-invite both from the Roster afterwards.
 
 ### 6. Add an already-registered student to a class
 
-You need a registered student who has done no role-plays. The easiest way is to
-invite a throwaway address, register it, and go no further.
+**Set up the throwaway in the HISTORICAL class, not the new one.** The order
+matters and it is easy to get stuck here: step 6.4 needs that student to do a
+role-play, and a brand new class has no assignments and no enabled scenarios at
+all, so there would be nothing for them to do. The historical class has Alex and
+Jordan.
 
-1. Working in your new class, Roster, **Add an existing student**, type their
-   address, add.
-2. Confirm the Roster now lists them here and no longer lists them on the other
-   class's Roster.
-3. Run **queries 4 and 5** of the checks file. Both must return no rows: query 4
-   proves they are in exactly one class, query 5 proves their invite row followed
-   them.
-4. **Now confirm the refusal.** Have that student do one practice, then try to
-   add them to the other class. It must refuse with a message naming how many
-   role-plays they have done. **That refusal is the ruling**: their sessions stay
-   in the old class, and the student results page reads both the scenario and the
-   rubric through the security rules, so moving them would leave their own
+1. **Switch the picker to your historical class** and invite a throwaway address
+   from Invite Users (a "+" alias of your own inbox works, as in Gate 4b).
+2. **Register it and stop there.** Do not start a practice yet.
+3. **Switch the picker to the new class**, Roster, **Add an existing student**,
+   type their address, add. It must say they moved.
+4. Confirm the Roster lists them here and no longer lists them on the historical
+   class's Roster, then run **queries 4 and 5** of the checks file. Both must
+   return no rows: query 4 proves they are in exactly one class, query 5 proves
+   their invite row followed them.
+5. **Move them back** to the historical class the same way, so they have
+   something to work on.
+6. **Now confirm the refusal.** Sign in as that student and complete one
+   practice on Alex, then, as the instructor working in the new class, try to add
+   them again. **It must refuse**, naming how many role-plays they have done.
+   That refusal is the ruling: their sessions stay in the historical class, and
+   the student results page reads both the scenario (line 61) and the RUBRIC
+   (line 107) through the security rules, so moving them would leave their own
    results page with a blank title and scores with no item labels beside them.
-5. Try to add a student who belongs to the **other instructor's** class. It must
+7. Try to add a student who belongs to the **other instructor's** class. It must
    refuse and point at the administrator, and must not name the other instructor.
+
+**If a move ever half-completes** (the route says the student is now in this
+class but their invite record did not follow, or that they may be in no class),
+**just run it again.** The route is written so that re-running finishes the job,
+and query 5 is what finds a half-done move afterwards.
 
 ### 7. The second instructor account still sees only its own classes
 
@@ -208,10 +221,14 @@ This is the guard Gate 6 deliberately relaxed, so it is worth exercising.
    the same name, then try to hand one to the other. It must refuse with a
    message naming the clash and telling you to rename one first, **not** a raw
    duplicate-key error.
-5. **The donor.** If you hand away the class the donor was working in, sign in as
-   them and confirm they fall back to their own oldest remaining class rather
-   than breaking. If they now own none, they are the known class-less dead-end
-   account and the Administration overview says so.
+5. **The donor, and this is the one fallback path a real person will actually
+   hit.** Hand away the class the donor was working in, then sign in as them.
+   Their remembered selection now names a class they no longer own, so **every
+   page must fall back to their own oldest remaining class**, with the picker
+   showing that class and a `Gate 6 refused a stored class selection` line in the
+   Vercel function log. It is the same code path as the tampered cookie in step
+   3, reached honestly. If they now own no class at all, they are the known
+   class-less dead-end account and the Administration overview says so.
 
 ## After the click-through
 
