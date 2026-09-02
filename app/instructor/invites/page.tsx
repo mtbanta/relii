@@ -2,8 +2,14 @@
 // page. Single invite (one email plus a role) and bulk invite (a CSV file).
 //
 // Both forms were moved here from the old single instructor page, unchanged.
-// Neither needs anything read on the server: each form does its own work and
-// reports its own result, so this page has no database reads at all.
+// Each form does its own work and reports its own result, so this page has no
+// database reads of its own beyond the shared instructor gate.
+//
+// GATE 6: an ordinary instructor may no longer invite another INSTRUCTOR. Since
+// Gate 4b, adding an instructor is a super admin operation, and Invite Users was
+// a second path to the same privileged action that bypassed the administration
+// section entirely. Both forms below hide the option, and BOTH SERVER ROUTES
+// refuse it, which is the part that actually holds.
 //
 // One behavior note from the move: on the old page the pending-invite list sat
 // directly below these forms, so a successful invite appeared there right away.
@@ -19,9 +25,16 @@ export default async function InstructorInvites() {
   // The layout already gated this page; this confirms it again for the page
   // itself, since a page can be requested directly.
   //
-  // GATE 3a: the result is now KEPT rather than discarded, because the single
-  // invite form needs the instructor's class id to put on the invite row.
-  const { classId } = await requireInstructor();
+  // GATE 6: the class id is no longer handed to the form at all. The single
+  // invite now goes through /api/instructor/invite, which reads the working
+  // class from the signed-in session on the server, so the browser never says
+  // which class an invite belongs to. What IS handed down is whether the caller
+  // is a super admin, which decides whether the Instructor role is offered.
+  //
+  // ==> IT DECIDES WHAT IS OFFERED, NOT WHAT IS ALLOWED. The rule is held by the
+  //     server in both invite routes. This flag only stops an ordinary
+  //     instructor being shown an option that would be refused. <==
+  const { profile } = await requireInstructor();
 
   return (
     <main className="mx-auto w-full max-w-page px-6 pb-10 pt-5">
@@ -38,8 +51,8 @@ export default async function InstructorInvites() {
         under &quot;Invited, pending&quot; until that person signs up.
       </p>
 
-      <AddEmailForm classId={classId} />
-      <BulkInviteForm />
+      <AddEmailForm isSuperAdmin={profile.is_super_admin} />
+      <BulkInviteForm isSuperAdmin={profile.is_super_admin} />
     </main>
   );
 }

@@ -4,11 +4,16 @@
 // should stay first: it destroys nothing, every student keeps their account,
 // their submissions and their recordings, and it is one column changing.
 //
-// WHY THE LIST OF PEOPLE IS SO SHORT, and the page says so rather than leaving
-// it a mystery: an instructor can only take on a class if their own class is
-// empty. Relii gives each instructor a single class and reads it as their oldest
-// one, so somebody holding two would silently see the wrong one. Their empty
-// class is deleted as part of the handover, leaving them with exactly one again.
+// ==> GATE 6 OPENED THE LIST UP. It used to hold only instructors whose own
+//     class was EMPTY, because getInstructorClassId() read an instructor's
+//     oldest class and stopped, so a second class would silently hide the first.
+//     Multi-class replaced that with a working-class picker, so any other
+//     instructor can now take a class on and keeps everything they already had.
+//
+//     THE ONE REMAINING REASON SOMEBODY IS NOT OFFERED is a name clash:
+//     `classes` carries unique (instructor_id, name), so an instructor who
+//     already has a class with this one's name has to rename one first. The page
+//     says which, rather than leaving it a mystery. <==
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Select, Label, HelpText } from "@/components/ui/field";
@@ -82,11 +87,9 @@ export function ReassignClassForm({
 
       {eligible.length === 0 ? (
         <p className="mt-3 text-meta text-content-secondary">
-          No instructor can take this on right now. A class can only go to an
-          instructor whose own class is empty, because Relii gives each
-          instructor a single class and would otherwise show them the wrong one.
-          Add an instructor, let them register, and they can take it the same
-          day.
+          No instructor can take this on right now. Add an instructor, let them
+          register, and they can take it the same day. If somebody is listed
+          below as ineligible, the reason is beside their name.
         </p>
       ) : (
         <form onSubmit={handleReassign} className="mt-3">

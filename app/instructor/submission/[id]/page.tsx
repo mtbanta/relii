@@ -24,6 +24,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireInstructor } from "@/lib/instructor-auth";
+import { otherOwnedClass } from "@/lib/class-scope";
+import { OtherClassNotice } from "@/components/other-class-notice";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
 import { displayName, hasName } from "@/lib/name";
 // PD-5 moved this formatting into lib so the student's view of the same session
@@ -54,7 +56,9 @@ export default async function InstructorSubmissionPage({
   // here with the shared requireInstructor(). It does the same two redirects in
   // the same order and ALSO returns the class this instructor owns, which is what
   // the check below compares against.
-  const { classId } = await requireInstructor();
+  // GATE 6 also keeps the class LIST, so a submission in one of this
+  // instructor's OTHER classes can be named rather than 404ed.
+  const { classId, classes } = await requireInstructor();
 
   const admin = createAdminClient();
 
@@ -80,6 +84,23 @@ export default async function InstructorSubmissionPage({
   // It is the SAME notFound() the line above uses, deliberately, so that a
   // caller cannot tell an id that does not exist from one that is not theirs.
   if (!classId || session.class_id !== classId) {
+    // ==> GATE 6, DESIGN QUESTION A. Before refusing, ask whether this is one of
+    //     the caller's OWN other classes. `classes` is the list of classes this
+    //     account owns, so a submission belonging to another instructor matches
+    //     nothing here and falls straight through to the SAME notFound() with
+    //     the SAME wording, which is what keeps Gate 3b's no-leak property
+    //     exactly as it was for a stranger. <==
+    const elsewhere = otherOwnedClass(session.class_id, classes, classId);
+    if (elsewhere) {
+      return (
+        <OtherClassNotice
+          className={elsewhere.name}
+          classId={elsewhere.id}
+          thing="submission"
+        />
+      );
+    }
+
     console.warn(
       `Gate 3b refused a cross-class submission view: submission ${id} is in class ${
         session.class_id ?? "none"

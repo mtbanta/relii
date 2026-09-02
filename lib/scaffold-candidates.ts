@@ -139,6 +139,58 @@ export async function loadCandidateById(
   return data as unknown as CandidateRow;
 }
 
+// ==> GATE 6, DESIGN QUESTION A. "WHICH OF MY OWN CLASSES IS THIS ROW IN?"
+//
+//     The loaders above answer null or empty for a row in another class, and
+//     every caller renders that as notFound(). That is right for a STRANGER and
+//     wrong for the OWNER: an instructor who opens a bookmarked persona from
+//     their own other section should be told where it is, not that it does not
+//     exist.
+//
+//     THESE TWO CANNOT LEAK ANYTHING, AND THE REASON IS THE .in() CLAUSE RATHER
+//     THAN CARE AT THE CALL SITE. They are handed the ids of the classes the
+//     signed-in account OWNS (from listInstructorClasses, which filters by
+//     classes.instructor_id), and they can only ever return one of those. A row
+//     in a stranger's class matches nothing, they return null, and the caller
+//     falls through to the SAME notFound() with the SAME wording as before this
+//     piece.
+//
+//     They run ONLY on the miss path, so the normal case costs nothing. <==
+export async function findCandidateOwnedClass(
+  scenarioId: string,
+  ownedClassIds: string[],
+): Promise<string | null> {
+  if (ownedClassIds.length === 0) return null;
+  const admin = createAdminClient();
+
+  const { data } = await admin
+    .from("scenarios")
+    .select("class_id")
+    .eq("id", scenarioId)
+    .in("class_id", ownedClassIds)
+    .maybeSingle();
+
+  return (data?.class_id as string | undefined) ?? null;
+}
+
+export async function findGenerationGroupOwnedClass(
+  groupId: string,
+  ownedClassIds: string[],
+): Promise<string | null> {
+  if (ownedClassIds.length === 0) return null;
+  const admin = createAdminClient();
+
+  const { data } = await admin
+    .from("scenarios")
+    .select("class_id")
+    .eq("generation_group_id", groupId)
+    .in("class_id", ownedClassIds)
+    .limit(1)
+    .maybeSingle();
+
+  return (data?.class_id as string | undefined) ?? null;
+}
+
 export type GenerationRowSummary = {
   id: string;
   personaName: string;

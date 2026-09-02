@@ -11,7 +11,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireInstructor } from "@/lib/instructor-auth";
-import { loadCandidateById } from "@/lib/scaffold-candidates";
+import { otherOwnedClass } from "@/lib/class-scope";
+import { OtherClassNotice } from "@/components/other-class-notice";
+import {
+  loadCandidateById,
+  findCandidateOwnedClass,
+} from "@/lib/scaffold-candidates";
 import { ChainForm } from "@/components/chain-form";
 import { cardClasses } from "@/components/ui/card";
 
@@ -28,12 +33,32 @@ export default async function ChainPage({
   // here with the shared requireInstructor(). Same two redirects in the same
   // order, plus the class this instructor owns, which the scoped read needs.
   // Fails closed: no class, no gatekeeper.
-  const { classId } = await requireInstructor();
+  const { classId, classes } = await requireInstructor();
   if (!classId) notFound();
 
   // A gatekeeper in another class reads as null and falls into the notFound
   // below, exactly like an id that does not exist.
   const gatekeeper = await loadCandidateById(scenarioId, classId);
+
+  // GATE 6, DESIGN QUESTION A. On a miss, and only on a miss, ask whether it is
+  // in one of THIS instructor's other classes and say so instead of 404ing.
+  // Anything belonging to another instructor still 404s, unchanged.
+  if (!gatekeeper) {
+    const owner = await findCandidateOwnedClass(
+      scenarioId,
+      classes.map((c) => c.id),
+    );
+    const elsewhere = otherOwnedClass(owner, classes, classId);
+    if (elsewhere) {
+      return (
+        <OtherClassNotice
+          className={elsewhere.name}
+          classId={elsewhere.id}
+          thing="persona"
+        />
+      );
+    }
+  }
   const candidate = gatekeeper?.generation_fields?.candidate;
   const inputs = gatekeeper?.generation_fields?.inputs;
 

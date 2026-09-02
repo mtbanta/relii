@@ -12,22 +12,33 @@
 // delete still exists because someone eventually needs it, but it should not be
 // the only answer, or it becomes the common one.
 //
-// ==> THE HAZARD THAT SHAPES THIS WHOLE ROUTE, and it is not obvious from the
-//     one-column update. getInstructorClassId() in lib/instructor-auth.ts takes
-//     the instructor's OLDEST class and stops at one, and every instructor page
-//     and every write path goes through it. So handing a class to someone who
-//     ALREADY OWNS ONE gives them two, and the app silently picks the older.
-//     The historical class is the oldest class in the system, so reassigning it
-//     to an instructor with content of their own would flip every scoped read on
-//     their surface to the reassigned class and make THEIR OWN CONTENT INVISIBLE
-//     TO THEM, with nothing on screen saying why. That is exactly the shape of
-//     silent failure this gate has spent five pieces removing.
+// ==> GATE 6 RELAXED THIS ROUTE'S CENTRAL GUARD, AND THE REASON THE GUARD
+//     EXISTED IS THE REASON IT COULD GO. IT IS NOT A SILENT RELAXATION: it was
+//     put to the owner in the Gate 6 plan and ruled on 2026-09-02.
 //
-//     So a class is only ever handed to an instructor whose own class is EMPTY,
-//     and that empty class is deleted in the same operation, leaving them with
-//     exactly one class again. In practice that means a freshly added instructor
-//     who has registered and done nothing yet, which is the realistic case for
-//     "somebody is taking over this course". <==
+//     WHAT THE GUARD WAS AND WHY. getInstructorClassId() used to take an
+//     instructor's OLDEST class and stop at one, and every instructor page and
+//     every write path went through it. So handing a class to somebody who
+//     ALREADY OWNED ONE gave them two and the app silently picked the older.
+//     Because the historical class is the oldest class in the system, handing it
+//     to an instructor with content of their own would have flipped every scoped
+//     read on their surface to the reassigned class and made THEIR OWN CONTENT
+//     INVISIBLE TO THEM, with nothing on screen saying why. So the route refused
+//     unless the receiving instructor's own class was EMPTY, and deleted that
+//     empty class as part of the handover to keep them at exactly one.
+//
+//     WHY THAT IS GONE. Gate 6 replaced getInstructorClassId() with
+//     resolveWorkingClassId(), which honours the instructor's own selection.
+//     Owning several classes is now ordinary, and the receiver's working class
+//     does not move when they are handed another one (their remembered selection
+//     still names a class they own), so their own content stays exactly where it
+//     was. The silent failure is prevented by construction rather than by a
+//     guard, and "the receiver ends up with exactly one class" stopped being a
+//     property worth preserving the moment a picker existed.
+//
+//     WHAT IS STILL CHECKED: the target must be an instructor, must not already
+//     own this class, and must not already have a class of the SAME NAME. That
+//     last one is new, and it is new BECAUSE of this relaxation, see below. <==
 import { NextResponse } from "next/server";
 import { requireSuperAdminRequest } from "@/lib/super-admin";
 
@@ -87,60 +98,42 @@ export async function POST(
     );
   }
 
-  // 3. Their own class, if they have one. It has to go, or they end up with two
-  //    and the app quietly uses the older.
+  // ==> 3. THE NAME COLLISION, AND IT IS REACHABLE ONLY BECAUSE OF THE
+  //     RELAXATION ABOVE. `classes` carries unique (instructor_id, name) from
+  //     Gate 1. Until Gate 6 a collision here was STRUCTURALLY IMPOSSIBLE,
+  //     because the receiving instructor's own class was deleted BEFORE the
+  //     update, so they held nothing to clash with. Remove that delete and it
+  //     becomes reachable: instructors now rename their classes, so two of them
+  //     each holding a "Sales 300" is an ordinary Tuesday.
+  //
+  //     WITHOUT THIS PRE-CHECK the update below fails with a raw 23505, and,
+  //     worse, its existing error text says the target "may now have no class of
+  //     their own; try the reassignment again", which would be both WRONG (they
+  //     still have every class they had) and alarming. That is precisely the
+  //     class of failure Gate 4a spent a piece making legible.
+  //
+  //     IT DOES NOT AUTO-RENAME. Picking a new name for somebody else's class on
+  //     their behalf is a decision, and the administrator is standing right
+  //     there. <==
   const { data: ownClasses, error: ownError } = await admin
     .from("classes")
     .select("id, name")
     .eq("instructor_id", toInstructorId);
   if (ownError) {
     return NextResponse.json(
-      { error: "Could not check that instructor's own class. Nothing was changed." },
+      { error: "Could not check that instructor's own classes. Nothing was changed." },
       { status: 500 },
     );
   }
 
-  for (const own of ownClasses ?? []) {
-    // THE ONE CHECK THE DATABASE CANNOT MAKE FOR US. class_members.class_id is
-    // "on delete cascade", so a class with students would be deleted quietly,
-    // taking their memberships with it. Every other child link (rubrics,
-    // scenarios, assignments, sessions, allowed_emails) is "on delete restrict",
-    // so the delete below FAILS LOUDLY if any of them has a row. That is the
-    // guard: not a read followed by a hopeful delete, but a delete the database
-    // itself refuses if the class is not empty.
-    const { count: memberCount, error: memberError } = await admin
-      .from("class_members")
-      .select("user_id", { count: "exact", head: true })
-      .eq("class_id", own.id);
-    if (memberError) {
-      return NextResponse.json(
-        { error: "Could not check that instructor's own class. Nothing was changed." },
-        { status: 500 },
-      );
-    }
-    if ((memberCount ?? 0) > 0) {
-      return NextResponse.json(
-        {
-          error: `${target.email} already has students in their own class, so they cannot take on another one. The app gives each instructor a single class.`,
-        },
-        { status: 409 },
-      );
-    }
-
-    // THE ORDER IS DELIBERATE: their empty class is deleted BEFORE the handover.
-    // If it fails (because it turned out not to be empty), nothing has happened
-    // yet and the class stays with its current owner. Done the other way round,
-    // a failure here would leave them owning two classes, which is the state
-    // this route exists to prevent.
-    const { error: dropError } = await admin.from("classes").delete().eq("id", own.id);
-    if (dropError) {
-      return NextResponse.json(
-        {
-          error: `${target.email} has content in their own class ("${own.name}"), so they cannot take on another one. The app gives each instructor a single class. Nothing was changed.`,
-        },
-        { status: 409 },
-      );
-    }
+  const clash = (ownClasses ?? []).find((own) => own.name === cls.name);
+  if (clash) {
+    return NextResponse.json(
+      {
+        error: `${target.email} already has a class called "${cls.name}", and one instructor cannot have two classes with the same name. Rename one of them first, then hand this one over. Nothing was changed.`,
+      },
+      { status: 409 },
+    );
   }
 
   // 4. The handover itself: one column.
@@ -152,14 +145,23 @@ export async function POST(
     console.error("Reassigning the class failed:", classId, updateError);
     return NextResponse.json(
       {
-        error: `Could not hand over the class: ${updateError.message}. ${target.email} may now have no class of their own; try the reassignment again.`,
+        // GATE 6: this used to warn that the receiver "may now have no class of
+        // their own", which was true only while their own class was deleted
+        // first. Nothing is deleted any more, so a failure here changes nothing
+        // at all and the message says so.
+        error: `Could not hand over the class: ${updateError.message}. Nothing was changed; the class still belongs to its current owner.`,
       },
       { status: 500 },
     );
   }
 
+  const alsoHolds = (ownClasses ?? []).length;
   return NextResponse.json({
     ok: true,
-    message: `"${cls.name}" now belongs to ${target.email}. Every student, assignment, persona, submission and recording in it is untouched.`,
+    message: `"${cls.name}" now belongs to ${target.email}. Every student, assignment, persona, submission and recording in it is untouched.${
+      alsoHolds > 0
+        ? ` They now hold ${alsoHolds + 1} classes and can switch between them with the class picker; their own work is unaffected.`
+        : ""
+    }`,
   });
 }

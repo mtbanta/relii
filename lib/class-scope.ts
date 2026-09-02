@@ -48,7 +48,8 @@
 //     that has already been checked needs no second filter. <==
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getInstructorClassId } from "@/lib/instructor-auth";
+import { resolveWorkingClassId } from "@/lib/instructor-auth";
+import type { InstructorClass } from "@/lib/instructor-auth";
 
 export type AdminClient = ReturnType<typeof createAdminClient>;
 
@@ -64,9 +65,30 @@ export type InstructorRequest = {
   // The caller's own email, which the two audit-writing routes need for their
   // snapshot. Read here so they do not need a second profiles query.
   email: string | null;
-  // The class this instructor owns. Never null on the ok branch: a caller with
-  // no class is refused below.
+  // The class this instructor is WORKING IN. Never null on the ok branch: a
+  // caller with no class is refused below.
+  //
+  // GATE 6 CHANGED WHERE THIS COMES FROM AND NOT WHAT IT MEANS. It used to be
+  // the instructor's only class; it is now the one they have selected, verified
+  // against classes.instructor_id on this request. Every route below it is
+  // unchanged, which is the point: the routes ask "which class may I act inside"
+  // and still get exactly one answer.
   classId: string;
+  // GATE 6. Whether the caller is a super admin.
+  //
+  // ==> READ THIS BEFORE USING IT. IT GATES WHICH ROLES YOU MAY INVITE. IT DOES
+  //     NOT GATE WHICH CLASS YOU MAY ACT INSIDE, and it must never be made to.
+  //     Every route below still acts inside classId and nothing else, super
+  //     admin or not. The cross-tenant surface is /admin, which has its own
+  //     guard in lib/super-admin.ts and shares no code with this file on
+  //     purpose; putting an "unless they are a super admin" branch into the
+  //     scoping here is precisely what that separation exists to prevent.
+  //
+  // It is used by exactly one thing: the bulk invite route, which must refuse
+  // role = instructor from an ordinary instructor now that adding an instructor
+  // is a super admin operation. It costs no extra query, because the profiles
+  // read below was already happening.
+  isSuperAdmin: boolean;
   admin: AdminClient;
 };
 
@@ -92,9 +114,13 @@ export async function requireInstructorRequest(
 
   // 2. Must be an instructor, verified on the server against the database. The
   //    browser is never trusted to say who is an instructor.
+  //
+  // GATE 6 ADDED is_super_admin TO THIS SELECT AND NOTHING ELSE. Same query, one
+  // more column, exactly as Gate 4a added class_id to the bulk route's existing
+  // read. See the note on the type above for what it may and may not gate.
   const { data: caller, error: callerError } = await admin
     .from("profiles")
-    .select("role, email")
+    .select("role, email, is_super_admin")
     .eq("id", user.id)
     .single();
   if (callerError || caller?.role !== "instructor") {
@@ -102,11 +128,17 @@ export async function requireInstructorRequest(
   }
 
   // 3. Must own a class, because the class is what everything below is scoped
-  //    to. FAILS CLOSED. After the Gate 3a repair every instructor owns exactly
-  //    one class, so this branch should be unreachable, which is precisely why
-  //    it refuses rather than waving the request through unscoped. It can only
-  //    happen if a class row was deleted by hand.
-  const classId = await getInstructorClassId(user.id);
+  //    to. FAILS CLOSED. An instructor with no class is a real state (they can
+  //    hand their last class away, or have it deleted), which is precisely why
+  //    this refuses rather than waving the request through unscoped.
+  //
+  //    GATE 6: this now resolves the WORKING class, which honours the
+  //    instructor's remembered selection only after checking it against
+  //    classes.instructor_id on this request. A hand-edited cookie gets the
+  //    caller their own oldest class and a line in the server log, never
+  //    somebody else's class. The whole check is written out at
+  //    resolveWorkingClassId() in lib/instructor-auth.ts.
+  const classId = await resolveWorkingClassId(user.id);
   if (!classId) {
     return {
       ok: false,
@@ -116,7 +148,42 @@ export async function requireInstructorRequest(
     };
   }
 
-  return { ok: true, userId: user.id, email: caller.email ?? null, classId, admin };
+  return {
+    ok: true,
+    userId: user.id,
+    email: caller.email ?? null,
+    classId,
+    isSuperAdmin: caller.is_super_admin === true,
+    admin,
+  };
+}
+
+// ==> GATE 6. "IS THIS ONE OF MY OTHER CLASSES?", WHICH IS THE ANSWER TO DESIGN
+//     QUESTION A AND THE THING THAT MUST NOT WEAKEN refuseOutsideClass BELOW.
+//
+//     refuseOutsideClass answers 404 and hides whether the row exists at all.
+//     That is right for a STRANGER and wrong for the OWNER: an instructor who
+//     opens a bookmark from their other class is told their own submission does
+//     not exist. So the four detail pages ask this first, and show "this is in
+//     your other class, switch to it" when the answer is yes.
+//
+//     IT CANNOT LEAK ANYTHING, AND THE REASON IS STRUCTURAL RATHER THAN
+//     CAREFUL. `classes` comes from listInstructorClasses(), which filters by
+//     classes.instructor_id, so every id in it is provably owned by the
+//     signed-in account. A row in a stranger's class matches nothing here, this
+//     returns null, and the caller falls through to the SAME 404 with the SAME
+//     wording it would have shown before this piece. The stranger's experience
+//     is byte for byte unchanged.
+//
+//     It is pure and does no reads: every caller already has both halves. <==
+export function otherOwnedClass(
+  targetClassId: string | null | undefined,
+  classes: InstructorClass[],
+  workingClassId: string | null,
+): InstructorClass | null {
+  if (!targetClassId) return null;
+  if (targetClassId === workingClassId) return null;
+  return classes.find((c) => c.id === targetClassId) ?? null;
 }
 
 // THE TARGET HALF, shape one: a ROW that carries a class of its own.

@@ -133,12 +133,25 @@ export default async function AdminClassDetail({
     .eq("class_id", classId)
     .not("video_path", "is", null);
 
-  // WHO COULD TAKE THIS CLASS ON. Only an instructor whose own class is EMPTY,
-  // because getInstructorClassId() takes an instructor's oldest class and stops
-  // at one: giving somebody a second class would silently hide their first.
-  // The route enforces this again for itself (and the database enforces the
-  // content half of it); this is here so the page can say WHY somebody is not
-  // on the list, rather than offering a choice that will be refused.
+  // ==> WHO COULD TAKE THIS CLASS ON. GATE 6 CHANGED THE ANSWER FROM "ONLY AN
+  //     INSTRUCTOR WHOSE OWN CLASS IS EMPTY" TO "ANY OTHER INSTRUCTOR", and the
+  //     reason the old rule existed is the reason it could go.
+  //
+  //     It was there because getInstructorClassId() took an instructor's oldest
+  //     class and stopped at one, so giving somebody a second class silently hid
+  //     their first. Gate 6 replaced that with resolveWorkingClassId(), which
+  //     honours the instructor's own selection, so holding several classes is
+  //     ordinary and the receiver's own work stays exactly where it is. The
+  //     whole content sweep that used to run here (six count queries per class
+  //     per instructor) went with it.
+  //
+  //     ONE THING IS STILL CHECKED, and it is new BECAUSE of the relaxation:
+  //     `classes` carries unique (instructor_id, name), so an instructor who
+  //     already has a class of the SAME NAME cannot take this one until one of
+  //     them is renamed. That was structurally impossible before, when the
+  //     receiver's own class was deleted first. The route checks it again for
+  //     itself; this is here so the page says WHY somebody is not offered,
+  //     rather than offering a choice that will be refused. <==
   const { data: otherInstructors } = await admin
     .from("profiles")
     .select("id, email, first_name, last_name")
@@ -153,25 +166,17 @@ export default async function AdminClassDetail({
       .select("id, name")
       .eq("instructor_id", person.id);
 
-    let blocking = 0;
-    for (const own of ownClasses ?? []) {
-      for (const table of ["rubrics", "scenarios", "assignments", "sessions", "allowed_emails", "class_members"] as const) {
-        const { count } = await admin
-          .from(table)
-          .select("class_id", { count: "exact", head: true })
-          .eq("class_id", own.id as string);
-        blocking += count ?? 0;
-      }
-    }
+    const nameClash = (ownClasses ?? []).some(
+      (own) => own.name === (cls.name as string),
+    );
 
     candidates.push({
       id: person.id,
       email: person.email,
-      eligible: blocking === 0,
-      reason:
-        blocking === 0
-          ? ""
-          : "already has content in their own class, and the app gives each instructor a single class",
+      eligible: !nameClash,
+      reason: nameClash
+        ? `already has a class called "${cls.name}", and one instructor cannot have two classes with the same name. Rename one of them first`
+        : "",
     });
   }
 

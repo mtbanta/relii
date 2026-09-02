@@ -20,7 +20,15 @@ type Result = {
   skipped: SkippedRow[];
 };
 
-export function BulkInviteForm() {
+export function BulkInviteForm({
+  // GATE 6: a super admin may still import instructor rows. For everybody else
+  // the server refuses them per row, so the instructions must not offer a role
+  // that will be skipped. A UI that removes an option while the instructions
+  // still describe it is exactly the drift this project has been bitten by.
+  isSuperAdmin = false,
+}: {
+  isSuperAdmin?: boolean;
+}) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
@@ -71,8 +79,12 @@ export function BulkInviteForm() {
       <h2 className="text-card-title font-medium">Bulk invite (CSV)</h2>
       <p className="text-body text-content-secondary">
         Upload a .csv with two columns, email and role. A header row (email,role)
-        is fine. Role must be student or instructor. Rows with a problem are
-        skipped and listed below with a reason; the rest are added.
+        is fine.{" "}
+        {isSuperAdmin
+          ? "Role must be student or instructor."
+          : "Role must be student. Adding an instructor is an administrator action, so instructor rows are skipped."}{" "}
+        Rows with a problem are skipped and listed below with a reason; the rest
+        are added. Everyone imported joins the class you are working in.
       </p>
 
       <FileInput ref={fileRef} accept=".csv,text/csv" />

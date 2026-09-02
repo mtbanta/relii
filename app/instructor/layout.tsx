@@ -15,6 +15,7 @@
 // bounce against this gate forever.
 import { AppHeader } from "@/components/app-header";
 import { InstructorNav } from "@/components/instructor-nav";
+import { ClassPicker } from "@/components/class-picker";
 import { NameGate } from "@/components/name-gate";
 import { requireInstructor } from "@/lib/instructor-auth";
 import { displayName, hasName } from "@/lib/name";
@@ -24,7 +25,7 @@ export default async function InstructorLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, profile } = await requireInstructor();
+  const { user, profile, classId, classes } = await requireInstructor();
 
   // No name yet: the gate replaces the entire instructor surface, header and
   // nav included, so there is nothing else on screen to click.
@@ -45,6 +46,13 @@ export default async function InstructorLayout({
             flag comes from the profile this layout already read; it draws a link
             and grants nothing. */}
         <InstructorNav isSuperAdmin={profile.is_super_admin} />
+
+        {/* GATE 6: the working class, on every instructor page because every
+            instructor page is scoped to it. Seeing it here is what stops an
+            instructor wondering why their other section's students are missing.
+            requireInstructor() already read the list in order to validate the
+            remembered selection against it, so this costs no query. */}
+        <ClassPicker classes={classes} currentClassId={classId} />
       </div>
 
       {children}

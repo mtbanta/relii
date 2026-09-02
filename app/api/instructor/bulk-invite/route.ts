@@ -14,6 +14,7 @@
 // browser only sends the raw file text and shows the result.
 import { NextResponse } from "next/server";
 import { requireInstructorRequest } from "@/lib/class-scope";
+import { listInstructorClasses } from "@/lib/instructor-auth";
 import {
   parseCsv,
   classifyRows,
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
   if (!gate.ok) {
     return NextResponse.json({ error: gate.error }, { status: gate.status });
   }
-  const { admin, classId, userId } = gate;
+  const { admin, classId, userId, isSuperAdmin } = gate;
 
   // GATE 3a's class lookup used to be written out again here. GATE 3b folded it
   // into the shared guard above, which refuses a caller with no class before this
@@ -123,13 +124,33 @@ export async function POST(request: Request) {
     (profiles ?? []).map((p) => p.email.toLowerCase()),
   );
 
+  // GATE 6: every class this instructor owns, so a collision on one of their OWN
+  // other invite lists reads as that rather than as "another instructor". One
+  // small read per import, on a path that already does two much larger ones.
+  const ownedClassNames = new Map(
+    (await listInstructorClasses(userId)).map((c) => [c.id, c.name]),
+  );
+
   // 5. Classify every row. Only the valid rows are inserted; the rest are
   //    reported with a reason.
+  // GATE 6 ADDED THE LAST ARGUMENT. An ordinary instructor may no longer invite
+  // another INSTRUCTOR, and the flag comes from the profiles read the shared
+  // guard above already does, never from anything the browser sent.
+  //
+  // ==> WHY THE CHECK IS INSIDE classifyRows RATHER THAN A REFUSAL HERE. This
+  //     route's contract is partial success: the whole file is never rejected.
+  //     A roster of thirty students carrying one instructor row must add the
+  //     thirty and explain the one, which is what every other row rule does.
+  //     Refusing the upload here would make this the only rule in the import
+  //     that works differently. It is still a server-side rule: classifyRows is
+  //     pure, but it runs here. <==
   const { valid, skipped } = classifyRows(
     rows,
     inviteClassByEmail,
     registeredUsers,
     classId,
+    isSuperAdmin,
+    ownedClassNames,
   );
 
   // 6. Insert the valid rows. Try one batch first; on a duplicate-key race
@@ -218,6 +239,7 @@ export async function POST(request: Request) {
         lateClassByEmail.get(c.email),
         classId,
         registeredUsers.has(c.email),
+        ownedClassNames,
       );
     }
   }

@@ -23,8 +23,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireInstructor } from "@/lib/instructor-auth";
+import { otherOwnedClass } from "@/lib/class-scope";
+import { OtherClassNotice } from "@/components/other-class-notice";
 import {
   loadGenerationGroup,
+  findGenerationGroupOwnedClass,
   chainRoleLabel,
   meetingTypeLabel,
 } from "@/lib/scaffold-candidates";
@@ -160,13 +163,33 @@ export default async function CompareCandidatesPage({
   // in the same order (login redirect, then student redirect) and ALSO returns
   // the class this instructor owns, which is what the scoped read below needs.
   // Fails closed: no class, no comparison.
-  const { classId } = await requireInstructor();
+  const { classId, classes } = await requireInstructor();
   if (!classId) notFound();
 
   const rows = await loadGenerationGroup(groupId, classId);
   // Empty now means one of two things, and they are deliberately indistinguishable
   // from outside: the group does not exist, or it belongs to another class.
-  if (rows.length === 0) notFound();
+  //
+  // GATE 6, DESIGN QUESTION A: with one exception, which is the caller's OWN
+  // other class. That case is named rather than hidden. Another instructor's
+  // group still matches nothing and still 404s.
+  if (rows.length === 0) {
+    const owner = await findGenerationGroupOwnedClass(
+      groupId,
+      classes.map((c) => c.id),
+    );
+    const elsewhere = otherOwnedClass(owner, classes, classId);
+    if (elsewhere) {
+      return (
+        <OtherClassNotice
+          className={elsewhere.name}
+          classId={elsewhere.id}
+          thing="comparison"
+        />
+      );
+    }
+    notFound();
+  }
 
   // The winner, if this generation has already been decided. Any switched-on row
   // means a pick has been made.

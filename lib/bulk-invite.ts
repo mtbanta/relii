@@ -98,10 +98,25 @@ export function parseCsv(text: string): ParsedRow[] {
 // `undefined` means there is no invite row at all, which should be impossible
 // for a registered user (registering requires being invited first) but is
 // handled rather than assumed.
+//
+// ==> GATE 6 ADDED ownedClassNames, AND WITHOUT IT THREE OF THESE FOUR MESSAGES
+//     WOULD HAVE BECOME FALSE THE DAY MULTI-CLASS SHIPPED. Gate 4a decided
+//     "yours" by comparing against the caller's ONE class, which was the same
+//     thing as "a class you own". With several classes it is not: an address
+//     sitting on your OWN Section 2 list would have been reported as "Invited by
+//     another instructor (ask your administrator)", which sends the reader to an
+//     administrator over their own invite.
+//
+//     So ownership is now the whole set of classes this instructor owns, and the
+//     message NAMES which one, because "already on your invite list" is the same
+//     dead end one level down when the Roster shows one class at a time. Naming
+//     it leaks nothing: it is a class they own. It still never names the other
+//     INSTRUCTOR or their class. <==
 export function alreadyInvitedReason(
   inviteClassId: string | null | undefined,
   callerClassId: string,
   isRegistered: boolean,
+  ownedClassNames: Map<string, string>,
 ): string {
   if (inviteClassId === undefined) {
     // No invite row at all, so the only way to be here is being registered.
@@ -118,15 +133,22 @@ export function alreadyInvitedReason(
       : "Already invited (ask your administrator)";
   }
 
-  const yours = inviteClassId === callerClassId;
-
-  if (isRegistered) {
-    return yours
-      ? "Already a registered user in your class"
-      : "Already registered with another instructor (ask your administrator)";
+  if (inviteClassId === callerClassId) {
+    return isRegistered
+      ? "Already a registered user in this class"
+      : "Already on this class's invite list";
   }
-  return yours
-    ? "Already on your invite list"
+
+  // One of the caller's OTHER classes. Named, so they know where to look.
+  const otherOwn = ownedClassNames.get(inviteClassId);
+  if (otherOwn) {
+    return isRegistered
+      ? `Already a registered user in your class "${otherOwn}"`
+      : `Already on the invite list for your class "${otherOwn}"`;
+  }
+
+  return isRegistered
+    ? "Already registered with another instructor (ask your administrator)"
     : "Invited by another instructor (ask your administrator)";
 }
 
@@ -151,11 +173,34 @@ export function alreadyInvitedReason(
 //     rule written out at the top of lib/class-scope.ts. What Gate 4a added is
 //     the CLASS on each global fact, which is what makes the reason exact
 //     instead of merely polite. <==
+// GATE 6 ADDED callerIsSuperAdmin, AND THE PLACE THE CHECK LIVES IS THE
+// DECISION RATHER THAN THE CHECK ITSELF.
+//
+// An ordinary instructor may no longer invite another INSTRUCTOR: since Gate 4b
+// that is a super admin operation, and a CSV row was a second path to it that
+// bypassed the administration section entirely.
+//
+// ==> IT IS A PER-ROW SKIP REASON RATHER THAN A WHOLE-FILE REFUSAL IN THE ROUTE,
+//     AND THAT IS WHY IT IS HERE. This function's contract is that the whole
+//     file is never rejected: bad rows are collected with a reason and the good
+//     ones are imported. A roster of thirty students carrying one instructor row
+//     should add the thirty and explain the one, which is how every other rule
+//     in this file behaves. Refusing the upload at the route would make this the
+//     only rule in the import that works differently.
+//
+//     IT IS STILL A SERVER-SIDE RULE. This is a pure function, but it runs
+//     inside app/api/instructor/bulk-invite/route.ts, and the flag comes from a
+//     profiles read the shared guard already does. What the browser sends has no
+//     bearing on it. <==
 export function classifyRows(
   rows: ParsedRow[],
   inviteClassByEmail: Map<string, string | null>,
   registeredUsers: Set<string>,
   callerClassId: string,
+  callerIsSuperAdmin: boolean,
+  // GATE 6: every class this instructor owns, id to name, so a collision on one
+  // of their OWN other lists reads correctly. See alreadyInvitedReason above.
+  ownedClassNames: Map<string, string>,
 ): ClassifyResult {
   const valid: ValidRow[] = [];
   const skipped: SkippedRow[] = [];
@@ -174,9 +219,21 @@ export function classifyRows(
       continue;
     }
     if (role !== "student" && role !== "instructor") {
+      // GATE 6: the wording follows what this caller may actually do, so the
+      // reason can never offer a role the next check would refuse.
       skipped.push({
         value: email,
-        reason: "Invalid role (must be student or instructor)",
+        reason: callerIsSuperAdmin
+          ? "Invalid role (must be student or instructor)"
+          : "Invalid role (must be student)",
+      });
+      continue;
+    }
+    // GATE 6, THE RULING. Adding an instructor is an administrator action.
+    if (role === "instructor" && !callerIsSuperAdmin) {
+      skipped.push({
+        value: email,
+        reason: "Only an administrator can invite an instructor",
       });
       continue;
     }
@@ -200,6 +257,7 @@ export function classifyRows(
           inviteClassByEmail.get(email),
           callerClassId,
           isRegistered,
+          ownedClassNames,
         ),
       });
       continue;

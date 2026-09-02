@@ -16,8 +16,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireInstructor } from "@/lib/instructor-auth";
+import { otherOwnedClass } from "@/lib/class-scope";
+import { OtherClassNotice } from "@/components/other-class-notice";
 import {
   loadCandidateById,
+  findCandidateOwnedClass,
   loadGenerationGroup,
   resolveChainForReassembly,
   chainRoleLabel,
@@ -71,10 +74,30 @@ export default async function EditCandidatePage({
   // GATE 3b: the class id is now kept, so this page can only open a candidate
   // that belongs to the signed-in instructor's class. Fails closed: no class,
   // no candidate.
-  const { classId } = await requireInstructor();
+  const { classId, classes } = await requireInstructor();
   if (!classId) notFound();
 
   const row = await loadCandidateById(candidateId, classId);
+
+  // GATE 6, DESIGN QUESTION A. On a miss, and only on a miss, ask whether it is
+  // in one of THIS instructor's other classes. A candidate belonging to another
+  // instructor matches nothing and still 404s, exactly as in Gate 3b.
+  if (!row) {
+    const owner = await findCandidateOwnedClass(
+      candidateId,
+      classes.map((c) => c.id),
+    );
+    const elsewhere = otherOwnedClass(owner, classes, classId);
+    if (elsewhere) {
+      return (
+        <OtherClassNotice
+          className={elsewhere.name}
+          classId={elsewhere.id}
+          thing="persona"
+        />
+      );
+    }
+  }
   const candidate = row?.generation_fields?.candidate;
   const inputs = row?.generation_fields?.inputs;
 

@@ -23,7 +23,7 @@
 // passes.
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getInstructorClassId } from "@/lib/instructor-auth";
+import { resolveWorkingClassId } from "@/lib/instructor-auth";
 import { refuseOutsideClass } from "@/lib/class-scope";
 import type { RubricItem, SessionScore, TranscriptTurn } from "@/lib/types";
 
@@ -78,11 +78,23 @@ export async function loadInstructorSubmission(id: string): Promise<LoadResult> 
     };
   }
 
-  // 2b. GATE 3b. Which class does the caller own? Everything below is scoped to
-  //     it. FAILS CLOSED: an instructor with no class downloads nothing rather
-  //     than downloading everything. After the Gate 3a repair this is
-  //     unreachable, which is exactly why it refuses instead of waving through.
-  const callerClassId = await getInstructorClassId(user.id);
+  // 2b. GATE 3b. Which class is the caller working in? Everything below is
+  //     scoped to it. FAILS CLOSED: an instructor with no class downloads
+  //     nothing rather than downloading everything.
+  //
+  //     GATE 6: an instructor may now own several classes, so this resolves the
+  //     WORKING one, and the remembered selection is checked against
+  //     classes.instructor_id on every call before it is honoured. The three
+  //     download routes needed no edit for that, exactly as they needed none in
+  //     Gate 3b: they reach the class through this one helper.
+  //
+  //     A DOWNLOAD FOR A SUBMISSION IN THE CALLER'S OTHER CLASS IS STILL A 404
+  //     HERE, and that is deliberate rather than an oversight. The friendly
+  //     "this is in your other class" answer belongs on the four detail PAGES a
+  //     person can navigate to. These are file downloads reached from a page
+  //     that is already scoped, so a cross-class request is a bug or a crafted
+  //     one, and neither deserves a helpful answer.
+  const callerClassId = await resolveWorkingClassId(user.id);
   if (!callerClassId) {
     return {
       ok: false,

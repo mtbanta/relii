@@ -22,7 +22,8 @@ import {
 import { ResetHistory } from "@/components/reset-history";
 import type { ResetHistoryRow } from "@/components/reset-history";
 import { requireInstructor } from "@/lib/instructor-auth";
-import { loadClassStudents } from "@/lib/class-scope";
+import { loadClassStudents, otherOwnedClass } from "@/lib/class-scope";
+import { OtherClassNotice } from "@/components/other-class-notice";
 import { isSubmissionLocked } from "@/lib/submission";
 import { displayName } from "@/lib/name";
 import { recordingLengthText } from "@/lib/recording-length";
@@ -98,7 +99,8 @@ export default async function InstructorSubmissions({
   //
   // GATE 3b: the class id is now KEPT rather than discarded, because the student
   // list below is scoped to it.
-  const { classId } = await requireInstructor();
+  // GATE 6 also keeps the class LIST, for the ?assignment= answer below.
+  const { classId, classes } = await requireInstructor();
 
   const supabase = await createClient();
 
@@ -134,32 +136,78 @@ export default async function InstructorSubmissions({
   // GATE 3a CHANGED WHAT THIS RETURNS, and the old comment here (which said any
   // logged-in user may read assignments, so the ordinary client is fine) is no
   // longer true. supabase/gate-3a-policies.sql rewrote the "read assignments"
-  // rule from "anyone signed in" to "anyone who owns or belongs to the class",
-  // so this read is now scoped to THIS instructor's class by the database, not
-  // by anything on this line. That is the intended behaviour and it is invisible
-  // while there is one instructor with one class. Reading through the ordinary
-  // client is still correct: this is one of the two instructor reads that
-  // already went through the security rules rather than around them.
-  const { data: allAssignments } = await supabase
-    .from("assignments")
-    // The SHORT embed form is correct here, and it is safe for a reason rather
-    // than by luck: there is exactly ONE foreign key between assignments and
-    // scenarios, the composite assignments_scenario_same_class_fkey, which
-    // carries the plain reference AND the same-class rule. Gate 4a briefly had
-    // two keys between these tables, which made this join ambiguous; Supabase
-    // returned an error instead of rows, this line reads only `data`, and the
-    // page rendered EMPTY with nothing on screen and nothing in the logs.
-    // ==> IF A SECOND FOREIGN KEY IS EVER ADDED BETWEEN THESE TWO TABLES, THIS
-    //     LINE BREAKS EXACTLY THAT WAY AGAIN. See PROJECT_STATE Open Issues. <==
-    .select("id, title, required_mode, scenarios ( title, persona_name )")
-    .order("created_at", { ascending: false })
-    .returns<SelectorAssignment[]>();
+  // rule from "anyone signed in" to "anyone who owns or belongs to the class".
+  //
+  // ==> GATE 6 ADDED THE EXPLICIT CLASS FILTER, BECAUSE THE POLICY STOPPED
+  //     MEANING "THE WORKING CLASS". public.can_read_class() answers "any class
+  //     you own", so with two classes this selector listed assignments from both
+  //     while `students` and `enrolledCount` above come from the working class
+  //     ONLY. Choosing an assignment from the other class rendered a table of
+  //     real submissions with "Unknown student" against every row. Reading
+  //     through the ordinary client is still right; the policy is the backstop
+  //     and this line is what makes the page agree with the picker. <==
+  const { data: allAssignments } = classId
+    ? await supabase
+        .from("assignments")
+        // The SHORT embed form is correct here, and it is safe for a reason
+        // rather than by luck: there is exactly ONE foreign key between
+        // assignments and scenarios, the composite
+        // assignments_scenario_same_class_fkey, which carries the plain
+        // reference AND the same-class rule. Gate 4a briefly had two keys
+        // between these tables, which made this join ambiguous; Supabase
+        // returned an error instead of rows, this line reads only `data`, and
+        // the page rendered EMPTY with nothing on screen and nothing in the
+        // logs.
+        // ==> IF A SECOND FOREIGN KEY IS EVER ADDED BETWEEN THESE TWO TABLES,
+        //     THIS LINE BREAKS EXACTLY THAT WAY AGAIN. See PROJECT_STATE Open
+        //     Issues. <==
+        .select("id, title, required_mode, scenarios ( title, persona_name )")
+        .eq("class_id", classId)
+        .order("created_at", { ascending: false })
+        .returns<SelectorAssignment[]>()
+    : { data: [] as SelectorAssignment[] };
 
   // Resolve which assignment the dashboard is showing: the one named in the URL
   // if it is valid, otherwise the newest.
   const selectorList = allAssignments ?? [];
   const selected =
     selectorList.find((a) => a.id === assignmentParam) ?? selectorList[0] ?? null;
+
+  // ==> GATE 6, THE BOOKMARK CASE, AND IT IS THE SURFACE MOST LIKELY TO HAVE
+  //     BEEN BOOKMARKED. Scoping the selector above means ?assignment=<id in my
+  //     OTHER class> no longer matches, and the line above then falls back to
+  //     this class's newest assignment. That fallback is right for a stranger's
+  //     id and silently WRONG for the owner's own: you follow a saved link and
+  //     get a different assignment's submissions with nothing saying so.
+  //
+  //     So on a miss, and ONLY on a miss, ask which class that assignment is in.
+  //     One read on a failure path. It can leak nothing: the answer is compared
+  //     against `classes`, which is the list of classes this account owns, so an
+  //     assignment belonging to another instructor matches nothing, this stays
+  //     null, and the page falls back exactly as it did before. <==
+  let assignmentElsewhere: { id: string; name: string } | null = null;
+  if (assignmentParam && !selectorList.some((a) => a.id === assignmentParam)) {
+    const { data: strayAssignment } = await admin
+      .from("assignments")
+      .select("class_id")
+      .eq("id", assignmentParam)
+      .maybeSingle();
+    assignmentElsewhere = otherOwnedClass(
+      strayAssignment?.class_id,
+      classes,
+      classId,
+    );
+  }
+
+  if (assignmentElsewhere) {
+    return (
+      <OtherClassNotice
+        className={assignmentElsewhere.name}
+        classId={assignmentElsewhere.id}
+        thing="assignment"
+      />
+    );
+  }
 
   // Read the selected assignment's SUBMISSIONS only (kind = submission), so
   // practice sessions never appear anywhere in this dashboard. Read with the

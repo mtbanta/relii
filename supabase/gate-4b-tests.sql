@@ -279,21 +279,51 @@ order by p.email;
 --      not remove it. Gate 4b touched it only to say what happens on a delete:
 --      the invite rows go with the class.
 --
---   5. NEW FOR GATE 5, AND IT COMES OUT OF THE REASSIGNMENT WORK: an instructor
---      is assumed everywhere to own EXACTLY ONE class, because
---      getInstructorClassId() takes their oldest and stops. Nothing in the
---      database enforces that. The reassign route is careful never to create a
---      second one (it refuses unless the receiving instructor's own class is
---      empty, and deletes that empty class as part of the handover), but a row
---      changed by hand could still produce it, and the failure is SILENT: the
---      instructor's own content simply stops appearing. A cheap standing check:
+--   5. ==> SUPERSEDED BY GATE 6 (2026-09-02). THIS ITEM SAID THE OPPOSITE OF
+--      WHAT IS NOW TRUE, AND IT IS KEPT RATHER THAN DELETED SO THAT NOBODY
+--      READING THE OLD WORDING TREATS A WORKING FEATURE AS CORRUPTION.
+--
+--      WHAT IT USED TO SAY: an instructor is assumed everywhere to own EXACTLY
+--      ONE class, because getInstructorClassId() took their oldest and stopped;
+--      nothing in the database enforced it; the reassign route refused unless
+--      the receiving instructor's own class was empty and deleted that empty
+--      class as part of the handover; and this standing check
 --        select instructor_id, count(*) from public.classes
 --        group by instructor_id having count(*) > 1;
---      It must return no rows.
+--      MUST RETURN NO ROWS.
 --
---   6. ONE INSTRUCTOR CAN STILL INVITE ANOTHER INSTRUCTOR from Invite Users: the
---      role dropdown on the ordinary instructor form offers it. Now that adding
---      an instructor is a super admin operation, that is arguably a hole. It was
---      deliberately NOT closed in Gate 4b, because changing it is a change to the
---      instructor surface and this piece was scoped out of that. It is a ruling
---      for Gate 5, not a defect to fix quietly.
+--      WHAT IS TRUE AFTER GATE 6: an instructor may own SEVERAL classes, and
+--      that query RETURNS ROWS AS NORMAL OPERATION. getInstructorClassId() was
+--      replaced by resolveWorkingClassId() in lib/instructor-auth.ts, which
+--      honours the instructor's own remembered selection after checking it
+--      against classes.instructor_id ON EVERY REQUEST. The reassign guard was
+--      relaxed in the same piece, deliberately and on the owner's ruling, since
+--      its only reason was the oldest-class behaviour that is now gone.
+--
+--      WHAT GATE 5 SHOULD TEST INSTEAD is the cookie-tamper matrix, plus the
+--      other nine handoff items at the bottom of supabase/gate-6-checks.sql. <==
+--
+--   6. ==> CLOSED BY GATE 6 (2026-09-02). THIS WAS A RULING AND IT WAS MADE:
+--      AN ORDINARY INSTRUCTOR MAY NO LONGER INVITE ANOTHER INSTRUCTOR.
+--
+--      This item said the role dropdown on Invite Users still offered it, which
+--      was a second path to a privileged action that bypassed the super admin
+--      section. Gate 6 closed it in BOTH invite paths, and the second half is
+--      the part that matters: the dropdown change alone would have been a UI
+--      deterrent and NOT a rule, because components/add-email-form.tsx inserted
+--      into allowed_emails STRAIGHT FROM THE BROWSER and the Gate 3b insert
+--      policy is `with check (public.instructs_class(class_id))`, which says
+--      nothing whatsoever about `role`. So the single invite moved behind
+--      app/api/instructor/invite/route.ts, and the bulk path refuses the row in
+--      classifyRows() (a per-row skip reason, so a roster of thirty students
+--      carrying one instructor row still adds the thirty).
+--
+--      GATE 5 VERIFIES IT RATHER THAN DECIDING IT, and the test is to POST to
+--      both routes directly rather than only using the forms, since the point of
+--      the ruling is that the SERVER holds the rule. Snippets are in
+--      docs/Relii-Gate6-Handoff.md, written as promise chains for Safari.
+--
+--      ONE THING NOT TO "FINISH" LATER: the "instructors add to invite list"
+--      policy on allowed_emails now has no live browser user in the app. IT IS
+--      STILL A LIVE BACKSTOP against a browser key calling the web API directly,
+--      which is exactly what Gate 3b wrote it for. Do not remove or relax it. <==

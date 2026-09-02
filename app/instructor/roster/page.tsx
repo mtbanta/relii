@@ -1,6 +1,13 @@
-// ROSTER: everyone in YOUR CLASS with access to Relii, grouped by status. Your
+// ROSTER: everyone in THE CLASS YOU ARE WORKING IN, grouped by status. Your
 // registered students (each with the delete action), yourself (display only),
-// and the invites for your class that have not been used yet.
+// and the invites for that class that have not been used yet.
+//
+// GATE 6 ADDED TWO SECTIONS AND CHANGED NOTHING ABOUT THE READS. "Your classes"
+// (create and rename) is here because the Roster is already the page about one
+// class and the people in it, and it is a set-up screen rather than a daily one.
+// "Add an existing student" is the other half of Invite Users: an invite is for
+// somebody who has not signed up, that form is for somebody who has. The reads
+// below already took a class id, so they follow the picker with no edit.
 //
 // GATE 3b SCOPED THIS PAGE, and it is the one whose appearance changes most. It
 // used to list every profile and every invite in the whole system. It now lists
@@ -22,12 +29,14 @@ import { UninviteButton } from "@/components/uninvite-button";
 import { requireInstructor } from "@/lib/instructor-auth";
 import { loadClassStudents } from "@/lib/class-scope";
 import { displayName, hasName } from "@/lib/name";
+import { ClassManager } from "@/components/class-manager";
+import { AddExistingStudentForm } from "@/components/add-existing-student-form";
 
 export default async function InstructorRoster() {
   // The layout already gated this page; this confirms it again for the page
   // itself, and is also how it knows which account is "you" and which class is
   // yours.
-  const { user, profile, classId } = await requireInstructor();
+  const { user, profile, classId, classes } = await requireInstructor();
 
   // The admin (service-role) client reads data ordinary browser rules do not
   // allow (other people's emails). It runs only here on the server; the key
@@ -102,7 +111,10 @@ export default async function InstructorRoster() {
         {/* GATE 3b: the wording follows the scoping. This page shows one
             class, so promising "everyone with access to Relii" would now be
             false. */}
-        <p>Everyone in your class with access to Relii, grouped by status.</p>
+        <p>
+          Everyone in the class you are working in, grouped by status. Switch
+          class at the top of the page to see another one.
+        </p>
         <p>
           Registered users have signed up; pending invites are on the invite list
           but have not registered yet.
@@ -119,6 +131,19 @@ export default async function InstructorRoster() {
           recorded videos, and frees their email from the invite list.
         </p>
       </div>
+
+      {/* GATE 6: YOUR CLASSES. The id is what the "Manage classes" link beside
+          the class picker jumps to, which is how this stays discoverable from
+          the chrome without putting a form into the chrome. */}
+      <section id="classes" className="mb-6 scroll-mt-4">
+        <h3 className="mb-2 text-body font-medium text-content-primary">
+          Your classes{" "}
+          <span className="font-normal text-content-tertiary">
+            ({classes.length})
+          </span>
+        </h3>
+        <ClassManager classes={classes} currentClassId={classId} />
+      </section>
 
       {/* Registered students: the existing Delete action, unchanged. */}
       <h3 className="mb-2 text-body font-medium text-content-primary">
@@ -140,6 +165,14 @@ export default async function InstructorRoster() {
       ) : (
         <p className="text-body text-content-secondary">No students have registered yet.</p>
       )}
+
+      {/* GATE 6: the other half of Invite Users. An invite is for somebody who
+          has not signed up; this is for somebody who has. Before this piece the
+          second case had no path at all, which is what made a student in no
+          class unrecoverable. */}
+      <div className="mt-3">
+        <AddExistingStudentForm />
+      </div>
 
       {/* Registered instructors: display only. There is no delete for an
           instructor (the delete-student route refuses a non-student), and you
