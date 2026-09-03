@@ -255,6 +255,59 @@ must be identical** after B has run its own "Discard all".
 
 ACTUAL:
 
+## 0.7 Every id from B's side, captured now rather than mid-run
+
+Steps 2.14 and 4b need these. **Capture them here** so the run never has to stop
+and come back to the SQL editor. Everything B needs exists before step 0.
+
+```sql
+select 'B1 student'      as what, p.email as detail, p.id::text as id
+  from public.class_members m
+  join public.profiles p on p.id = m.user_id
+ where m.class_id = 'PASTE-B1-HERE'
+union all
+select 'B1 pending invite', e.email, '(no account yet)'
+  from public.allowed_emails e
+ where e.class_id = 'PASTE-B1-HERE'
+   and not exists (select 1 from public.profiles p
+                    where lower(p.email) = lower(e.email))
+union all
+select 'B1 assignment', a.title, a.id::text
+  from public.assignments a
+ where a.class_id = 'PASTE-B1-HERE'
+union all
+select case when s.enabled then 'B1 winner (switched on)'
+            else 'B1 candidate (switched off)' end
+         || coalesce(' [' || s.chain_role || ']', ''),
+       s.persona_name,
+       s.id::text
+  from public.scenarios s
+ where s.class_id = 'PASTE-B1-HERE'
+   and s.generation_group_id is not null
+union all
+select 'B1 generation group', s.persona_name, s.generation_group_id::text
+  from public.scenarios s
+ where s.class_id = 'PASTE-B1-HERE'
+   and s.generation_group_id is not null
+union all
+select 'B1 practice session', s.kind, s.id::text
+  from public.sessions s
+ where s.class_id = 'PASTE-B1-HERE'
+   and s.kind = 'practice'
+ order by 1, 2;
+```
+
+**Write down:** B1_STUDENT, B1_INVITE, B1_ASSIGNMENT, B1_WINNER (a switched-on
+one), B1_CANDIDATE (a switched-off one from the undecided group), B1_GROUP (the
+undecided group's id), B1_GATEKEEPER (a row whose label carries `[gatekeeper]`,
+if the generation made one), and B_PRACTICE.
+
+**EXPECT:** two student rows, one pending invite, one assignment, several
+personas, at least one generation group, and at least two practices. Anything
+missing means a piece of B's setup was not built.
+
+ACTUAL:
+
 ---
 
 # Step 1. Signed in as instructor A. Reads only.
@@ -528,13 +581,9 @@ G5.ids = {
   A_CANARY_INVITE: "", // 0.5  the pending canary address in A's class
   A_CLASS_1: "",       // 0.1  A's historical class id
   B1: "", B2: "", B3: "",   // 0.1, oldest first
-  B_PRACTICE: "",      // filled in at item 4b
-  B1_GROUP: "",        // B1's undecided generation group id: open it from
-                       //   Recent generations while working in B1 and copy the
-                       //   id out of /instructor/scaffold/compare/<THIS-BIT>
-  B1_ASSIGNMENT: ""    // B1's assignment id: Supabase,
-                       //   select id, title from public.assignments
-                       //    where class_id = '<B1>';
+  B_PRACTICE: "",      // 0.7  "B1 practice session"
+  B1_GROUP: "",        // 0.7  "B1 generation group", the UNDECIDED one
+  B1_ASSIGNMENT: ""    // 0.7  "B1 assignment"
 };
 console.log("preamble loaded", G5.ids);
 ```
@@ -602,9 +651,7 @@ This is the filter that shaped B's whole setup (`kind = "submission"` on both th
 page and the download helper), so it is worth one direct attempt rather than
 being taken on trust. **Aimed at B's own practice, so it is completely safe.**
 
-Get a practice id: in Supabase, `select id, kind from public.sessions where
-class_id = '<B1>';` and take a row whose `kind` is `practice`. Put it in
-`G5.ids.B_PRACTICE`, then:
+`G5.ids.B_PRACTICE` was captured at step 0.7. Then:
 
 ```
 /instructor/submission/<B_PRACTICE>
@@ -890,16 +937,14 @@ answer did not leak into the write paths.
 reach A. Everything it could damage is B's own test data, and every line says
 what to rebuild if it wrongly succeeds.
 
-Fill in three more ids first, all of them B1's:
+Fill in five more ids first, **all of them captured at step 0.7**:
 
 ```js
-G5.ids.B1_STUDENT = "";    // a B1 student's profile id (Supabase: select p.id, p.email
-                           //   from public.class_members m join public.profiles p
-                           //   on p.id = m.user_id where m.class_id = '<B1>';)
-G5.ids.B1_INVITE = "";     // B1's pending invite address
-G5.ids.B1_CANDIDATE = "";  // a candidate id in B1's undecided generation
-G5.ids.B1_WINNER = "";     // B1's chosen, switched-on persona id
-G5.ids.B1_GATEKEEPER = ""; // B1's gatekeeper, if the generation made one
+G5.ids.B1_STUDENT    = "";  // 0.7, "B1 student"
+G5.ids.B1_INVITE     = "";  // 0.7, "B1 pending invite"
+G5.ids.B1_CANDIDATE  = "";  // 0.7, a "B1 candidate (switched off)" row
+G5.ids.B1_WINNER     = "";  // 0.7, a "B1 winner (switched on)" row
+G5.ids.B1_GATEKEEPER = "";  // 0.7, a row labelled [gatekeeper], if there is one
 ```
 
 **Every line below must answer 404.** Not a friendly panel, not a 200.
@@ -1256,8 +1301,14 @@ ACTUAL:
 
 Everything above used an honest cookie. This is the two things combined, and it
 is the single strictest request in the run. **It is safe because the target is
-the canary invite**, which item 14 has already shown is still there and which
-takes ten seconds to recreate.
+the canary invite**, which takes ten seconds to recreate.
+
+**Its precondition is item 22, not item 14.** Item 14 answered 404, which shows
+only that B could not see the row, not that the row is there; a 404 here against
+a row that had already been deleted would prove nothing at all. **Item 22's 409,
+"was invited by another instructor", can only be produced by a row that exists
+and belongs to A.** If item 22 did not return that exact message, stop and sort
+that out before running this.
 
 1. Set `relii_working_class` by hand to **A_CLASS_1** again (Storage, Cookies).
 2. Confirm a page still shows B1, as in 2.15.
@@ -1340,20 +1391,31 @@ ACTUAL:
 
 ### H8. The add-student route refuses a student from another instructor's class
 
-Roster, **Add an existing student**, type the email of one of **A's registered
-students** (from query 0.5), and add. Or:
+**Target the student named on A_SUB in query 0.3**, not just any of A's students.
+That student has at least one session, and the reason matters: the route refuses
+a student from another instructor's class first, and refuses a student who has
+already done work second. Aiming at a student **with** work means a failure of the
+first guard is caught by the second, and nothing moves either way.
+
+Roster, **Add an existing student**, type that address, and add. Or:
 
 ```js
-G5.post("H8 add A's student", "/api/instructor/add-student", { email: "PASTE ONE OF A'S STUDENT ADDRESSES" });
+G5.post("H8 add A's student", "/api/instructor/add-student", { email: "PASTE THE STUDENT ON A_SUB" });
 ```
 
 **EXPECT:** status **409**, "... already belongs to another instructor's class, so
 they cannot be added here. Ask your administrator." It must point at the
 administrator and must **not** name A or A's class.
 
-**IF IT SUCCEEDED:** one of A's students has been moved into B's class, and their
-own results page loses its title and its item labels. Move them back at once and
-stop the run.
+**IF THE GUARD FAILED:** status **409** naming a **role-play count** instead
+("... has already done N role-plays in their current class"). Nothing moved,
+because the work guard caught it, but the cross-instructor guard did not fire.
+**Stop the run.**
+
+**If BOTH failed:** one of A's students is now in B's class, and their own results
+page loses its title and its item labels. Move them straight back, and note that
+the move back may itself be refused by the work guard, in which case CC needs to
+know before anything else is attempted.
 
 **The route's other three refusals** (no registered account, not a student, and
 already did work in their current class) were all run in the Gate 6 click-through
@@ -1443,9 +1505,12 @@ ACTUAL:
 SB.q("S2 persona_system_prompt", "scenarios?select=persona_system_prompt");
 ```
 
-**EXPECT:** a refusal, status **403** or **401**, with a message reading
-**permission denied for column persona_system_prompt of relation scenarios**.
-Coming back with rows, or with the column present and empty, is a failure.
+**EXPECT:** a refusal, status **403** or **401**, with a **permission denied**
+message. **The wording may name the column or it may name the table, and either
+is a pass:** Postgres is not consistent about which it reports and PostgREST
+passes it through. **The fact that decides it is that no rows come back.**
+Coming back with rows, or with the column present and empty, is the failure.
+Write down the exact wording you got.
 
 ACTUAL:
 
@@ -1455,7 +1520,8 @@ ACTUAL:
 SB.q("S3 scenario_context", "scenarios?select=scenario_context");
 ```
 
-**EXPECT:** the same refusal, naming `scenario_context`.
+**EXPECT:** the same refusal, on the same terms: permission denied, no rows,
+wording naming either the column or the table. Write down what you got.
 
 ACTUAL:
 
@@ -1466,16 +1532,12 @@ SB.q("S4 select star", "scenarios?select=*");
 ```
 
 **EXPECT:** a refusal. The whole-table read was revoked and handed back one
-column at a time, so asking for all of them is refused as a table-level
-permission denial. **A 200 here that returns rows would mean the revoke is not in
-force.**
+column at a time, so asking for all of them is refused. **A 200 here that returns
+rows would mean the revoke is not in force.**
 
-**One thing to watch for and to write down:** if the refusal names a **third**
-column, one that is neither of the two secret ones, that is a real finding and
-not a test failure. It would mean a column was added to `scenarios` after Gate 2
-ran and the per-column grant loop was never re-run, so ordinary users cannot read
-it. Section 9 of `supabase/gate-2-policies.sql` is written to be re-run and
-repairs exactly that.
+The related question, whether a column added since Gate 2 was ever granted, is
+**not** answerable from this message, because a table-level denial names no
+column at all. Query 4.4 in step 4 answers it properly.
 
 ACTUAL:
 
@@ -1537,7 +1599,40 @@ reached outside the working class.
 
 ACTUAL:
 
-## 4.4 Item 23's standing check
+## 4.4 Was every column of scenarios granted back?
+
+The browser test in step 3 proves the two secret columns are closed. It cannot
+prove the opposite half: that nothing else was closed by accident. Section 9 of
+`supabase/gate-2-policies.sql` revokes the whole table and grants back every
+column except two, **and a column added to `scenarios` after that file last ran
+is granted to nobody**, so ordinary users cannot read it and any page that tries
+fails with "permission denied for column".
+
+```sql
+select c.column_name as ungranted_column
+  from information_schema.columns c
+ where c.table_schema = 'public'
+   and c.table_name   = 'scenarios'
+   and c.column_name not in ('persona_system_prompt', 'scenario_context')
+   and not exists (
+     select 1
+       from information_schema.column_privileges p
+      where p.table_schema   = 'public'
+        and p.table_name     = 'scenarios'
+        and p.column_name    = c.column_name
+        and p.grantee        = 'authenticated'
+        and p.privilege_type = 'SELECT'
+   );
+```
+
+**EXPECT: no rows.** A row here is a real finding rather than a test failure, and
+the repair is to re-run section 9 of `supabase/gate-2-policies.sql`, which is
+written as a loop precisely so a second run fixes exactly this drift. Report it,
+do not fix it in flight.
+
+ACTUAL:
+
+## 4.5 Item 23's standing check
 
 Query **6 of `gate-6-checks.sql`**.
 
