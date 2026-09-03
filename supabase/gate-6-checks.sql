@@ -52,6 +52,24 @@ having count(*) > 1
 -- This is query 5 of supabase/gate-3b-tests.sql with the owner's email added,
 -- and it is the one to keep a copy of BEFORE and AFTER the click-through.
 --
+-- ==> "scenarios" IS THE DATABASE'S WORD FOR WHAT THE APP CALLS A PERSONA, and
+--     the owner rightly flagged the mismatch while running these on 2026-09-03.
+--     The table has been called scenarios since Stage 2; the screen that manages
+--     them is the AI Persona Framework, and every label on it says persona. The
+--     counts are the same thing under two names, so a scenarios number that
+--     matches the personas you can see is a PASS rather than a coincidence.
+--     Renaming the table is not worth a migration, and renaming the UI would be
+--     wrong, since "persona" is the word Tom and the students use. <==
+--
+-- ==> RECORDINGS ARE COUNTED HERE, added on 2026-09-03 after the owner noticed
+--     they were missing from the first version of this file. It is not
+--     redundant with `sessions`: a recording is a FILE IN STORAGE, which no
+--     database foreign key protects and no cascade removes, which is why Gate
+--     4b's delete has to remove Storage by hand and BEFORE any row. Query 5 of
+--     supabase/gate-4b-tests.sql counts the same thing for the same reason. A
+--     class whose sessions moved but whose recordings did not would show up
+--     nowhere else. <==
+--
 -- EXPECTED: each class carries its OWN rows. Creating a second class adds a row
 -- of zeroes; working inside it moves NEW rows into that row and NEVER moves an
 -- existing row out of another one. That is the "no row moved between classes"
@@ -59,9 +77,11 @@ having count(*) > 1
 select c.name                                                        as class,
        p.email                                                       as instructor,
        (select count(*) from public.rubrics        where class_id = c.id) as rubrics,
-       (select count(*) from public.scenarios      where class_id = c.id) as scenarios,
+       (select count(*) from public.scenarios      where class_id = c.id) as scenarios_aka_personas,
        (select count(*) from public.assignments    where class_id = c.id) as assignments,
        (select count(*) from public.sessions       where class_id = c.id) as sessions,
+       (select count(*) from public.sessions       where class_id = c.id
+                                                     and video_path is not null) as recordings,
        (select count(*) from public.allowed_emails where class_id = c.id) as invites,
        (select count(*) from public.class_members  where class_id = c.id) as students
   from public.classes c
