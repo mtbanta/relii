@@ -1840,7 +1840,19 @@ prevent. Recreate the invite and **stop the run.**
 
 Put the cookie back with the picker afterwards.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 404, "That email is not on the invite list." The
+canary invite is still on A's list. Cookie restored through the picker.
+
+==> **THIS IS THE STRICTEST SINGLE REQUEST IN THE RUN AND IT COMBINES THE TWO
+THINGS THAT HAD ONLY BEEN TESTED SEPARATELY.** 2.15 tampered with the cookie and
+asked for READS. Items 11 to 19 asked for WRITES with an honest cookie. This is a
+WRITE, with a TAMPERED cookie, aimed at a row that provably exists in A's class.
+
+**Item 22 is what makes the 404 mean anything**, and item 14's 404 would not have:
+a 404 against a row that had already been deleted proves nothing at all. Item 22's
+409, "was invited by another instructor", can only be produced by a row that
+exists and belongs to somebody else, so the target was known to be live when this
+ran. <==
 
 ## Group 3 as B. The super admin surface aimed at as an ordinary instructor.
 
