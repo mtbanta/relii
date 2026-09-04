@@ -1883,7 +1883,8 @@ address bar:
 **EXPECT:** B lands back on **/instructor**. Not the admin overview, and not an
 error page.
 
-ACTUAL: PASS
+ACTUAL, 2026-09-04: **PASS.** No Administration link in B's nav, and the direct
+address bounced to /instructor. PASS
 
 Then try a class page directly:
 
@@ -1893,7 +1894,8 @@ Then try a class page directly:
 
 **EXPECT:** the same bounce back to /instructor.
 
-ACTUAL: PASS
+ACTUAL, 2026-09-04: **PASS.** Bounced, with A's historical class id in the
+address. PASS
 
 ### Item G3.6. B cannot reach the delete route at all
 
@@ -1908,7 +1910,14 @@ because the super admin check runs first, before the body is even read. A 400 of
 any kind here would mean the check did not fire. **Stop the run** if it is
 anything but 403.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 403, "Only a super admin can delete a class."
+
+**A 403 IS THE RIGHT ANSWER HERE, WHILE A 403 ANYWHERE IN GROUP 1 WOULD HAVE BEEN
+A FAILURE, AND THAT IS NOT A CONTRADICTION.** Group 1's 404s hide whether a row
+exists in another instructor's class, because those requests ask about somebody
+else's DATA. This one asks about the caller's own ROLE, which they already know,
+so refusing plainly leaks nothing. **The danger signal here was a 400**: reaching
+the token checks at all would have meant the super admin guard never ran.
 
 ### Item G3.7. The other admin routes refuse too
 
@@ -1921,7 +1930,15 @@ G5.post("G3.7 export",         "/api/admin/class/" + G5.ids.B3 + "/export", {});
 line is aimed at B's own empty class on purpose: B owns it, and must still be
 refused, because the admin surface is not "your classes", it is "every class".
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 403 on both.
+
+**The export line is the one worth having run.** B owns B3 outright and is still
+refused, because `requireSuperAdmin()` asks what you ARE and not what you own.
+Everything under /admin reads with the service-role key and nothing stands behind
+that single guard, which is why it was aimed at directly rather than trusted
+because the nav link is absent.
+
+**STEP 2 IS COMPLETE. Nothing in it failed.**
 
 ## The remaining Gate 6 handoff items, still as B
 
