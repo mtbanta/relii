@@ -1231,7 +1231,20 @@ fetch(SB.url + "/rest/v1/assignments?title=eq.G5-constraint-test-delete-me", {
 
 Then stop and tell CC.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** Refused by the database, so no junk row was created
+and no cleanup was needed. (First attempt returned 401 JWT expired, which was the
+stale token described above and not a result; re-run after re-establishing item
+21's positive control.)
+
+**WHAT THIS CLOSES.** Item 23 was carried through five gate pieces as a question
+rather than a test, and Gate 4a answered it with a constraint. Query 6 of the
+checks files shows only that no cross-class reference EXISTS. **This shows one
+cannot be MADE**, by an authenticated instructor writing straight at the database
+with a browser key, which is the path the constraint was written for: the insert
+policy happily allows B to write into B's own class, and
+`assignments_scenario_same_class_fkey` is the thing that refuses somebody else's
+scenario. Those are two different layers and only the second one was ever load
+bearing here.
 
 ## Group 2. Does B's own surface follow the class B chose?
 
