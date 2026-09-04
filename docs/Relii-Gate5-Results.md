@@ -744,7 +744,8 @@ G5.del("G3.1 no token", { confirm: "REMOVE" });
 **EXPECT:** status **400**, "This class has not been exported. Export it first:
 the delete cannot run without the token the export issues."
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 400, as expected. This is the request the whole
+export-first mechanism exists to refuse: the one that skips the button.
 
 ### Item G3.2. A made-up token
 
@@ -754,7 +755,7 @@ G5.del("G3.2 fake token", { confirm: "REMOVE", token: "00000000-0000-0000-0000-0
 
 **EXPECT:** status **400**, "That export is not valid. Export this class again."
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 400, as expected.
 
 ### Item G3.3. A valid token issued for a different class. The substitution attack.
 
@@ -772,6 +773,9 @@ fetch("/api/admin/class/" + G5.ids.B3 + "/export", { method: "POST" })
 
 **EXPECT:** a token, and counts that are all zero (B3 is empty).
 
+ACTUAL, 2026-09-04: **PASS.** A token was issued with zero counts. It is now a
+live but unused row in `class_exports`, and step 4.1 expects to see it.
+
 Then aim it at the nonsense class id:
 
 ```js
@@ -783,7 +787,17 @@ cannot authorise this deletion. Export this class." **That wording can only come
 from the substitution check**, which is what makes this a pass rather than a
 refusal for some other reason.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 400 with that exact wording, so the refusal came
+from the class comparison and not from some earlier check standing in for it.
+
+**What the three together prove, and what they do not.** They prove the delete
+route will not run without a token, will not accept a token it did not issue, and
+will not accept a token issued for a different class. **They were run in the safe
+direction the owner ruled on:** the token belongs to B3, the empty class, and the
+address is a uuid that is no class at all, so a total failure of every guard at
+once would have deleted nothing. They do not prove the cascade itself, which Gate
+4b proved against a throwaway, and they do not cover the spent token, which is
+recorded as skipped at G3.4.
 
 ### Item G3.4. A token that has already been used
 
