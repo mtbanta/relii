@@ -2266,7 +2266,49 @@ change in the entire run, and it is in B's class.
 **Query 6:** all three counts 0.
 
 ACTUAL (3b), original:
-ACTUAL (4b):
+ACTUAL (4b), 2026-09-04: **PASS, every query.**
+
+**Query 1:** one super admin, michaeltbanta@gmail.com, verdict ok. **Instructor B
+is not one**, which every refusal in group 3 depended on.
+
+**Query 2:** `class_exports` exists with 0 policies and 0 foreign keys, as Gate 4b
+built it.
+
+**Queries 3 and 4:** every count 0. Nothing survives of the class Gate 4b deleted,
+and the two audit logs that are meant to remain are correctly empty for it.
+
+**Query 5:** `files_with_no_account` 0 and `known_orphans_from_earlier_testing` 0.
+No recording in Storage belongs to an account that no longer exists.
+
+**The class-less student canary: no rows.** This is the independent confirmation
+that **item 13 destroyed nothing**: student3 still belongs to a class. A name here
+would have been a person nobody can help.
+
+**Query 6, the export tokens, and all three rows are accounted for:**
+
+| taken | class | used_at | what it is |
+|---|---|---|---|
+| 2026-09-04 | B3: The demo class | null | **step 1.7's leftover**, counts all zero |
+| 2026-09-02 | the Gate 4b throwaway | **set** | the completed cascade, still the only one |
+| 2026-09-02 | Relii Demo (Historical) | null | Gate 4b's own substitution test |
+
+==> **THE THIRD ROW IS THE ONE WORTH READING, AND IT VINDICATES THE OWNER'S B3
+RULING RATHER THAN MERELY BEING TIDY.** It is an unused, live-issued delete token
+for the historical class, and it has been sitting in the table since 2026-09-02.
+The Gate 4b handoff predicted it and called it expected, which it is.
+
+**It is harmless twice over, and both reasons matter.** The token TTL is one hour
+and it is two days past. And its snapshot records 40 sessions, 18 recordings and 3
+students against today's 41, 19 and 4, so the fingerprint check would refuse it
+even if the clock had not.
+
+**But the reason it is worth recording is what it demonstrates.** Both options
+originally proposed for crafted request G3.3 would have minted or reused a token
+for the historical class, and this row is a two-day-old example of exactly that
+object lying around. Taking the export from B3 instead cost nothing and put no
+live authorisation to destroy the historical class into existence. <==
+
+ACTUAL (4b), original:
 ACTUAL (6):
 
 ## 4.2 Query 2 against the copy kept at step 0.2
