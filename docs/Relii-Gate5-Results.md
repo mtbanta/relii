@@ -894,7 +894,9 @@ Working in **B1**:
 **EXPECT:** all five. If the dashboard shows "No assignments yet", B1's assignment
 was not built and items 9 and 2.13 cannot be run.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS, all five.** So every refusal recorded below this line
+is an authenticated instructor B being refused, rather than a request that never
+arrived as anybody. That is the whole reason this block exists.
 
 ## Group 1, items 1 to 7. Reads aimed at A, all as B.
 
@@ -914,7 +916,13 @@ Put this in the address bar:
 found."** **Not** the friendly "in another of your classes" panel: that panel is
 computed only from classes the caller owns, so a stranger must never see it.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** The plain 404 page.
+
+**Read this next to 1.3, because the pair is the actual result.** The same
+submission id gave A the panel naming their other class and gave B the plain 404,
+byte for byte the answer B would get for an id that does not exist. **That is the
+Gate 6 friendliness proved not to have widened**, and neither half means much
+alone.
 
 ### Items 2, 3 and 4. The three download routes
 
@@ -929,9 +937,10 @@ G5.get("item 4 csv",        "/api/instructor/submission/" + G5.ids.A_SUB + "/csv
 a signed recording link was minted for another instructor's student and is a
 failure of the most serious kind in this run.
 
-ACTUAL (item 2):
-ACTUAL (item 3):
-ACTUAL (item 4):
+ACTUAL (item 2), 2026-09-04: **PASS.** 404, "Submission not found." No redirect,
+so no signed recording link was minted for another instructor's student.
+ACTUAL (item 3), 2026-09-04: **PASS.** 404, same wording.
+ACTUAL (item 4), 2026-09-04: **PASS.** 404, same wording.
 
 ### Item 4b. ADDED: a practice cannot be reached through the submission surface
 
@@ -955,7 +964,10 @@ G5.get("4b csv",        "/api/instructor/submission/" + G5.ids.B_PRACTICE + "/cs
 B's own session in B's own working class. A practice is not a submission and can
 never be downloaded through these routes.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** The 404 page and 404 on all three routes, for B's
+own practice in B's own working class. **This is the filter that shaped the whole
+run** (it is why B can hold no submission and why item 12 has no own-class form),
+and it is now measured rather than taken on trust.
 
 ### Item 5. A's comparison page
 
@@ -965,7 +977,7 @@ ACTUAL:
 
 **EXPECT:** the plain 404 page. Not the friendly panel.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** The plain 404 page.
 
 ### Item 6. A's candidate edit page
 
@@ -975,7 +987,7 @@ ACTUAL:
 
 **EXPECT:** the plain 404 page.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** The plain 404 page.
 
 ### Item 7. A's gatekeeper chain page
 
@@ -985,7 +997,11 @@ ACTUAL:
 
 **EXPECT:** the plain 404 page.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** The plain 404 page.
+
+**ITEMS 1 TO 7 ARE COMPLETE AND NONE FAILED**, so the writes in this step are
+cleared to run. That was the condition: a read that wrongly succeeds tells you a
+guard is broken before anything is written.
 
 **STOP HERE IF ANY OF ITEMS 1 TO 7 DID NOT REFUSE.** A read that wrongly
 succeeds tells you a guard is broken before any write is attempted, and every
@@ -1003,7 +1019,7 @@ Working in **B1**, open the Roster.
 **None of A's 4 students, none of A's pending invites, and not the canary
 address.**
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.**
 
 ### Item 9. B's dashboard enrolled count
 
@@ -1012,7 +1028,9 @@ Still in **B1**.
 **EXPECT:** the tile reads **"of 2 enrolled"**, matching the Roster. Not 4, not
 5, not 6.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** **This is where the concrete tile-against-Roster
+check landed** after A's second class turned out to have no assignment and so no
+tile. B carries it, and 2.13 carries it again across three classes.
 
 ### Item 10. B's Recent generations
 
@@ -1021,7 +1039,12 @@ AI Persona Framework, still in **B1**.
 **EXPECT:** B's own generations only. None of A's persona names anywhere on the
 page.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** No Leslie, Cameron, Emilie or Jamie anywhere.
+
+**ITEMS 8, 9 AND 10 COMPLETE.** Everything in step 2 that reads through the
+APPLICATION has now refused or scoped correctly. The three items below go around
+it, straight at the database with an ordinary browser key, which is the only
+thing the two Gate 3b policies on `allowed_emails` actually protect.
 
 ## The browser key. Items 21, 22 and 23.
 
