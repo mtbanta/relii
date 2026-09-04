@@ -1977,7 +1977,9 @@ already did work in their current class) were all run in the Gate 6 click-throug
 on 2026-09-03. None of them is an isolation question, so only the cross-instructor
 one is re-run here.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 409 pointing at the administrator, naming neither A
+nor A's class. **Not** the role-play-count 409, so the cross-instructor guard
+fired first and the work guard was never needed.
 
 ### H9. Both invite paths refuse role = instructor from an ordinary instructor
 
@@ -1993,7 +1995,7 @@ G5.post("H9 single invite", "/api/instructor/invite",
 **EXPECT:** status **403**, "Only an administrator can invite an instructor. Ask
 your administrator to add them."
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 403.
 
 ```js
 G5.post("H9 bulk invite", "/api/instructor/bulk-invite",
@@ -2004,7 +2006,14 @@ G5.post("H9 bulk invite", "/api/instructor/bulk-invite",
 an administrator can invite an instructor". **A 200 that added the row is the
 failure.**
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 200 with `addedCount: 0` and the row skipped for
+that reason.
+
+**Both were posted directly rather than driven through the forms, which is the
+whole point of the ruling.** Before Gate 6 the single invite went from the browser
+straight through the security rules, and the Gate 3b insert policy checks the
+CLASS and says nothing whatsoever about the ROLE. A dropdown change alone would
+have been a deterrent and not a rule. **STEP 2 IS NOW COMPLETE IN FULL.**
 
 ### H10. The relaxed reassign
 
