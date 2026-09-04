@@ -139,13 +139,15 @@ cookie tamper test needs to know which is oldest.
 
 ACTUAL, run 2026-09-04:
 
-| instructor | class | class_id | created |
-|---|---|---|---|
-| instructor@test.com | B1: A demo class | 196770e0-cdd5-4fe4-80e4-421ee6c7d13f | 2026-08-25 |
-| instructor@test.com | B2: Gate 6 Test class | 1a83a9f1-fbcc-4e39-ae73-95bd43da0e8f | 2026-09-02 |
-| instructor@test.com | B3: The demo class | 98859b39-79a2-4fbc-b2c8-3a9de9e50223 | 2026-09-03 |
-| michaeltbanta@gmail.com | Relii Demo (Historical) | b03df6d8-8485-4d27-a712-b78d8bfc9453 | 2026-08-25 |
-| michaeltbanta@gmail.com | Pro Selling test | be13eabb-ece1-4fdd-a034-74700fe96007 | 2026-09-03 |
+
+| instructor                                                | class                   | class_id                             | created    |
+| --------------------------------------------------------- | ----------------------- | ------------------------------------ | ---------- |
+| [instructor@test.com](mailto:instructor@test.com)         | B1: A demo class        | 196770e0-cdd5-4fe4-80e4-421ee6c7d13f | 2026-08-25 |
+| [instructor@test.com](mailto:instructor@test.com)         | B2: Gate 6 Test class   | 1a83a9f1-fbcc-4e39-ae73-95bd43da0e8f | 2026-09-02 |
+| [instructor@test.com](mailto:instructor@test.com)         | B3: The demo class      | 98859b39-79a2-4fbc-b2c8-3a9de9e50223 | 2026-09-03 |
+| [michaeltbanta@gmail.com](mailto:michaeltbanta@gmail.com) | Relii Demo (Historical) | b03df6d8-8485-4d27-a712-b78d8bfc9453 | 2026-08-25 |
+| [michaeltbanta@gmail.com](mailto:michaeltbanta@gmail.com) | Pro Selling test        | be13eabb-ece1-4fdd-a034-74700fe96007 | 2026-09-03 |
+
 
 **B's oldest is B1**, which is the class every cookie-tamper state at 2.15 must
 fall back to. **The classes carry their B1, B2 and B3 prefixes in their real
@@ -280,15 +282,19 @@ A_GROUP: a98c23dd-b61d-48c0-b2af-25e4ffc50885 (Cameron and Emilie)
 A_GATEKEEPER: aab2ba60-5fd8-45ba-831d-2183cc8176dd (Leslie, switched OFF, which is
 what gives item 19 its second guard)
 
-| persona | scenario_id | enabled | chain_role | group |
-|---|---|---|---|---|
-| Alex | a21ce861-ebbd-4a29-b915-052e55668fec | true | null | hand written |
-| Jordan | 4bfee68d-481a-4d84-8969-8be33a93d4aa | true | null | hand written |
-| Leslie | aab2ba60-5fd8-45ba-831d-2183cc8176dd | false | gatekeeper | cdf87d4f-4984-4a60-835a-49dfaeea36b7 |
-| Cameron | ece231cb-3331-4694-a1cd-938ee22912ee | false | decision_maker | a98c23dd-b61d-48c0-b2af-25e4ffc50885 |
-| Emilie | 78f2ce0b-83a9-44d8-9b86-90160c2e7b24 | false | decision_maker | a98c23dd-b61d-48c0-b2af-25e4ffc50885 |
-| Alex (candidate) | c7113c4d-f5ba-4fdb-8be0-967d75f8ae3a | false | decision_maker | 151d9443-96dd-447c-b574-f0998ddf4e54 |
-| Jamie | 94b0a058-fd6c-4157-b163-29128374cb9b | false | decision_maker | 151d9443-96dd-447c-b574-f0998ddf4e54 |
+
+| persona          | scenario_id                          | enabled | chain_role     | group                                |
+| ---------------- | ------------------------------------ | ------- | -------------- | ------------------------------------ |
+| Alex             | a21ce861-ebbd-4a29-b915-052e55668fec | true    | null           | hand written                         |
+| Jordan           | 4bfee68d-481a-4d84-8969-8be33a93d4aa | true    | null           | hand written                         |
+| Leslie           | aab2ba60-5fd8-45ba-831d-2183cc8176dd | false   | gatekeeper     | cdf87d4f-4984-4a60-835a-49dfaeea36b7 |
+| Cameron          | ece231cb-3331-4694-a1cd-938ee22912ee | false   | decision_maker | a98c23dd-b61d-48c0-b2af-25e4ffc50885 |
+| Emilie           | 78f2ce0b-83a9-44d8-9b86-90160c2e7b24 | false   | decision_maker | a98c23dd-b61d-48c0-b2af-25e4ffc50885 |
+| Alex (candidate) | c7113c4d-f5ba-4fdb-8be0-967d75f8ae3a | false   | decision_maker | 151d9443-96dd-447c-b574-f0998ddf4e54 |
+| Jamie            | 94b0a058-fd6c-4157-b163-29128374cb9b | false   | decision_maker | 151d9443-96dd-447c-b574-f0998ddf4e54 |
+
+
+
 
 ## 0.4b Which of A's generations is safe to aim item 18 at
 
@@ -316,7 +322,7 @@ select s.generation_group_id::text as group_id,
  order by 1;
 ```
 
-**IF ANY GROUP shows `sessions_on_this_group` or `assignments_on_this_group` above
+**IF ANY GROUP shows** `sessions_on_this_group` **or** `assignments_on_this_group` **above
 0, that group is A_GROUP_18.** A class-guard failure is then caught by the "this
 generation has been role-played, so it cannot be deleted" refusal, and nothing is
 destroyed either way. That is the outcome to hope for.
@@ -327,34 +333,32 @@ on goes through the choose route, which deletes the losing sibling, so the cure
 would be worse than the risk). Two honest options, and **the choice is the
 owner's:**
 
-- **Run it anyway, aimed at `cdf87d4f-4984-4a60-835a-49dfaeea36b7` (Leslie), the
-  smallest group at one row.** If the class guard has already failed, that one row
-  is deleted and the generated text is not recoverable. It is an unchosen scaffold
-  draft from the Piece 2 testing, never role-played and on no assignment, and **a
-  class guard that has silently failed is worth far more to know about than one
-  draft row.**
+- **Run it anyway, aimed at** `cdf87d4f-4984-4a60-835a-49dfaeea36b7` **(Leslie), the
+smallest group at one row.** If the class guard has already failed, that one row
+is deleted and the generated text is not recoverable. It is an unchosen scaffold
+draft from the Piece 2 testing, never role-played and on no assignment, and **a
+class guard that has silently failed is worth far more to know about than one
+draft row.**
 - **Skip item 18** and record it as not runnable with a defended target. Also
-  honest, and it leaves one row of the matrix unproved.
+honest, and it leaves one row of the matrix unproved.
 
 **Write down which was chosen and why.**
 
 ACTUAL, run 2026-09-04:
 
-| group_id | candidates | rows | switched-on winner | sessions | assignments |
-|---|---|---|---|---|---|
-| 151d9443-96dd-447c-b574-f0998ddf4e54 | Alex, Jamie | 2 | false | 0 | 0 |
-| a98c23dd-b61d-48c0-b2af-25e4ffc50885 | Cameron, Emilie | 2 | false | 0 | 0 |
-| cdf87d4f-4984-4a60-835a-49dfaeea36b7 | Leslie | 1 | false | **1** | **1** |
 
-**SETTLED: A_GROUP_18 = `cdf87d4f-4984-4a60-835a-49dfaeea36b7` (Leslie).** It
+| group_id                             | candidates      | rows | switched-on winner | sessions | assignments |
+| ------------------------------------ | --------------- | ---- | ------------------ | -------- | ----------- |
+| 151d9443-96dd-447c-b574-f0998ddf4e54 | Alex, Jamie     | 2    | false              | 0        | 0           |
+| a98c23dd-b61d-48c0-b2af-25e4ffc50885 | Cameron, Emilie | 2    | false              | 0        | 0           |
+| cdf87d4f-4984-4a60-835a-49dfaeea36b7 | Leslie          | 1    | false              | **1**    | **1**       |
+
+
+**SETTLED: A_GROUP_18 =** `cdf87d4f-4984-4a60-835a-49dfaeea36b7` **(Leslie).** It
 carries one session and one assignment, so the "has been role-played" refusal is
 live on it. **Item 18 runs fully defended and no draft row is at risk**, so
 neither of the two fallback options above is needed. The other two groups are
 undefended and are deliberately not used as the target.
-
-
-
-
 
 ## 0.5 A's students and pending invites
 
@@ -387,20 +391,22 @@ from A's Invite Users page while working in the historical class.
 
 ACTUAL, run 2026-09-04:
 
-| what | email | id | class |
-|---|---|---|---|
-| pending invite | ta1+michaeltbanta@gmail.com | (no account yet) | Relii Demo (Historical) |
-| pending invite | ta2+michaeltbanta@gmail.com | (no account yet) | Relii Demo (Historical) |
-| registered student | mtb@gmail.com | 9214d0ab-3999-4c32-a7ce-d0b3c753e023 | Relii Demo (Historical) |
-| registered student | student@example.com | 9e9bc87c-edbe-478d-9547-31d05a038c12 | Relii Demo (Historical) |
-| registered student | student2@gmail.com | 6b0559dd-3949-4a59-a935-e900ee222b21 | Relii Demo (Historical) |
-| registered student | student3@gmail.com | 16ef6cf3-9e2f-4dc8-bea6-c45ce6a50421 | Pro Selling test |
-| registered student | teststudent@gmail.com | 5bb9e6ff-f0b5-451f-9472-5633d6169de4 | Relii Demo (Historical) |
+
+| what               | email                                                             | id                                   | class                   |
+| ------------------ | ----------------------------------------------------------------- | ------------------------------------ | ----------------------- |
+| pending invite     | [ta1+michaeltbanta@gmail.com](mailto:ta1+michaeltbanta@gmail.com) | (no account yet)                     | Relii Demo (Historical) |
+| pending invite     | [ta2+michaeltbanta@gmail.com](mailto:ta2+michaeltbanta@gmail.com) | (no account yet)                     | Relii Demo (Historical) |
+| registered student | [mtb@gmail.com](mailto:mtb@gmail.com)                             | 9214d0ab-3999-4c32-a7ce-d0b3c753e023 | Relii Demo (Historical) |
+| registered student | [student@example.com](mailto:student@example.com)                 | 9e9bc87c-edbe-478d-9547-31d05a038c12 | Relii Demo (Historical) |
+| registered student | [student2@gmail.com](mailto:student2@gmail.com)                   | 6b0559dd-3949-4a59-a935-e900ee222b21 | Relii Demo (Historical) |
+| registered student | [student3@gmail.com](mailto:student3@gmail.com)                   | 16ef6cf3-9e2f-4dc8-bea6-c45ce6a50421 | Pro Selling test        |
+| registered student | [teststudent@gmail.com](mailto:teststudent@gmail.com)             | 5bb9e6ff-f0b5-451f-9472-5633d6169de4 | Relii Demo (Historical) |
+
 
 **THE GATE 6 THROWAWAY STUDENT IS GONE.** No `+` alias is registered anywhere, so
 item 13's intended target does not exist. **SUBSTITUTION, MADE ON THE OWNER'S
 CONFIRMATION 2026-09-04, and recorded here because the file says never to make it
-silently: A_STUDENT = `16ef6cf3-9e2f-4dc8-bea6-c45ce6a50421` (student3@gmail.com).**
+silently: A_STUDENT =** `16ef6cf3-9e2f-4dc8-bea6-c45ce6a50421` **([student3@gmail.com](mailto:student3@gmail.com)).**
 
 **Why that one and not any other.** It is a real member of one of A's classes, so
 the class guard is still tested at full strength, **and it carries zero sessions**
@@ -409,7 +415,7 @@ with no work behind it rather than one of the four in the historical class. Item
 13 has no second guard available anywhere in the route, so the target IS the
 defence.
 
-**A_CANARY_INVITE = `ta1+michaeltbanta@gmail.com`.** `ta2+michaeltbanta@gmail.com`
+**A_CANARY_INVITE =** `ta1+michaeltbanta@gmail.com`**.** `ta2+michaeltbanta@gmail.com`
 is held as the spare: if item 14 or the 2.16 capstone ever wrongly succeeds, the
 retry has a second pending target without anything being recreated first.
 
@@ -439,10 +445,12 @@ must be identical** after B has run its own "Discard all".
 
 ACTUAL, run 2026-09-04:
 
-| class | generated_candidates | chosen_winners |
-|---|---|---|
-| Relii Demo (Historical) | **5** | **0** |
-| Pro Selling test | **0** | **0** |
+
+| class                   | generated_candidates | chosen_winners |
+| ----------------------- | -------------------- | -------------- |
+| Relii Demo (Historical) | **5**                | **0**          |
+| Pro Selling test        | **0**                | **0**          |
+
 
 **This is the number item 20 must not move, and step 4.3 re-reads it.** It agrees
 with query 0.4 row for row: the 5 are Leslie, Cameron, Emilie, Alex (candidate)
@@ -502,20 +510,22 @@ missing means a piece of B's setup was not built.
 
 ACTUAL, run 2026-09-04. B1 is complete.
 
-| what | detail | id |
-|---|---|---|
-| B1 assignment | HVAC Alex - trial close | f63ec110-46e8-4c65-ad4b-bb86ea3ba295 |
-| B1 winner (on) [decision_maker] | Alex | 68bc4303-e5ae-4fdb-bcc4-0372631dc729 |
-| B1 candidate (off) [gatekeeper] | Linda | c7be92b3-6ed3-4b0e-9f6f-4d2f2e455342 |
-| B1 candidate (off) [gatekeeper] | Linda | 7d77c8e0-0416-4b91-9a77-39dbe0954a5c |
-| B1 generation group, DECIDED | Alex | 336650af-eb61-4809-9e8d-e34c57f60f01 |
-| B1 generation group, UNDECIDED | Linda, Linda | 5d27b9df-18d9-47f1-9186-e7ed051df3a4 |
-| B1 pending invite | 3studentb1@gmail.com | (no account yet) |
-| B1 student | 1studentb1@gmail.com | 12334ee0-ac19-42da-8a26-90ee0513ab9d |
-| B1 student | 2studentb1@gmail.com | 920c9ea3-c415-4013-94e4-1487fd2fe19e |
-| B1 practice | practice | 529a15dc-c018-4d78-aa75-403d6669d954 |
-| B1 practice | practice | e04a3ad3-b67b-4ad4-9803-a4c1cdfa5906 |
-| B1 practice | practice | 0ae456b3-7979-403f-884a-95e2f77cd144 |
+
+| what                            | detail                                              | id                                   |
+| ------------------------------- | --------------------------------------------------- | ------------------------------------ |
+| B1 assignment                   | HVAC Alex - trial close                             | f63ec110-46e8-4c65-ad4b-bb86ea3ba295 |
+| B1 winner (on) [decision_maker] | Alex                                                | 68bc4303-e5ae-4fdb-bcc4-0372631dc729 |
+| B1 candidate (off) [gatekeeper] | Linda                                               | c7be92b3-6ed3-4b0e-9f6f-4d2f2e455342 |
+| B1 candidate (off) [gatekeeper] | Linda                                               | 7d77c8e0-0416-4b91-9a77-39dbe0954a5c |
+| B1 generation group, DECIDED    | Alex                                                | 336650af-eb61-4809-9e8d-e34c57f60f01 |
+| B1 generation group, UNDECIDED  | Linda, Linda                                        | 5d27b9df-18d9-47f1-9186-e7ed051df3a4 |
+| B1 pending invite               | [3studentb1@gmail.com](mailto:3studentb1@gmail.com) | (no account yet)                     |
+| B1 student                      | [1studentb1@gmail.com](mailto:1studentb1@gmail.com) | 12334ee0-ac19-42da-8a26-90ee0513ab9d |
+| B1 student                      | [2studentb1@gmail.com](mailto:2studentb1@gmail.com) | 920c9ea3-c415-4013-94e4-1487fd2fe19e |
+| B1 practice                     | practice                                            | 529a15dc-c018-4d78-aa75-403d6669d954 |
+| B1 practice                     | practice                                            | e04a3ad3-b67b-4ad4-9803-a4c1cdfa5906 |
+| B1 practice                     | practice                                            | 0ae456b3-7979-403f-884a-95e2f77cd144 |
+
 
 **Settled, and these are the values for the step 2 preamble:**
 
@@ -539,8 +549,8 @@ and switch on the gatekeeper first" rather than generating anything.
 
 **Item 20b's expectation is confirmed by this table, not assumed.** B1 holds three
 personas: Alex switched on (so it lands under `live`) and two Lindas switched off
-and never role-played (so they land under `deletable`). **20b must report exactly
-`deletable: 2` and delete 2.** B1's decided group `336650af` is a single row and
+and never role-played (so they land under `deletable`). **20b must report exactly**
+`deletable: 2` **and delete 2.** B1's decided group `336650af` is a single row and
 contributes nothing, which is what choosing a winner does: it deletes the loser.
 
 ---
@@ -1539,7 +1549,7 @@ ACTUAL, 2026-09-04: **PASS.** Status 200 with
 successful read, and the scoping is carried in the payload rather than the status.
 Worth writing down in a file where almost every other expected answer is a 4xx.
 
-**THE STRONGEST PART OF THIS ANSWER IS `live: 1`, AND IT WAS NOT PREDICTED.** B1's
+**THE STRONGEST PART OF THIS ANSWER IS** `live: 1`**, AND IT WAS NOT PREDICTED.** B1's
 Alex is switched on as well, so a sweep ranging over every class the instructor
 owns would have reported `live: 2` and listed both Lindas under `names`. It
 reported one live persona, B2's own Tyson, and nothing deletable. **That is the
@@ -1873,7 +1883,7 @@ address bar:
 **EXPECT:** B lands back on **/instructor**. Not the admin overview, and not an
 error page.
 
-ACTUAL:
+ACTUAL: PASS
 
 Then try a class page directly:
 
@@ -1883,7 +1893,7 @@ Then try a class page directly:
 
 **EXPECT:** the same bounce back to /instructor.
 
-ACTUAL:
+ACTUAL: PASS
 
 ### Item G3.6. B cannot reach the delete route at all
 
