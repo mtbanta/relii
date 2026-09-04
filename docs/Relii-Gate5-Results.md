@@ -652,7 +652,9 @@ the address bar:
 classes"**, naming the historical class, with a **"Switch to ... and open it"**
 button. **Not** a 404. This is a read and it destroys nothing.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** The panel, naming Relii Demo (Historical). **This is
+the answer that only the owner may see**, and item 1 in step 2 is what proves it
+did not widen: the same id from B must give the plain 404 instead.
 
 ## 1.4 The same answer on the dashboard's bookmark case
 
@@ -665,7 +667,10 @@ Still working in Pro Selling test:
 **EXPECT:** the same panel, worded **"This assignment is in another of your
 classes"**. Not a silent fallback, which here would mean the empty state.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** The panel again, worded for an assignment. The
+bookmark case is the one most likely to be hit by a real person, and the failure
+it rules out is the quiet one: falling back to the working class's own dashboard
+with nothing on screen saying the link went somewhere else.
 
 ## 1.5 The friendly answer must NOT have leaked into the routes
 
