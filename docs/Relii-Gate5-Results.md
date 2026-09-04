@@ -1532,7 +1532,18 @@ G5.post("20a preview from B2", "/api/instructor/scaffold/discard-all", { preview
 B1's persona names appears in that list, stop.** The count is not scoped to the
 working class, and the delete would not have been either.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** Status 200 with
+`deletable: 0, live: 1, used: 0, names: [], liveNames: ["Tyson"]`.
+
+**Status 200 is correct here and is not a failure to refuse:** a preview is a
+successful read, and the scoping is carried in the payload rather than the status.
+Worth writing down in a file where almost every other expected answer is a 4xx.
+
+**THE STRONGEST PART OF THIS ANSWER IS `live: 1`, AND IT WAS NOT PREDICTED.** B1's
+Alex is switched on as well, so a sweep ranging over every class the instructor
+owns would have reported `live: 2` and listed both Lindas under `names`. It
+reported one live persona, B2's own Tyson, and nothing deletable. **That is the
+working class being the boundary, measured rather than asserted.**
 
 ```js
 G5.post("20a confirm from B2", "/api/instructor/scaffold/discard-all", { confirm: "DISCARD" });
@@ -1544,7 +1555,8 @@ G5.post("20a confirm from B2", "/api/instructor/scaffold/discard-all", { confirm
 generation is still there with both candidates. A discard run from B2 that
 reached into B1 is the failure this half exists to find.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** The confirm returned `deleted: 0`, and B1's
+undecided pair was still intact afterwards.
 
 #### 20b. The delete half. Working in B1.
 
@@ -1564,7 +1576,8 @@ G5.post("20b preview from B1", "/api/instructor/scaffold/discard-all", { preview
 else**. B1's chosen winner must appear under `live`, not under `deletable`, and
 no name from B2, B3 or any class of A's may appear anywhere in the answer.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** Both Lindas deletable, Alex under `live`, no Tyson
+and nothing of A's.
 
 ```js
 G5.post("20b confirm from B1", "/api/instructor/scaffold/discard-all", { confirm: "DISCARD" });
@@ -1573,12 +1586,19 @@ G5.post("20b confirm from B1", "/api/instructor/scaffold/discard-all", { confirm
 **EXPECT:** `ok: true`, `deleted: 2`. B1's winner and its assignment are
 untouched.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** `deleted: 2`, winner and assignment untouched.
+
+**Together, 20a and 20b are the whole of item 20, and neither alone would do.** A
+sweep that deletes nothing anywhere passes 20a. A sweep that deletes everything
+the instructor owns passes 20b. Only the pair separates a scoped sweep from a
+broken one.
 
 **A's counts are the real check on this item and they are re-run by SQL at step
 4.3.** They must be identical to step 0.6.
 
-ACTUAL (B1's Recent generations afterwards, and the assignment still there):
+ACTUAL (B1's Recent generations afterwards, and the assignment still there),
+2026-09-04: **PASS.** A's counts are the real check on this item and are confirmed
+separately at step 4.3.
 
 ## Group 1, items 11 to 19. Writes and deletes aimed at A.
 
