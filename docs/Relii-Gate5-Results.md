@@ -2309,14 +2309,70 @@ object lying around. Taking the export from B3 instead cost nothing and put no
 live authorisation to destroy the historical class into existence. <==
 
 ACTUAL (4b), original:
-ACTUAL (6):
+ACTUAL (6), 2026-09-04: **PASS, all eight.**
+
+**Query 1 returns rows, and that is the feature working.** A owns 2 classes and B
+owns 3. PROJECT_STATE carried this exact query from Gate 4b as a corruption signal
+that "should always return no rows", because the old `getInstructorClassId()` took
+an instructor's oldest class and stopped, so a second class meant one was silently
+invisible. After Gate 6 it is normal operation and must not be "repaired".
+
+**Query 3:** every count 0. No row belongs to nobody and no membership points at a
+class that is gone.
+
+**Query 4: no rows.** Every student is in exactly one class. The schema does not
+enforce this (`class_members` is keyed on class and user, so two rows are
+structurally legal); the application holds it, and Gate 4b's cascade delete relies
+on it when deciding whether to delete an account.
+
+**Query 5: no rows, and this is the one that could realistically have failed
+today.** `/api/instructor/add-student` writes the membership first and moves the
+invite row second, in two calls that cannot be one transaction, and H8 exercised
+that route during this run. A disagreement here would mean the two halves of Gate
+4b's cascade delete disagree about the same person.
+
+**Query 6:** all three 0, including the third line, which is allowed to be
+non-zero and is informational.
+
+**Query 7: no rows.** Every class owner is an instructor. The foreign key
+guarantees a class has an owner; nothing enforces the role, so it is worth asking.
+
+**Query 8: 0, 8 and 3**, identical to query 1 of the Gate 3b file and to the Gate
+3b pass of 2026-08-31. Two independent readings of the same fact in one run.
+
+ACTUAL (6), original:
 
 ## 4.2 Query 2 against the copy kept at step 0.2
 
 **EXPECT:** B's classes carry the content built for this run, A's two classes are
 **unchanged in every column**, and **no row moved out of any class**.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS. Exactly one cell in the entire database changed.**
+
+| class | rubrics | personas | assignments | sessions | recordings | invites | students |
+|---|---|---|---|---|---|---|---|
+| B1: A demo class | 0 | **1** (was 3) | 1 | 3 | 1 | 3 | 2 |
+| B2: Gate 6 Test class | 0 | 1 | 1 | 0 | 0 | 2 | 1 |
+| B3: The demo class | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Relii Demo (Historical) | 1 | 7 | 3 | 41 | **19** | 8 | 4 |
+| Pro Selling test | 0 | 0 | 0 | 0 | 0 | 1 | 1 |
+
+**BOTH OF A'S CLASSES ARE IDENTICAL TO STEP 0.2 IN ALL SEVEN COLUMNS.** So are B2
+and B3. The only difference anywhere is **B1's personas, 3 down to 1**, which is
+item 20b deleting the two Lindas: the single intended change in the run, in B's
+own class, made by B.
+
+**What that number is set against.** Between the two readings the run aimed nine
+write and delete requests at A's real data, one more with a hand-edited class
+cookie, three crafted class-delete requests, and a cross-class insert straight at
+the database with a browser key. **Nothing moved.**
+
+==> **THE `recordings` COLUMN IS THE ONE TO READ TWICE, AND IT IS WHY IT WAS ADDED
+TO THIS QUERY ON 2026-09-03.** It is not redundant with `sessions`. **A recording
+is a FILE IN STORAGE, which no foreign key protects and no cascade removes**,
+which is exactly why Gate 4b's delete has to remove Storage by hand and before any
+row. A class whose sessions survived but whose recordings did not would show up
+nowhere else in this file. **A's 19 recordings are still 19.** <==
 
 ## 4.3 Item 20's real check: A's candidate counts
 
