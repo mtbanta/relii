@@ -1131,7 +1131,33 @@ just the working class.** That is expected rather than a bug: the read policy is
 application that scopes a listing to one class. **None of A's addresses may
 appear.**
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** Status 200, five rows, and **not one of A's**:
+
+```
+1studentb1@gmail.com   196770e0 (B1)
+2studentb1@gmail.com   196770e0 (B1)
+3studentb1@gmail.com   196770e0 (B1)
+b2student@gmail.com    1a83a9f1 (B2)
+b2student2@gmail.com   1a83a9f1 (B2)
+```
+
+**The count is itself a check and it agrees exactly.** Query 0.2 recorded 3
+invites in B1, 2 in B2 and 0 in B3, and this returned 3 + 2 + 0.
+
+**A QUESTION THIS RAISED DURING THE RUN, ANSWERED HERE SO IT IS NOT RE-ASKED: no,
+none of these is a deleted or stale student.** An invite row does not disappear
+when the person registers. `allowed_emails` is the INVITE LIST, not a pending
+list: 1studentb1 and 2studentb1 are B1's two registered students and their rows
+stay, and only 3studentb1 is genuinely pending. The Roster's pending section
+filters the registered ones out for display; the table keeps them. **That is also
+the explanation for the 8-invites-against-4-students observation recorded at 0.5
+in A's class**, and it is why that observation was not a leak.
+
+**This is the item whose MEANING Gate 6 changed, and the result shows both
+halves.** Invites from more than one owned class appear together, which is
+correct, because the read policy is `instructs_class(class_id)` and answers "any
+class you own" while the application narrows a listing to the working class. The
+isolation half is that not one row of A's is reachable, and none is.
 
 ```js
 SB.q("21 aimed at A", "allowed_emails?select=email,class_id&email=eq." + G5.ids.A_CANARY_INVITE);
