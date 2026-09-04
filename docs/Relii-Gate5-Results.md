@@ -1116,6 +1116,24 @@ would pass for the wrong reason. (If it happens: Web Inspector, Storage, Cookies
 relii.vercel.app, and check that a cookie named
 `sb-cmpvyralyungfmjoteex-auth-token` is there.)
 
+==> **THE TOKEN EXPIRES AFTER ABOUT AN HOUR, AND IT BIT THIS RUN ON 2026-09-04.**
+A Supabase access token is short lived. `SB.token` is captured ONCE when the
+preamble runs, so on a long step it goes stale in the console while the app itself
+carries on working, because the app refreshes its cookie on every page load and
+the console variable does not.
+
+**WHAT IT LOOKS LIKE, AND WHY IT IS DANGEROUS:** status **401** with
+`{"code":"PGRST303","message":"JWT expired"}`. **A bare 401 reads exactly like a
+refusal**, and on an item whose expected answer IS a refusal it would be written
+down as a pass while proving nothing whatsoever. Read the body, never just the
+status.
+
+**THE FIX, in this order and not a shorter one:** load any Relii page so the
+middleware writes a fresh cookie, re-paste this preamble, then **re-run item 21's
+positive control and see the five rows again**. Only then re-run the item that
+failed. Re-establishing the positive control is the part that matters: a new token
+that has not been shown to work is no better than the expired one. <==
+
 ACTUAL:
 
 ### Item 21. The invite list over the web API
@@ -1178,7 +1196,9 @@ cannot be invited again. Ask your administrator."** It must **not** name A and
 must not name A's class. Knowing an invite exists elsewhere is what lets you act;
 knowing who holds it is not.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** Refused, pointing at the administrator, naming
+neither A nor A's class. The ruling stands as settled and this confirms the
+message is still the legible one rather than re-opening it.
 
 ### Item 23. ADDED: the same-class constraint bites, rather than merely reading zero
 
