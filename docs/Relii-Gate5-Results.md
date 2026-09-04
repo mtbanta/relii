@@ -8,8 +8,14 @@ to bottom and write your answer on the `ACTUAL:` line under each item as you go.
 - **Commit tested:** the deploy live throughout was the tree at **3958318**, whose
   last application-code change is **1982fbe, "Build Gate 6: multiple classes per
   instructor"**. Everything committed after it in this run is documentation.
-- **Result: EVERY ITEM PASSED. Nothing failed, and nothing had to be fixed
-  mid-run.**
+- **Result: EVERY ITEM THAT WAS RUN PASSED, and nothing had to be fixed mid-run.**
+  Stated precisely, because this file exists so that "we tested it" is not the
+  record: **no item refused wrongly and no item leaked.** **Three items were not
+  run at all** and are listed with their reasons under "What a pass certifies"
+  below. **And one CHECK QUERY could not execute**, query 4 of
+  `supabase/gate-3b-tests.sql`, which is stale under multiple classes rather than
+  a failure of anything it was checking; query 5 of the same file covers the same
+  ground and ran. See step 4.1 and the follow-up section.
 - **Site:** relii.vercel.app, never localhost
 - **Instructor A:** [michaeltbanta@gmail.com](mailto:michaeltbanta@gmail.com) (super admin, owns the historical
 class "Relii Demo (Historical)" and a second class "Pro Selling test")
@@ -2519,6 +2525,10 @@ longer matches a class that has since grown), so it authorises nothing. It can b
 left alone.
 
 # If something fails
+
+**THIS PROTOCOL WAS IN FORCE THROUGHOUT THE RUN AND NEVER FIRED.** It is kept as
+written, in the imperative, because it is the protocol a re-run inherits, not
+because anything is still waiting on it. **The run is finished.**
 
 **A failure here is not a bug report, it is a build.** So:
 
