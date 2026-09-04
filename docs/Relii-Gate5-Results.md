@@ -1345,7 +1345,7 @@ G5.post("2.14 / 11 assignment delete", "/api/instructor/assignment/" + G5.ids.B1
 **IF IT SUCCEEDED:** B1's assignment and any practices under it are gone. Rebuild
 it before continuing and tell CC.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 404.
 
 **Item 12 CANNOT BE RUN in this direction and it is the one gap in the block.**
 The reset route reads `kind = "submission"` and **B can hold no submission at
@@ -1363,7 +1363,7 @@ G5.post("2.14 / 13 delete student", "/api/instructor/delete-student", { studentI
 **IF IT SUCCEEDED:** that student's account and sessions are gone. Re-invite and
 re-register before continuing.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 404.
 
 ```js
 G5.post("2.14 / 14 uninvite", "/api/instructor/uninvite", { email: G5.ids.B1_INVITE });
@@ -1372,7 +1372,7 @@ G5.post("2.14 / 14 uninvite", "/api/instructor/uninvite", { email: G5.ids.B1_INV
 **EXPECT 404**, "That email is not on the invite list."
 **IF IT SUCCEEDED:** re-invite the address from B1's Invite Users page.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 404.
 
 ```js
 G5.post("2.14 / 15 choose", "/api/instructor/scaffold/choose", { winnerId: G5.ids.B1_CANDIDATE });
@@ -1383,7 +1383,7 @@ G5.post("2.14 / 15 choose", "/api/instructor/scaffold/choose", { winnerId: G5.id
 is deleted, which also removes item 20's discardable rows. Tell CC before going
 on, because the discard test then needs a fresh generation.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 404.
 
 ```js
 G5.post("2.14 / 16 disable", "/api/instructor/scaffold/disable", { scenarioId: G5.ids.B1_WINNER });
@@ -1392,7 +1392,7 @@ G5.post("2.14 / 16 disable", "/api/instructor/scaffold/disable", { scenarioId: G
 **EXPECT 404**, "That persona was not found."
 **IF IT SUCCEEDED:** B1's live persona is switched off. Switch it back on.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 404.
 
 ```js
 G5.post("2.14 / 17 edit", "/api/instructor/scaffold/edit", { candidateId: G5.ids.B1_CANDIDATE, edits: {} });
@@ -1400,7 +1400,7 @@ G5.post("2.14 / 17 edit", "/api/instructor/scaffold/edit", { candidateId: G5.ids
 
 **EXPECT 404**, "That candidate was not found. It may already be deleted."
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 404.
 
 ```js
 G5.post("2.14 / 18 discard", "/api/instructor/scaffold/discard", { groupId: G5.ids.B1_GROUP });
@@ -1410,7 +1410,8 @@ G5.post("2.14 / 18 discard", "/api/instructor/scaffold/discard", { groupId: G5.i
 **IF IT SUCCEEDED:** B1's undecided candidates are gone and item 20 needs a fresh
 generation first.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 404. B1's undecided pair survives, which is what
+item 20b needs.
 
 ```js
 G5.post("2.14 / 19 chain", "/api/instructor/scaffold/generate", { chainFromScenarioId: G5.ids.B1_GATEKEEPER });
@@ -1421,7 +1422,16 @@ it if B1's generation produced no gatekeeper.
 **IF IT SUCCEEDED:** a new persona was created in B2 carrying B1's case. Discard
 it from B2's Recent generations.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 404.
+
+**2.14 IS COMPLETE, EIGHT RUN AND ONE NOT RUNNABLE, AND IT IS THE BLOCK GATE 6
+ADDED TO THIS MATRIX.** Every write route refused a target in the caller's OWN
+other class, which is the check that Gate 6's friendlier page answer did not leak
+into the write paths. **The four detail pages name the owner's other class and
+every route refuses it**, and that asymmetry is deliberate: a page is somewhere a
+person navigates to, and a route is reached from a page that is already scoped.
+2.11 and this block are the two halves of one claim, and either alone would have
+been consistent with a bug.
 
 **Item 20's own-other-class form is not run here.** It is run properly at the
 next-but-one step, because "discard all" takes no target id: the whole test is
