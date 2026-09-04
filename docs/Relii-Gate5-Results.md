@@ -372,7 +372,38 @@ real student without saying so.
 14 and the tampered-cookie write aim at it. If it is not there, invite it now
 from A's Invite Users page while working in the historical class.
 
-ACTUAL:
+ACTUAL, run 2026-09-04:
+
+| what | email | id | class |
+|---|---|---|---|
+| pending invite | ta1+michaeltbanta@gmail.com | (no account yet) | Relii Demo (Historical) |
+| pending invite | ta2+michaeltbanta@gmail.com | (no account yet) | Relii Demo (Historical) |
+| registered student | mtb@gmail.com | 9214d0ab-3999-4c32-a7ce-d0b3c753e023 | Relii Demo (Historical) |
+| registered student | student@example.com | 9e9bc87c-edbe-478d-9547-31d05a038c12 | Relii Demo (Historical) |
+| registered student | student2@gmail.com | 6b0559dd-3949-4a59-a935-e900ee222b21 | Relii Demo (Historical) |
+| registered student | student3@gmail.com | 16ef6cf3-9e2f-4dc8-bea6-c45ce6a50421 | Pro Selling test |
+| registered student | teststudent@gmail.com | 5bb9e6ff-f0b5-451f-9472-5633d6169de4 | Relii Demo (Historical) |
+
+**THE GATE 6 THROWAWAY STUDENT IS GONE.** No `+` alias is registered anywhere, so
+item 13's intended target does not exist. **SUBSTITUTION, MADE ON THE OWNER'S
+CONFIRMATION 2026-09-04, and recorded here because the file says never to make it
+silently: A_STUDENT = `16ef6cf3-9e2f-4dc8-bea6-c45ce6a50421` (student3@gmail.com).**
+
+**Why that one and not any other.** It is a real member of one of A's classes, so
+the class guard is still tested at full strength, **and it carries zero sessions**
+(query 2 shows Pro Selling test with 0), so a guard failure destroys an account
+with no work behind it rather than one of the four in the historical class. Item
+13 has no second guard available anywhere in the route, so the target IS the
+defence.
+
+**A_CANARY_INVITE = `ta1+michaeltbanta@gmail.com`.** `ta2+michaeltbanta@gmail.com`
+is held as the spare: if item 14 or the 2.16 capstone ever wrongly succeeds, the
+retry has a second pending target without anything being recreated first.
+
+**One observation, not a problem.** The historical class holds 8 invite rows
+against 4 registered students and 2 pending, so 2 of them belong to accounts
+registered elsewhere, most likely the instructor addresses left by the Gate 4b
+throwaway work. Worth knowing when item 21 lists what B can and cannot see.
 
 ## 0.6 The candidate count item 20 must not change
 
