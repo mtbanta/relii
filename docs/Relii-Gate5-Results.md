@@ -2206,7 +2206,66 @@ Run each one and compare against the expectation written above it in the file.
 **EXPECT** the export-token query to show B3's unused export from step 1.7.
 - `supabase/gate-6-checks.sql`, queries 1 to 8.
 
-ACTUAL (3b):
+ACTUAL (3b), 2026-09-04: **queries 1, 2, 3, 5 and 6 PASS. Query 4 CANNOT RUN, and
+that is a finding rather than a failure.**
+
+**Query 1: `still_on_is_instructor` 0, `now_on_instructs_class` 8,
+`on_can_read_class` 3.** Identical to the Gate 3b pass of 2026-08-31, so no policy
+drifted across Gate 4a, 4b, 6 or this run.
+
+**Query 2:** the whole policy surface is as Gate 3b left it. Both `allowed_emails`
+rules read `instructs_class (owner only)`, nothing anywhere reads
+`is_instructor (NOT SCOPED)`, and `classes` and `class_members` still carry no
+policies at all, which is correct: only the service-role key reads them and the
+two helper functions are SECURITY DEFINER for that reason. **The "instructors add
+to invite list" INSERT policy is present**, which matters because the kickoff
+named it as a thing not to remove: it has no live browser user in the app any
+more, and item 23 is what proved it is still a live backstop.
+
+**Query 3:** both invite rules are `instructs_class(class_id)` and **neither is
+`can_read_class`**. That difference is the one to check by eye, because
+`can_read_class` also answers true for class MEMBERS, and using it would hand
+every student the email address of every classmate.
+
+==> **QUERY 4 FAILS TO RUN: "more than one row returned by a subquery used as an
+expression". IT IS NOT AN ISOLATION FAILURE AND NO EVIDENCE IS LOST.**
+
+The query was written when an instructor owned exactly one class, so its `my_class`
+CTE is used as a scalar in `(select name from my_class)` and eight sibling
+subqueries. **A now owns two classes, so it cannot run at all.** Gate 6 made
+multiple classes normal operation and superseded this query without anybody
+noticing, exactly as it superseded item 5 of the Gate 4b handoff, which at least
+was rewritten in place.
+
+**Query 5 answers the same question correctly and did run**, per class rather than
+per instructor, so the Gate 5 baseline this query was built to provide is intact.
+
+**Not fixed during the run, deliberately.** The kickoff forbids code changes unless
+a test fails and the owner approves a fix, and fixing a checks file mid-run would
+mean the items already run were measured against a different file. It is carried
+to PROJECT_STATE as follow-up work. <==
+
+**Query 5, and this is the headline of step 4:**
+
+| class | owner | students | invites | scenarios | assignments | sessions |
+|---|---|---|---|---|---|---|
+| B1: A demo class | instructor@test.com | 2 | 3 | **1** | 1 | 3 |
+| Relii Demo (Historical) | michaeltbanta@gmail.com | 4 | 8 | 7 | 3 | 41 |
+| B2: Gate 6 Test class | instructor@test.com | 1 | 2 | 1 | 1 | 0 |
+| Pro Selling test | michaeltbanta@gmail.com | 1 | 1 | 0 | 0 | 0 |
+| B3: The demo class | instructor@test.com | 0 | 0 | 0 | 0 | 0 |
+
+**BOTH OF A'S CLASSES ARE IDENTICAL TO STEP 0.2 IN EVERY COLUMN.** Nine writes
+were aimed at A's real data, plus a tampered-cookie write, plus three crafted
+delete requests, and not one row of A's moved.
+
+**The single number that changed anywhere is B1's scenarios, 3 down to 1**, which
+is item 20b deleting the two Lindas and nothing else. It is the only intended
+change in the entire run, and it is in B's class.
+
+**Query 6:** all three counts 0.
+
+ACTUAL (3b), original:
 ACTUAL (4b):
 ACTUAL (6):
 
