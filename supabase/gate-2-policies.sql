@@ -409,6 +409,64 @@ create policy "instructors read assignment delete log"
 --
 -- service_role IS DELIBERATELY NOT TOUCHED below. That is exactly why all six
 -- server reads above keep working.
+--
+-- ==> READ THIS BEFORE ACTING ON ANY "permission denied" ERROR ABOUT scenarios.
+--     POSTGRES WILL TELL YOU TO UNDO THIS SECTION, IN SO MANY WORDS, AND THE HINT
+--     IS WRONG HERE.
+--
+--     Observed for the first time on 2026-09-04, during the Gate 5 run, when a
+--     signed-in STUDENT asked the web API for persona_system_prompt. The full
+--     answer was:
+--
+--       {"code":"42501",
+--        "message":"permission denied for table scenarios",
+--        "hint":"Grant the required privileges to the current role with:
+--                GRANT SELECT ON public.scenarios TO authenticated;"}
+--
+--     THAT REFUSAL IS THIS SECTION WORKING. It is the whole point of the piece:
+--     the student was asking for the hidden persona prompt and did not get it.
+--
+--     ==> DO NOT RUN THE HINT. `grant select on public.scenarios to authenticated`
+--         IS EXACTLY THE WHOLE-TABLE GRANT THE NEXT LINE REVOKES. Running it
+--         hands every student persona_system_prompt AND scenario_context, in one
+--         line, with no error and nothing on screen to notice. Postgres prints
+--         that hint generically; it does not know two of these columns are
+--         secret. <==
+--
+--     WHAT TO DO INSTEAD, and it depends on who hit it:
+--
+--       A STUDENT OR AN INSTRUCTOR PAGE HIT IT WHILE READING A COLUMN THAT IS
+--       SUPPOSED TO BE READABLE: a column was added to scenarios after this file
+--       last ran, so it was granted to nobody. RE-RUN THIS SECTION ONLY (the
+--       revoke plus the do-block below). It is written as a loop for exactly this
+--       reason and a second run repairs the drift. This standing query names any
+--       such column, and is query 4.4 of docs/Relii-Gate5-Results.md:
+--
+--         select c.column_name
+--           from information_schema.columns c
+--          where c.table_schema = 'public' and c.table_name = 'scenarios'
+--            and c.column_name not in ('persona_system_prompt','scenario_context')
+--            and not exists (
+--              select 1 from information_schema.column_privileges p
+--               where p.table_schema = 'public' and p.table_name = 'scenarios'
+--                 and p.column_name = c.column_name
+--                 and p.grantee = 'authenticated'
+--                 and p.privilege_type = 'SELECT');
+--
+--       It returned NO ROWS on 2026-09-04, so nothing is currently ungranted.
+--
+--       SOMEBODY ASKED FOR persona_system_prompt OR scenario_context: nothing is
+--       broken and nothing needs fixing. That is the leak staying closed.
+--
+--     ONE MORE THING ABOUT THE WORDING, because it misleads in a second way. The
+--     message names the TABLE, not the column, even when only one column was
+--     denied. Do not read "permission denied for table scenarios" as "the whole
+--     table is unreadable": ordinary users read every other column of it all day.
+--     The fact that decides what happened is whether ROWS came back.
+--
+--     RE-RUN THIS SECTION ON ITS OWN rather than the whole file. Sections 2 to 7
+--     drop and re-create policies, and Gate 3b and Gate 4a have changed the
+--     policy surface since this file was written. <==
 
 -- Step one: take the whole-table read away. This must come first.
 revoke select on table public.scenarios from anon, authenticated;

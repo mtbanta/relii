@@ -10,14 +10,23 @@
 --     ISOLATION LOOK IDENTICAL. Everything you own is everything there is. So
 --     nothing here proves the isolation works. What it proves is that the rules
 --     say what they should say, that nothing else regressed, and it records the
---     BASELINE that Gate 5 will compare a second instructor's account against.
---     Proving the isolation itself needs that second account, and that is Gate
---     5's whole job. The list of what only it can prove is at the bottom of this
---     file. <==
+--     BASELINE that Gate 5 compared a second instructor's account against.
+--     Proving the isolation itself needed that second account, and that was Gate
+--     5's whole job. The list of what only it could prove is at the bottom of
+--     this file.
+--
+--     GATE 5 RAN ON 2026-09-04 AND EVERY ITEM THAT WAS RUN PASSED, so that list
+--     is now answered rather than outstanding. docs/Relii-Gate5-Results.md holds
+--     every item with its expected and actual answer, including the three that
+--     were not run and why. This paragraph still describes what THIS FILE can
+--     and cannot show on its own, which has not changed. <==
 --
 -- Queries 1 to 3 are the migration checks: run them after
 -- supabase/gate-3b-policies.sql.
--- Queries 4 to 6 are the Gate 5 baseline: run them any time and keep the output.
+-- Queries 4 to 6 were the Gate 5 baseline and are now a standing check: run them
+-- any time and keep the output. GATE 5 RAN ON 2026-09-04 AND PASSED; the record
+-- is docs/Relii-Gate5-Results.md, and the matrix at the bottom of this file is
+-- answered there item by item rather than still outstanding.
 
 
 -- ===========================================================================
@@ -118,35 +127,62 @@ order by policyname;
 -- THE GATE 5 BASELINE. Run these and KEEP THE OUTPUT.
 -- ===========================================================================
 
--- 4. YOUR CLASS, and everything in it. This is the number Gate 5 compares a
---    second instructor's account against.
+-- 4. ONE INSTRUCTOR'S CLASSES, and everything in each of them.
 --
 --    EDIT THE EMAIL on the first line if you are checking a different account.
 --    (auth.uid() is null in the SQL editor, so these queries cannot ask "who am
 --    I" and have to be told.)
+--
+-- ==> REWRITTEN 2026-09-04, AFTER THE GATE 5 RUN FOUND IT COULD NOT EXECUTE.
+--
+--     WHAT IT USED TO DO AND WHY IT BROKE. It was written when an instructor
+--     owned EXACTLY ONE class, so it put that class in a CTE and then used the
+--     CTE as a SCALAR, nine times over: (select name from my_class) and eight
+--     copies of (select id from my_class). GATE 6 MADE SEVERAL CLASSES PER
+--     INSTRUCTOR NORMAL OPERATION, and the moment the account being checked
+--     owned two, every one of those scalar subqueries raised
+--
+--         ERROR: 21000: more than one row returned by a subquery used as an
+--         expression
+--
+--     so the query returned nothing at all rather than a wrong answer. That is
+--     the benign way for this to fail, and it is worth saying: a query that
+--     stops is safer than one that silently reports the oldest class as though
+--     it were the whole account, which is the shape of bug Gate 6 existed to fix
+--     in the application.
+--
+--     THE FIX IS ONE ROW PER CLASS, the same shape query 5 below already had.
+--     Nothing else changed: the same eight counts, the same email switch, and
+--     oldest class first so the first row is the one the pre-Gate-6 version
+--     would have reported.
+--
+--     IT IS THE SAME CLASS OF STALENESS as item 5 of the handoff at the bottom
+--     of supabase/gate-4b-tests.sql, which Gate 6 rewrote in place with a note
+--     rather than deleting. This query was missed because nobody ran it between
+--     Gate 6 shipping and Gate 5 executing. <==
 with me as (
   select id from public.profiles
   where lower(email) = lower('michaeltbanta@gmail.com') and role = 'instructor'
-),
-my_class as (
-  select c.id, c.name from public.classes c join me on c.instructor_id = me.id
 )
 select
-  (select name from my_class)                                              as class_name,
+  c.name                                                                 as class_name,
   (select count(*) from public.class_members m
-     where m.class_id = (select id from my_class))                         as students,
+     where m.class_id = c.id)                                            as students,
   (select count(*) from public.allowed_emails e
-     where e.class_id = (select id from my_class))                         as invites,
+     where e.class_id = c.id)                                            as invites,
   (select count(*) from public.rubrics r
-     where r.class_id = (select id from my_class))                         as rubrics,
+     where r.class_id = c.id)                                            as rubrics,
   (select count(*) from public.scenarios s
-     where s.class_id = (select id from my_class))                         as scenarios,
+     where s.class_id = c.id)                                            as scenarios,
   (select count(*) from public.assignments a
-     where a.class_id = (select id from my_class))                         as assignments,
+     where a.class_id = c.id)                                            as assignments,
   (select count(*) from public.sessions s
-     where s.class_id = (select id from my_class) and s.kind = 'submission') as submissions,
+     where s.class_id = c.id and s.kind = 'submission')                  as submissions,
   (select count(*) from public.sessions s
-     where s.class_id = (select id from my_class) and s.kind = 'practice')   as practices;
+     where s.class_id = c.id and s.kind = 'practice')                    as practices
+from public.classes c
+join me on c.instructor_id = me.id
+order by c.created_at;
 
 
 -- 5. THE SAME COUNTS FOR EVERY CLASS IN THE SYSTEM, side by side.
