@@ -1207,7 +1207,18 @@ SB.q("21 aimed at A", "allowed_emails?select=email,class_id&email=eq." + G5.ids.
 
 **EXPECT:** `[]`, an empty list. The row exists; B cannot see it.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** Status 200 with `[]`.
+
+**A 200 is the right answer and an empty array is the refusal.** The security rule
+does not reject the query; it removes the rows B may not see, so a filter matching
+one of A's invites returns nothing at all. That is also why this is the only place
+in the run where "found nothing" is the pass.
+
+**Two things make it evidence rather than an empty result.** The positive control
+returned all five of B's invites on the SAME token seconds earlier, so the request
+was live. And **item 22 independently proved this row exists and belongs to A**, by
+refusing B's attempt to invite the address with "was invited by another
+instructor". So B is being refused a row that is provably there.
 
 ### Item 22. The invite collision message, confirmed rather than re-opened
 
@@ -2476,6 +2487,37 @@ for it.
 
 
 
+# What this run produced for later, and it is not a to-do list of failures
+
+**Nothing here is a failure of the isolation model.** Both items came out of
+running the checks rather than out of anything refusing wrongly.
+
+**1. Query 4 of `supabase/gate-3b-tests.sql` cannot run any more, and it should be
+fixed.** It errors with "more than one row returned by a subquery used as an
+expression". It was written when an instructor owned exactly one class and uses
+its `my_class` CTE as a scalar in nine places. Gate 6 made several classes normal
+operation and superseded it silently, unlike item 5 of the Gate 4b handoff, which
+was rewritten in place with a note explaining the reversal. **The fix is to make
+it per class, which is what query 5 of the same file already does.** Not done
+during the run, because editing a checks file mid-run would mean the items already
+measured were measured against a different file.
+
+**2. The permission-denied message on `scenarios` carries a Postgres hint that
+would undo Gate 2 if followed.** Recorded in full at S2. The message reads
+`permission denied for table scenarios` with the hint `GRANT SELECT ON
+public.scenarios TO authenticated`, which is exactly the whole-table grant that
+section 9 of `supabase/gate-2-policies.sql` revokes. **Following that hint hands
+every student the hidden persona prompt and the case context in one line.** The
+right response is to re-run section 9, which grants every column except the two.
+Worth a warning comment in `gate-2-policies.sql` itself, since the hint will be
+read by whoever meets the error and it reads like an instruction.
+
+**3. Optional cleanup, not a problem.** `class_exports` holds an unused delete
+token for the historical class taken on 2026-09-02 by Gate 4b's substitution test.
+It is dead twice over (an hour past its TTL by two days, and its fingerprint no
+longer matches a class that has since grown), so it authorises nothing. It can be
+left alone.
+
 # If something fails
 
 **A failure here is not a bug report, it is a build.** So:
@@ -2495,6 +2537,22 @@ for it.
 
 # What a pass certifies, and what it does not
 
+**RESULT, 2026-09-04: EVERY ITEM PASSED.** Nothing failed, nothing had to be fixed
+in flight, and the only row that changed anywhere in the database was the two
+candidates item 20b was supposed to delete, in B's own class.
+
+**What was NOT run, and why, so the record is not read as wider than it is:**
+
+- **Group 3's spent-token variant (G3.4).** Skipped by the owner's ruling of
+  2026-09-03. It needs a completed cascade delete to exist at all; Gate 4b proved
+  it against a throwaway on 2026-09-02.
+- **Item 12 aimed at the caller's own other class.** Not runnable. A generated
+  persona carries no rubric until Phase 2, so **B can hold no submission**, and the
+  reset route reads `kind = "submission"`. Item 12 against A did run.
+- **The relaxed reassign (H10).** Not re-run. Gate 6 ran all five of its parts on
+  2026-09-03, and its one isolation half, the donor left holding a class they no
+  longer own, is the same code path 2.15 exercised three times.
+
 **It certifies** that as of the commit named at the top of this file, with the
 data that existed on the day:
 
@@ -2511,3 +2569,10 @@ data created after the run, or anything about code written after this commit.
 that touches `lib/class-scope.ts`, `lib/instructor-auth.ts` or any scoped read
 puts this file back in question, exactly as Gate 6 would have voided a Gate 5 run
 made before it.
+
+**And one honest limit on the strongest items.** The targets in items 11 to 19
+were chosen so that a failed class guard would be caught by a second guard, which
+is why nothing was at risk. That makes each item a sound test of the class guard,
+because every target was a real row in A's real class and the backstop signatures
+never appeared. **It does not test the backstops themselves**, which is fine: they
+are not what this gate is about, and Gate 4b tested the one that destroys things.
