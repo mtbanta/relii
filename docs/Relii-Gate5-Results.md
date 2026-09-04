@@ -8,10 +8,17 @@ to bottom and write your answer on the `ACTUAL:` line under each item as you go.
 - **Commit tested:** (fill in, from the Vercel deployment)
 - **Site:** relii.vercel.app, never localhost
 - **Instructor A:** michaeltbanta@gmail.com (super admin, owns the historical
-  class and the Gate 6 class)
+  class "Relii Demo (Historical)" and a second class "Pro Selling test")
 - **Instructor B:** instructor@test.com (ordinary instructor, owns three classes,
   deliberately not a super admin)
 - **Student used for the column test:** (fill in)
+
+**THE CLASS NAMES DO NOT MATCH WHO OWNS THEM, AND THIS BIT THREW THE RUN ONCE
+ALREADY.** The class called **"Gate 6 Test class" belongs to instructor B**, not
+to A. Gate 6's click-through item 1 was performed under B. A's two classes are
+**"Relii Demo (Historical)"** and **"Pro Selling test"**. Wherever this file says
+"A's second class" it means Pro Selling test, and it never means anything with
+"Gate 6" in the name. Confirmed against query 2 on 2026-09-04.
 
 ## What this piece is for
 
@@ -129,13 +136,36 @@ ACTUAL:
 Run **query 2 of `supabase/gate-6-checks.sql`** and keep the output. It is what
 "no row moved between classes" is checked against at the end.
 
-**EXPECT, and this is the setup check the sweep depends on:** A's Gate 6 class
-must show `assignments` of at least 1 and `students` of 1. **The dashboard's
-enrolled tile only exists when the class has at least one assignment**, so if
-that assignment is gone the 4-and-1 check quietly becomes "4 and no tile at all".
-If it reads 0, stop and tell CC before going further.
+**THE SETUP CHECK, AND IT CAME BACK 0. This is what it exists to catch.** A's
+second class has **no assignment and no persona**, so **the dashboard's enrolled
+tile does not render there at all** (`app/instructor/page.tsx` short-circuits to
+"No assignments yet" when the class has no assignment). The kickoff's 4-and-1
+expectation therefore cannot be read off A's tiles.
 
-ACTUAL:
+**THE RULING, 2026-09-04: nothing is built in A's second class.** The concrete
+tile-against-Roster check moves to B, which carries it better: B1's tile must
+read 2, B2's must read 1, and both Rosters must agree. A's sweep keeps a concrete
+expectation of its own, and step 1.2 below now states it: **Roster 4 and then 1,
+tile 4 and then the empty state.** That empty state is worth recording rather
+than working around, because it shows the dashboard following the picker into a
+class with nothing in it.
+
+ACTUAL, run 2026-09-04:
+
+| class | instructor | rubrics | personas | assignments | sessions | recordings | invites | students |
+|---|---|---|---|---|---|---|---|---|
+| B1: A demo class | instructor@test.com | 0 | 3 | 1 | 3 | 1 | 3 | 2 |
+| B2: Gate 6 Test class | instructor@test.com | 0 | 1 | 1 | 0 | 0 | 2 | 1 |
+| B3: The demo class | instructor@test.com | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Relii Demo (Historical) | michaeltbanta@gmail.com | 1 | 7 | 3 | 41 | 19 | 8 | 4 |
+| Pro Selling test | michaeltbanta@gmail.com | 0 | 0 | 0 | 0 | 0 | 1 | 1 |
+
+**Read off it, and these are the numbers step 4.2 compares against:** B's setup is
+complete (B1 has 2 students, 1 pending invite, a chosen winner plus an undecided
+pair, 1 assignment, 3 practices and 1 recording; B3 is empty). A's historical
+class holds 4 pending invites, one of which must be the canary. **B carries no
+rubric in any class, which confirms the constraint this whole run is shaped by:
+a generated persona has no rubric, so nothing in B's classes can be submitted.**
 
 ## 0.3 A's submissions and the assignments under them
 
@@ -344,7 +374,7 @@ G5.ids = {
   A_SUB: "",          // step 0.3
   A_ASSIGNMENT: "",   // step 0.3
   A_CLASS_1: "",      // step 0.1, A's historical class
-  A_CLASS_2: "",      // step 0.1, A's Gate 6 class
+  A_CLASS_2: "",      // step 0.1, A's second class, "Pro Selling test"
   B3: "",             // step 0.1, B's third and empty class
   NONSENSE: "11111111-2222-3333-4444-555555555555"
 };
@@ -377,21 +407,26 @@ surfaces each time.
 
 **EXPECT:**
 
-| Surface | Historical class | Gate 6 class |
+| Surface | Relii Demo (Historical) | Pro Selling test |
 |---|---|---|
-| Dashboard "of N enrolled" | **4** | **1** |
 | Roster registered students | **4** | **1** |
-| Manage Assignments | the historical assignments, Alex and Jordan | the Gate 6 assignment only |
-| AI Persona Framework, Recent generations | the historical generations | the Gate 6 generation only |
+| Dashboard enrolled tile | **"of 4 enrolled"** | **no tile: "No assignments yet"** |
+| Manage Assignments | the 3 historical assignments | **empty** |
+| AI Persona Framework, Recent generations | the historical generations | **empty** |
 
 **A number that is merely different is a weaker pass than a number that is
-right.** The Roster must agree with the tile both times.
+right.** The Roster carries that here, with 4 and 1. **The tile is deliberately
+not the check on A's side**, because A's second class has no assignment and so
+has no tile; step 0.2 records why, and B1 and B2 carry the tile-against-Roster
+agreement instead. **Three empty surfaces in a row is the pass, not a problem:
+they show the picker being followed into a class with nothing in it.**
 
 ACTUAL:
 
 ## 1.3 Group 2, item 1. The submission panel on the surface it matters most on
 
-**Switch the picker to A's Gate 6 class**, then put A's historical submission in
+**Switch the picker to A's second class, Pro Selling test**, then put A's
+historical submission in
 the address bar:
 
 ```
@@ -406,20 +441,20 @@ ACTUAL:
 
 ## 1.4 The same answer on the dashboard's bookmark case
 
-Still working in the Gate 6 class:
+Still working in Pro Selling test:
 
 ```
 /instructor?assignment=<A_ASSIGNMENT>
 ```
 
 **EXPECT:** the same panel, worded **"This assignment is in another of your
-classes"**. Not a silent fallback to the Gate 6 class's own assignment.
+classes"**. Not a silent fallback, which here would mean the empty state.
 
 ACTUAL:
 
 ## 1.5 The friendly answer must NOT have leaked into the routes
 
-Still working in the Gate 6 class, paste the preamble and then:
+Still working in Pro Selling test, paste the preamble and then:
 
 ```js
 G5.get("1.5 video",      "/api/instructor/submission/" + G5.ids.A_SUB + "/video");
@@ -916,7 +951,7 @@ Switch B1, B2, B3 and read every surface each time.
 | Surface | B1 | B2 | B3 |
 |---|---|---|---|
 | Roster, registered students | 2 | 1 | 0 |
-| Roster, pending invites | 1 | 0 or 1 | 0 |
+| Roster, pending invites | 1 | 1 | 0 |
 | Dashboard enrolled tile | 2 | 1 | "No assignments yet" |
 | Manage Assignments | B1's assignment | B2's assignment | empty |
 | AI Persona Framework, Recent generations | B1's generations | B2's generation | empty |
@@ -1091,33 +1126,72 @@ ACTUAL (picker works normally again):
 
 ### Item 20. "Discard all" counts and deletes the WORKING class only
 
-**Working in B2.** B2's generation has a chosen winner, so its losing siblings
-are unused and discardable. B1's undecided generation must not be touched.
+**Corrected on 2026-09-04 against the real data.** B2 holds ONE persona, because
+choosing a winner switches it on and deletes the losing candidate, so **B2 has
+nothing discardable at all**. That makes the test cleaner rather than weaker, and
+it splits into two halves that have to be run in this order.
+
+**B1 holds the discardable rows**: its undecided generation, the pair with no
+winner chosen. Those two rows are what must not be reachable from B2, and what
+must be deleted from B1.
+
+#### 20a. The count half. Working in B2.
 
 ```js
-G5.post("20 preview", "/api/instructor/scaffold/discard-all", { preview: true });
+G5.post("20a preview from B2", "/api/instructor/scaffold/discard-all", { preview: true });
 ```
 
-**EXPECT:** a preview whose `names` are **only B2's persona names**. If a single
-B1 name appears in that list, stop: the count is not scoped and the delete would
-not be either.
+**EXPECT:** `deletable: 0` and an **empty `names` list**. **If a single one of
+B1's persona names appears in that list, stop.** The count is not scoped to the
+working class, and the delete would not have been either.
 
 ACTUAL:
 
 ```js
-G5.post("20 confirm", "/api/instructor/scaffold/discard-all", { confirm: "DISCARD" });
+G5.post("20a confirm from B2", "/api/instructor/scaffold/discard-all", { confirm: "DISCARD" });
 ```
 
-**EXPECT:** `ok: true` with a `deleted` count matching the preview.
+**EXPECT:** `ok: true` with `deleted: 0`. Nothing was there to delete.
+
+**Then switch to B1 and open Recent generations. EXPECT:** the undecided
+generation is still there with both candidates. A discard run from B2 that
+reached into B1 is the failure this half exists to find.
 
 ACTUAL:
 
-**Then confirm nothing else moved:** switch to B1 and open Recent generations.
+#### 20b. The delete half. Working in B1.
 
-**EXPECT:** B1's undecided generation is still there, with all its candidates.
-A's counts are re-checked by SQL in step 4 and must be **identical to 0.6**.
+The count half proves the sweep does not reach outside the working class. This
+proves it still works inside it, and it is the half that answers the original
+item: **"as B, counts and deletes B's rows only, and A's candidate count is
+unchanged afterwards."**
+
+**Run 2.14 before this**, because 2.14 aims at `B1_GROUP` and this step deletes
+it.
+
+```js
+G5.post("20b preview from B1", "/api/instructor/scaffold/discard-all", { preview: true });
+```
+
+**EXPECT:** `deletable: 2`, naming B1's two undecided candidates and **nothing
+else**. B1's chosen winner must appear under `live`, not under `deletable`, and
+no name from B2, B3 or any class of A's may appear anywhere in the answer.
 
 ACTUAL:
+
+```js
+G5.post("20b confirm from B1", "/api/instructor/scaffold/discard-all", { confirm: "DISCARD" });
+```
+
+**EXPECT:** `ok: true`, `deleted: 2`. B1's winner and its assignment are
+untouched.
+
+ACTUAL:
+
+**A's counts are the real check on this item and they are re-run by SQL at step
+4.3.** They must be identical to step 0.6.
+
+ACTUAL (B1's Recent generations afterwards, and the assignment still there):
 
 ## Group 1, items 11 to 19. Writes and deletes aimed at A.
 
