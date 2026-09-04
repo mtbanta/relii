@@ -424,7 +424,17 @@ select c.name as class_name,
 **EXPECT:** two rows. Write both numbers down. Step 4 re-runs this and **both
 must be identical** after B has run its own "Discard all".
 
-ACTUAL:
+ACTUAL, run 2026-09-04:
+
+| class | generated_candidates | chosen_winners |
+|---|---|---|
+| Relii Demo (Historical) | **5** | **0** |
+| Pro Selling test | **0** | **0** |
+
+**This is the number item 20 must not move, and step 4.3 re-reads it.** It agrees
+with query 0.4 row for row: the 5 are Leslie, Cameron, Emilie, Alex (candidate)
+and Jamie, and the 0 winners is the same fact that sent item 18 to query 0.4b for
+a different guard.
 
 ## 0.7 Every id from B's side, captured now rather than mid-run
 
