@@ -1472,9 +1472,11 @@ is in on their first page load after a deploy, so it has to be the ordinary one.
 B1's generations). **No page may show a single row of A's data.** Each refusal
 writes a line to the Vercel function log beginning `Gate 6 refused a stored class selection`. Seeing those is confirmation, not a problem.
 
-ACTUAL (state 1, five pages):
-ACTUAL (state 2, five pages):
-ACTUAL (state 3, five pages):
+ACTUAL (state 1, A's class id, five pages), 2026-09-04: **PASS.** Every page fell
+back to B1 and showed B1's content. No row of A's anywhere.
+ACTUAL (state 2, nonsense, five pages), 2026-09-04: **PASS.** Same fallback.
+ACTUAL (state 3, cookie deleted, five pages), 2026-09-04: **PASS.** Same fallback,
+which is also the ordinary state every instructor is in on a first page load.
 
 **Then the route half, with the cookie still set to state 1 (A's class id):**
 
@@ -1487,12 +1489,27 @@ G5.get("2.15 csv, tampered",        "/api/instructor/submission/" + G5.ids.A_SUB
 **EXPECT: status 404 on all three**, exactly as in items 2 to 4. A hand-edited
 cookie must get the caller nothing at all.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 404 on all three with the cookie still naming A's
+class.
+
+==> **THIS IS THE HIGHEST-VALUE RESULT IN THE RUN, AND IT IS WHAT CERTIFIES GATE
+6.** Gate 3a's `getInstructorClassId()` DERIVED the working class from the
+signed-in user, so the browser could not influence it. Gate 6 replaced it with a
+REMEMBERED CHOICE, and anything that carries a choice is editable by the person
+holding it. Without a re-check on every request, one hand-edited cookie would have
+pointed every scoped read and every write on the instructor surface at another
+instructor's class and undone five gate pieces in one line.
+
+**Three tampered states across five pages and three routes, and the caller got
+nothing but their own oldest class every time.** The fallback is a class B
+provably owns rather than "no filter", which is the only direction this can fail
+in safely. <==
 
 **Now put the cookie back** by using the picker in the app (select B1, then B2 as
 you like). Do not hand-edit it back.
 
-ACTUAL (picker works normally again):
+ACTUAL (picker works normally again), 2026-09-04: **PASS.** Restored through the
+app rather than by hand.
 
 ### Item 20. "Discard all" counts and deletes the WORKING class only
 
