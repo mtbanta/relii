@@ -487,7 +487,48 @@ if the generation made one), and B_PRACTICE.
 personas, at least one generation group, and at least two practices. Anything
 missing means a piece of B's setup was not built.
 
-ACTUAL:
+ACTUAL, run 2026-09-04. B1 is complete.
+
+| what | detail | id |
+|---|---|---|
+| B1 assignment | HVAC Alex - trial close | f63ec110-46e8-4c65-ad4b-bb86ea3ba295 |
+| B1 winner (on) [decision_maker] | Alex | 68bc4303-e5ae-4fdb-bcc4-0372631dc729 |
+| B1 candidate (off) [gatekeeper] | Linda | c7be92b3-6ed3-4b0e-9f6f-4d2f2e455342 |
+| B1 candidate (off) [gatekeeper] | Linda | 7d77c8e0-0416-4b91-9a77-39dbe0954a5c |
+| B1 generation group, DECIDED | Alex | 336650af-eb61-4809-9e8d-e34c57f60f01 |
+| B1 generation group, UNDECIDED | Linda, Linda | 5d27b9df-18d9-47f1-9186-e7ed051df3a4 |
+| B1 pending invite | 3studentb1@gmail.com | (no account yet) |
+| B1 student | 1studentb1@gmail.com | 12334ee0-ac19-42da-8a26-90ee0513ab9d |
+| B1 student | 2studentb1@gmail.com | 920c9ea3-c415-4013-94e4-1487fd2fe19e |
+| B1 practice | practice | 529a15dc-c018-4d78-aa75-403d6669d954 |
+| B1 practice | practice | e04a3ad3-b67b-4ad4-9803-a4c1cdfa5906 |
+| B1 practice | practice | 0ae456b3-7979-403f-884a-95e2f77cd144 |
+
+**Settled, and these are the values for the step 2 preamble:**
+
+```
+B1_ASSIGNMENT  f63ec110-46e8-4c65-ad4b-bb86ea3ba295
+B1_WINNER      68bc4303-e5ae-4fdb-bcc4-0372631dc729
+B1_GROUP       5d27b9df-18d9-47f1-9186-e7ed051df3a4   (the UNDECIDED one)
+B1_CANDIDATE   c7be92b3-6ed3-4b0e-9f6f-4d2f2e455342
+B1_GATEKEEPER  c7be92b3-6ed3-4b0e-9f6f-4d2f2e455342   (same row, see below)
+B1_STUDENT     12334ee0-ac19-42da-8a26-90ee0513ab9d
+B1_INVITE      3studentb1@gmail.com
+B_PRACTICE     529a15dc-c018-4d78-aa75-403d6669d954
+```
+
+**Two things to read off this rather than rediscover later.**
+
+**B1_GATEKEEPER and B1_CANDIDATE are the same row on purpose.** Both Lindas are
+gatekeepers and both are switched off, so 2.14's chain line gets the same second
+guard A's Leslie gives item 19: a class-guard failure there is caught by "Choose
+and switch on the gatekeeper first" rather than generating anything.
+
+**Item 20b's expectation is confirmed by this table, not assumed.** B1 holds three
+personas: Alex switched on (so it lands under `live`) and two Lindas switched off
+and never role-played (so they land under `deletable`). **20b must report exactly
+`deletable: 2` and delete 2.** B1's decided group `336650af` is a single row and
+contributes nothing, which is what choosing a winner does: it deletes the loser.
 
 ---
 
