@@ -1064,12 +1064,16 @@ policies on `allowed_emails` actually protect against.
 
 ### The browser-key preamble
 
-Paste the anon public key on the second line. **It is never saved to any file.**
+**The key below is the ANON PUBLISHABLE key**, filled in on the owner's ruling of
+2026-09-04 so a re-run needs no lookup. It is the key that already ships inside
+every page load of the app, so writing it here discloses nothing that visiting the
+site does not. **THE SERVICE ROLE KEY APPEARS NOWHERE IN THIS FILE, IN THIS RUN,
+OR IN ANY STEP OF IT, AND NOTHING HERE HAS ANY USE FOR ONE.**
 
 ```js
 window.SB = {};
 SB.url  = "https://cmpvyralyungfmjoteex.supabase.co";
-SB.anon = "PASTE-THE-ANON-PUBLIC-KEY-HERE";
+SB.anon = "sb_publishable_oHYqaWS5dwmV80eglsk1PA_IKlSjfNh";
 SB.token = (function () {
   var wanted = "sb-cmpvyralyungfmjoteex-auth-token";
   var jar = {};
@@ -2063,7 +2067,21 @@ class. **If this comes back** `[]` **or errors, stop.** Everything below is a de
 and a denial proves nothing if the request was never authenticated as a student:
 an unauthenticated request is denied too, for a completely different reason.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** Status 200 with a real row:
+
+```
+[{"id":"68bc4303-e5ae-4fdb-bcc4-0372631dc729",
+  "title":"Presentation-Close: Alex (regional manager)",
+  "persona_name":"Alex"}]
+```
+
+**Everything below is a denial and none of it would mean anything without this
+line**, because an unauthenticated request is denied too, for a completely
+different reason.
+
+**It also corroborates item 20b independently.** B1 held three personas before the
+run; the student can now see exactly one, Alex the winner, because 20b deleted the
+two Lindas and nothing else.
 
 ### S2. The hidden prompt
 
@@ -2078,7 +2096,27 @@ passes it through. **The fact that decides it is that no rows come back.**
 Coming back with rows, or with the column present and empty, is the failure.
 Write down the exact wording you got.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** Status **403**, no rows:
+
+```
+{"code":"42501","message":"permission denied for table scenarios",
+ "hint":"Grant the required privileges to the current role with:
+         GRANT SELECT ON public.scenarios TO authenticated;"}
+```
+
+**THE MESSAGE NAMES THE TABLE, NOT THE COLUMN, AND THAT IS THE PASS.** The
+expectation in this file was loosened to allow either wording on 2026-09-04,
+before the run, precisely because Postgres is not consistent about which it
+reports. Had it still demanded the column name, this correct result would have
+been written down as a mismatch. **The fact that decides it is that no rows came
+back.**
+
+==> **DO NOT EVER FOLLOW THAT HINT.** Postgres prints it generically and it is
+wrong here: `GRANT SELECT ON public.scenarios TO authenticated` is exactly the
+whole-table grant that section 9 of `supabase/gate-2-policies.sql` REVOKED, and
+running it would hand every student the hidden persona prompt and the case
+context in one line. If this message ever appears in a log, the correct response
+is to re-run section 9 of that file, which grants every column EXCEPT the two. <==
 
 ### S3. The case context
 
@@ -2089,7 +2127,7 @@ SB.q("S3 scenario_context", "scenarios?select=scenario_context");
 **EXPECT:** the same refusal, on the same terms: permission denied, no rows,
 wording naming either the column or the table. Write down what you got.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** Status **403**, code 42501, same wording, no rows.
 
 ### S4. Everything at once
 
@@ -2105,7 +2143,23 @@ The related question, whether a column added since Gate 2 was ever granted, is
 **not** answerable from this message, because a table-level denial names no
 column at all. Query 4.4 in step 4 answers it properly.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** Status **403**, code 42501, same wording, no rows.
+So the whole-table read is genuinely revoked rather than merely unused.
+
+==> **S1 TO S4 ARE THE ITEM WITH THE NEARER DEADLINE, AND THIS IS THE FIRST TIME
+THEY HAVE EVER BEEN RUN.** Gate 2 closed `persona_system_prompt` and
+`scenario_context` with a revoke and a per-column grant, and
+`gate-2-policies-tests.sql` verified **the grant table**. That is a database check.
+**Nobody had ever signed in as a student and asked the web API for the column.**
+
+Every other item in this file protects against a second instructor, a risk that
+arrives if four colleagues opt in. **This one protects against the students
+arriving the week of September 7**, and a student who could read
+`persona_system_prompt` would read the persona's instructions, its objections and
+its win condition before the role-play began.
+
+It is the same shape of gap the whole gate exists to close: **a thing proved at
+the layer that was changed rather than at the layer that consumes it.** <==
 
 ### S5. A student cannot reach the administration surface
 
@@ -2117,7 +2171,7 @@ ACTUAL:
 Gate 4b handoff item 2, and neither half is about the security rules: everything
 under /admin reads with the service-role key.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** Bounced to /student.
 
 ### S6. A student cannot reach the instructor surface
 
@@ -2127,7 +2181,11 @@ ACTUAL:
 
 **EXPECT:** back to /student.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** Bounced to /student.
+
+**STEP 3 IS COMPLETE.** The two column denials are the headline. S5 and S6 close
+Gate 4b handoff item 2, whose two halves were an ordinary instructor bounced to
+/instructor (item G3.5) and a student bounced to /student (here).
 
 ---
 
