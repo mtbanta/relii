@@ -7,10 +7,10 @@ to bottom and write your answer on the `ACTUAL:` line under each item as you go.
 - **Date of the run:** (fill in)
 - **Commit tested:** (fill in, from the Vercel deployment)
 - **Site:** relii.vercel.app, never localhost
-- **Instructor A:** michaeltbanta@gmail.com (super admin, owns the historical
-  class "Relii Demo (Historical)" and a second class "Pro Selling test")
-- **Instructor B:** instructor@test.com (ordinary instructor, owns three classes,
-  deliberately not a super admin)
+- **Instructor A:** [michaeltbanta@gmail.com](mailto:michaeltbanta@gmail.com) (super admin, owns the historical
+class "Relii Demo (Historical)" and a second class "Pro Selling test")
+- **Instructor B:** [instructor@test.com](mailto:instructor@test.com) (ordinary instructor, owns three classes,
+deliberately not a super admin)
 - **Student used for the column test:** (fill in)
 
 **THE CLASS NAMES DO NOT MATCH WHO OWNS THEM, AND THIS BIT THREW THE RUN ONCE
@@ -35,28 +35,30 @@ bodies and the exact expected wording below.
 ## Before you start. Read all six lines.
 
 1. **Set the Safari console filter to "All".** Develop menu, Show Web Inspector,
-   Console, then the filter buttons. With "Evaluations" and "Errors" selected, a
+  Console, then the filter buttons. With "Evaluations" and "Errors" selected, a
    `console.log` is hidden completely, so a PASSING test shows nothing on screen
    and reads as hung. That cost the Gate 6 run twice. If you see a yellow banner
    saying "There are unread messages that have been filtered", click Clear
    Filters.
-2. **`Promise {status: "pending"}` is not a spinner.** Safari prints the value of
-   the expression at the instant you press return and never updates it. The
+2. `Promise {status: "pending"}` **is not a spinner.** Safari prints the value of
+  the expression at the instant you press return and never updates it. The
    answer arrives on a separate line underneath.
-3. **No snippet here puts `await` on the right of a `const`.** Safari reads that
-   as a variable name and stops with "Unexpected identifier". Everything is a
+3. **No snippet here puts** `await` **on the right of a** `const`**.** Safari reads that
+  as a variable name and stops with "Unexpected identifier". Everything is a
    promise chain, and the helpers hang off `window` rather than being declared
    with `const`, so re-pasting a preamble never gives you "Cannot declare a
    redeclared variable".
 4. **Reads run before writes, everywhere.** A read that wrongly succeeds tells
-   you a guard is broken before anything is written. **If any read item fails,
+  you a guard is broken before anything is written. **If any read item fails,
    stop the run and tell CC before executing a single write item.**
 5. **The anon public key is pasted at run time and is never saved to a file.**
-   Supabase dashboard, Project Settings, API, "Project API keys", the `anon`
+  Supabase dashboard, Project Settings, API, "Project API keys", the `anon`
    `public` one. It is the key that already ships in every page load. **The
    service role key is not used anywhere in this run.**
 6. **Do not delete instructor B or any of its classes.** B is the account this
-   piece certifies with and it stays afterwards.
+  piece certifies with and it stays afterwards.
+
+
 
 ## What you build before step 0, and what consumes each piece
 
@@ -66,35 +68,39 @@ stays empty on purpose.
 
 **B1 (oldest). The main class.**
 
-| Build | The item that consumes it |
-|---|---|
-| 2 registered students | 8 (Roster), 9 (enrolled reads 2), the picker sweep |
-| 1 pending invite, never registered | 21's positive control, 8's pending list |
-| 1 generated persona with a winner chosen | 10, and the assignment needs it |
-| 1 assignment on that winner | 9's tile, group 2's `?assignment=` panel |
-| 1 further generation left undecided (no winner) | 20 needs something discardable |
-| 2 short text practices by those students | query 2's sessions column, and item 4b |
-| optional: 1 voice and video practice | query 2's recordings column |
+
+| Build                                           | The item that consumes it                          |
+| ----------------------------------------------- | -------------------------------------------------- |
+| 2 registered students                           | 8 (Roster), 9 (enrolled reads 2), the picker sweep |
+| 1 pending invite, never registered              | 21's positive control, 8's pending list            |
+| 1 generated persona with a winner chosen        | 10, and the assignment needs it                    |
+| 1 assignment on that winner                     | 9's tile, group 2's `?assignment=` panel           |
+| 1 further generation left undecided (no winner) | 20 needs something discardable                     |
+| 2 short text practices by those students        | query 2's sessions column, and item 4b             |
+| optional: 1 voice and video practice            | query 2's recordings column                        |
+
 
 **B2 (second oldest). Where B stands while aiming at B1.**
 
-| Build | The item that consumes it |
-|---|---|
-| 1 registered student | the sweep needs different numbers: 2 in B1, 1 in B2 |
+
+| Build                                                     | The item that consumes it                                           |
+| --------------------------------------------------------- | ------------------------------------------------------------------- |
+| 1 registered student                                      | the sweep needs different numbers: 2 in B1, 1 in B2                 |
 | 1 generated persona with a winner, and 1 assignment on it | so B2's dashboard shows a tile reading 1 rather than an empty state |
-| optional: 1 pending invite | makes the pending list visibly change on the sweep |
+| optional: 1 pending invite                                | makes the pending list visibly change on the sweep                  |
+
 
 **B3. Completely empty. Do not put anything in it.** It is the third state in the
 sweep and it is the class the export token in step 1 is taken from.
 
-**Two throwaway addresses on A's side, both `+` aliases of your own inbox:**
+**Two throwaway addresses on A's side, both** `+` **aliases of your own inbox:**
 
 - **A canary pending invite in A's historical class.** Invited, never registered.
-  It is the target for item 14 and for the tampered-cookie write, so that even a
-  total guard failure destroys one row you can recreate in ten seconds.
+It is the target for item 14 and for the tampered-cookie write, so that even a
+total guard failure destroys one row you can recreate in ten seconds.
 - **The Gate 6 throwaway student**, still in A's historical class. It is the
-  target for item 13, so a guard failure costs a throwaway account rather than
-  one of the four real students. Query 0.5 tells you whether it is still there.
+target for item 13, so a guard failure costs a throwaway account rather than
+one of the four real students. Query 0.5 tells you whether it is still there.
 
 **Every address invited for B must not already exist anywhere**, because
 `allowed_emails.email` is the primary key for the whole system. Fresh `+` aliases
@@ -106,6 +112,8 @@ consulted. The one voice and video practice is worth doing only so that query 2'
 `recordings` column is a real number instead of zero compared against zero.
 
 ---
+
+
 
 # Step 0. Supabase SQL editor, before signing in anywhere
 
@@ -124,16 +132,22 @@ select p.email        as instructor,
  order by p.email, c.created_at;
 ```
 
-**EXPECT:** two classes for michaeltbanta@gmail.com (historical first, the Gate 6
-class second) and three for instructor@test.com. **The first instructor@test.com
+**EXPECT:** two classes for [michaeltbanta@gmail.com](mailto:michaeltbanta@gmail.com) (historical first, the Gate 6
+class second) and three for [instructor@test.com](mailto:instructor@test.com). **The first [instructor@test.com](mailto:instructor@test.com)
 row is B1, the second is B2, the third is B3.** Write the three ids down; the
 cookie tamper test needs to know which is oldest.
 
 ACTUAL:
 
+B1: A demo class
+
+B2: Gate 6 Test class
+
+B3: The demo class
+
 ## 0.2 The "before" picture
 
-Run **query 2 of `supabase/gate-6-checks.sql`** and keep the output. It is what
+Run **query 2 of** `supabase/gate-6-checks.sql` and keep the output. It is what
 "no row moved between classes" is checked against at the end.
 
 **THE SETUP CHECK, AND IT CAME BACK 0. This is what it exists to catch.** A's
@@ -152,13 +166,15 @@ class with nothing in it.
 
 ACTUAL, run 2026-09-04:
 
-| class | instructor | rubrics | personas | assignments | sessions | recordings | invites | students |
-|---|---|---|---|---|---|---|---|---|
-| B1: A demo class | instructor@test.com | 0 | 3 | 1 | 3 | 1 | 3 | 2 |
-| B2: Gate 6 Test class | instructor@test.com | 0 | 1 | 1 | 0 | 0 | 2 | 1 |
-| B3: The demo class | instructor@test.com | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| Relii Demo (Historical) | michaeltbanta@gmail.com | 1 | 7 | 3 | 41 | 19 | 8 | 4 |
-| Pro Selling test | michaeltbanta@gmail.com | 0 | 0 | 0 | 0 | 0 | 1 | 1 |
+
+| class                   | instructor                                                | rubrics | personas | assignments | sessions | recordings | invites | students |
+| ----------------------- | --------------------------------------------------------- | ------- | -------- | ----------- | -------- | ---------- | ------- | -------- |
+| B1: A demo class        | [instructor@test.com](mailto:instructor@test.com)         | 0       | 3        | 1           | 3        | 1          | 3       | 2        |
+| B2: Gate 6 Test class   | [instructor@test.com](mailto:instructor@test.com)         | 0       | 1        | 1           | 0        | 0          | 2       | 1        |
+| B3: The demo class      | [instructor@test.com](mailto:instructor@test.com)         | 0       | 0        | 0           | 0        | 0          | 0       | 0        |
+| Relii Demo (Historical) | [michaeltbanta@gmail.com](mailto:michaeltbanta@gmail.com) | 1       | 7        | 3           | 41       | 19         | 8       | 4        |
+| Pro Selling test        | [michaeltbanta@gmail.com](mailto:michaeltbanta@gmail.com) | 0       | 0        | 0           | 0        | 0          | 1       | 1        |
+
 
 **Read off it, and these are the numbers step 4.2 compares against:** B's setup is
 complete (B1 has 2 students, 1 pending invite, a chosen winner plus an undecided
@@ -191,12 +207,18 @@ select s.id::text     as submission_id,
 **Pick and write down:**
 
 - **A_SUB**: a submission whose `status` is `scored`. Items 1 to 4 and item 12
-  aim at it.
+aim at it.
 - **A_ASSIGNMENT**: the `assignment_id` on that row, and its
-  `sessions_under_assignment` must be **1 or more**. Item 11 aims at it, and the
-  fact that it is in use is what makes item 11 safe.
+`sessions_under_assignment` must be **1 or more**. Item 11 aims at it, and the
+fact that it is in use is what makes item 11 safe.
 
 ACTUAL (A_SUB, A_ASSIGNMENT, and the session count):
+
+A_SUB - d5373ffc-8b13-447a-8e09-e48a2628c49a
+
+A_ASSIGNMENT - 9d884360-d672-476b-a722-b6889b66fda7 (Bunzl: Presentation call, Jordan (extra new again))
+
+session count - 6
 
 ## 0.4 A's personas
 
@@ -219,19 +241,95 @@ select s.persona_name,
 **Pick and write down:**
 
 - **ALEX**: the `scenario_id` of the row whose group reads "(hand written)" and
-  whose persona name is Alex. Items 15, 16 and 17 aim at it.
-- **A_GROUP_LIVE**: a `generation_group_id` that has at least one row with
-  `enabled` = true. Items 5 and 18 aim at it. Item 18 is safe **because** that
-  group has a switched-on winner.
-- **A_CANDIDATE**: the `scenario_id` of a generated row with `enabled` = false.
-  Item 6 aims at it.
-- **A_GATEKEEPER**: the `scenario_id` of a generated row with `chain_role` =
-  `gatekeeper` and `enabled` = true. Items 7 and 19 aim at it. **If there is no
-  such row, use any generated enabled row instead** and note the substitution:
-  the class guard runs before the gatekeeper-role check, so the expected answer
-  is unchanged.
+whose persona name is Alex. Items 15, 16 and 17 aim at it.
+- **A_CANDIDATE**: the `scenario_id` of any generated row with `enabled` = false.
+Item 6 aims at it.
+- **A_GROUP**: any `generation_group_id`. Item 5 aims at it and needs nothing more
+than that it exists. **Item 18 is fussier, and query 0.4b below picks its target.**
+- **A_GATEKEEPER**: the `scenario_id` of the generated row whose `chain_role` is
+`gatekeeper`. Items 7 and 19 aim at it. **It does NOT need to be enabled, and a
+switched-off one is better:** the generate route refuses a switched-off gatekeeper
+with "Choose and switch on the gatekeeper first", which gives item 19 a second
+guard it would not otherwise have. If there is no gatekeeper at all, use any
+generated row and note the substitution; the class guard runs first either way.
+
+**RUN ON 2026-09-04, AND IT CHANGED ITEM 18.** A's seven personas are Alex and
+Jordan (hand written, switched on) plus five generated candidates, **every one of
+them switched off**. So **no generated group of A's has a live winner**, and item
+18 cannot lean on the "this generation has a chosen persona that is switched on"
+refusal the way this file first assumed. Query 0.4b finds it another guard.
 
 ACTUAL:
+
+ALEX: a21ce861-ebbd-4a29-b915-052e55668fec
+A_CANDIDATE: ece231cb-3331-4694-a1cd-938ee22912ee (Cameron, switched off)
+A_GROUP: a98c23dd-b61d-48c0-b2af-25e4ffc50885 (Cameron and Emilie)
+A_GATEKEEPER: aab2ba60-5fd8-45ba-831d-2183cc8176dd (Leslie, switched OFF, which is
+what gives item 19 its second guard)
+
+| persona | scenario_id | enabled | chain_role | group |
+|---|---|---|---|---|
+| Alex | a21ce861-ebbd-4a29-b915-052e55668fec | true | null | hand written |
+| Jordan | 4bfee68d-481a-4d84-8969-8be33a93d4aa | true | null | hand written |
+| Leslie | aab2ba60-5fd8-45ba-831d-2183cc8176dd | false | gatekeeper | cdf87d4f-4984-4a60-835a-49dfaeea36b7 |
+| Cameron | ece231cb-3331-4694-a1cd-938ee22912ee | false | decision_maker | a98c23dd-b61d-48c0-b2af-25e4ffc50885 |
+| Emilie | 78f2ce0b-83a9-44d8-9b86-90160c2e7b24 | false | decision_maker | a98c23dd-b61d-48c0-b2af-25e4ffc50885 |
+| Alex (candidate) | c7113c4d-f5ba-4fdb-8be0-967d75f8ae3a | false | decision_maker | 151d9443-96dd-447c-b574-f0998ddf4e54 |
+| Jamie | 94b0a058-fd6c-4157-b163-29128374cb9b | false | decision_maker | 151d9443-96dd-447c-b574-f0998ddf4e54 |
+
+## 0.4b Which of A's generations is safe to aim item 18 at
+
+Item 18 asks the discard route to destroy one of A's generation groups and expects
+a refusal. The route protects a group two ways, and they are alternatives rather
+than a pair: **a switched-on winner**, which A has none of, **or** any candidate in
+the group that has been **role-played or put on an assignment**. This finds the
+second kind.
+
+```sql
+select s.generation_group_id::text as group_id,
+       string_agg(s.persona_name, ', ' order by s.persona_name) as candidates,
+       count(*) as rows_in_group,
+       bool_or(s.enabled) as has_switched_on_winner,
+       sum((select count(*) from public.sessions x
+             where x.scenario_id = s.id))   as sessions_on_this_group,
+       sum((select count(*) from public.assignments a
+             where a.scenario_id = s.id))   as assignments_on_this_group
+  from public.scenarios s
+  join public.classes  c     on c.id = s.class_id
+  join public.profiles owner on owner.id = c.instructor_id
+ where lower(owner.email) = lower('michaeltbanta@gmail.com')
+   and s.generation_group_id is not null
+ group by s.generation_group_id
+ order by 1;
+```
+
+**IF ANY GROUP shows `sessions_on_this_group` or `assignments_on_this_group` above
+0, that group is A_GROUP_18.** A class-guard failure is then caught by the "this
+generation has been role-played, so it cannot be deleted" refusal, and nothing is
+destroyed either way. That is the outcome to hope for.
+
+**IF EVERY GROUP READS 0 ON BOTH, item 18 has no second guard available**, and
+there is no way to give it one without writing to A's data (switching a candidate
+on goes through the choose route, which deletes the losing sibling, so the cure
+would be worse than the risk). Two honest options, and **the choice is the
+owner's:**
+
+- **Run it anyway, aimed at `cdf87d4f-4984-4a60-835a-49dfaeea36b7` (Leslie), the
+  smallest group at one row.** If the class guard has already failed, that one row
+  is deleted and the generated text is not recoverable. It is an unchosen scaffold
+  draft from the Piece 2 testing, never role-played and on no assignment, and **a
+  class guard that has silently failed is worth far more to know about than one
+  draft row.**
+- **Skip item 18** and record it as not runnable with a defended target. Also
+  honest, and it leaves one row of the matrix unproved.
+
+**Write down which was chosen and why.**
+
+ACTUAL:
+
+
+
+
 
 ## 0.5 A's students and pending invites
 
@@ -256,11 +354,11 @@ select 'pending invite', e.email, '(no account yet)', c.name
 **Pick and write down:**
 
 - **A_STUDENT**: the `id` of the Gate 6 throwaway student (a `+` alias). Item 13
-  aims at it. **If it is not listed, stop and tell CC**, and do not substitute a
-  real student without saying so.
+aims at it. **If it is not listed, stop and tell CC**, and do not substitute a
+real student without saying so.
 - **A_CANARY_INVITE**: the pending invite address you created for this run. Item
-  14 and the tampered-cookie write aim at it. If it is not there, invite it now
-  from A's Invite Users page while working in the historical class.
+14 and the tampered-cookie write aim at it. If it is not there, invite it now
+from A's Invite Users page while working in the historical class.
 
 ACTUAL:
 
@@ -340,6 +438,8 @@ ACTUAL:
 
 ---
 
+
+
 # Step 1. Signed in as instructor A. Reads only.
 
 Nothing in this step destroys anything. One row is added to `class_exports` and
@@ -407,12 +507,14 @@ surfaces each time.
 
 **EXPECT:**
 
-| Surface | Relii Demo (Historical) | Pro Selling test |
-|---|---|---|
-| Roster registered students | **4** | **1** |
-| Dashboard enrolled tile | **"of 4 enrolled"** | **no tile: "No assignments yet"** |
-| Manage Assignments | the 3 historical assignments | **empty** |
-| AI Persona Framework, Recent generations | the historical generations | **empty** |
+
+| Surface                                  | Relii Demo (Historical)      | Pro Selling test                  |
+| ---------------------------------------- | ---------------------------- | --------------------------------- |
+| Roster registered students               | **4**                        | **1**                             |
+| Dashboard enrolled tile                  | **"of 4 enrolled"**          | **no tile: "No assignments yet"** |
+| Manage Assignments                       | the 3 historical assignments | **empty**                         |
+| AI Persona Framework, Recent generations | the historical generations   | **empty**                         |
+
 
 **A number that is merely different is a weaker pass than a number that is
 right.** The Roster carries that here, with 4 and 1. **The tile is deliberately
@@ -464,14 +566,14 @@ G5.get("1.5 csv",        "/api/instructor/submission/" + G5.ids.A_SUB + "/csv");
 
 **EXPECT: status 404 on all three**, with `{"error":"Submission not found."}`.
 The friendly panel belongs on pages a person navigates to; a route is reached
-from a page that is already scoped. **A status of 0 with type `opaqueredirect`
-on the video line is a FAILURE**: it means the route minted a signed recording
+from a page that is already scoped. **A status of 0 with type** `opaqueredirect`
+**on the video line is a FAILURE**: it means the route minted a signed recording
 link for a class you are not working in.
 
 Then switch the picker back to the historical class and run the same three lines
 again. **That is this item's positive control**, and the video line reads
 differently from the other two: transcript and csv come back **200** with
-content, while video comes back **status 0, type `opaqueredirect`**, because the
+content, while video comes back **status 0, type** `opaqueredirect`, because the
 route mints a signed link and redirects to it and `redirect: "manual"` stops the
 console from following it. In this direction that opaqueredirect is the pass.
 
@@ -500,6 +602,8 @@ G5.del = function (label, body) {
   return G5.post(label, "/api/admin/class/" + G5.ids.NONSENSE + "/delete", body);
 };
 ```
+
+
 
 ### Item G3.1. No token at all
 
@@ -571,9 +675,11 @@ ACTUAL:
 
 ---
 
+
+
 # Step 2. Signed in as instructor B. The bulk of the run.
 
-Sign out of A and sign in as instructor@test.com. **Stay signed in as B for this
+Sign out of A and sign in as [instructor@test.com](mailto:instructor@test.com). **Stay signed in as B for this
 whole step**, which is why it is ordered the way it is rather than by item
 number.
 
@@ -608,9 +714,10 @@ G5.post = function (label, url, body) {
 G5.ids = {
   A_SUB: "",           // 0.3  A's scored submission
   A_ASSIGNMENT: "",    // 0.3  A's assignment that HAS sessions
-  A_GROUP_LIVE: "",    // 0.4  A's group with a switched-on winner
-  A_CANDIDATE: "",     // 0.4  one of A's generated, not enabled candidates
-  A_GATEKEEPER: "",    // 0.4  A's generated gatekeeper (or any generated enabled row)
+  A_GROUP: "",         // 0.4  any group of A's, for item 5
+  A_GROUP_18: "",      // 0.4b the group item 18 aims at, chosen there
+  A_CANDIDATE: "",     // 0.4  one of A's generated, switched-off candidates
+  A_GATEKEEPER: "",    // 0.4  A's generated gatekeeper, switched off is fine
   ALEX: "",            // 0.4  Alex's scenario id
   A_STUDENT: "",       // 0.5  the throwaway student's profile id in A's class
   A_CANARY_INVITE: "", // 0.5  the pending canary address in A's class
@@ -691,6 +798,7 @@ being taken on trust. **Aimed at B's own practice, so it is completely safe.**
 ```
 /instructor/submission/<B_PRACTICE>
 ```
+
 ```js
 G5.get("4b video",      "/api/instructor/submission/" + G5.ids.B_PRACTICE + "/video");
 G5.get("4b transcript", "/api/instructor/submission/" + G5.ids.B_PRACTICE + "/transcript");
@@ -706,7 +814,7 @@ ACTUAL:
 ### Item 5. A's comparison page
 
 ```
-/instructor/scaffold/compare/<A_GROUP_LIVE>
+/instructor/scaffold/compare/<A_GROUP>
 ```
 
 **EXPECT:** the plain 404 page. Not the friendly panel.
@@ -738,6 +846,8 @@ succeeds tells you a guard is broken before any write is attempted, and every
 write below aims at A's real data.
 
 ## Group 1, items 8 to 10. The listings.
+
+
 
 ### Item 8. B's Roster
 
@@ -890,7 +1000,7 @@ SB.ins("23 cross-class assignment", "assignments", {
 ```
 
 **EXPECT:** a refusal, status **409**, mentioning code `23503` and the constraint
-name **`assignments_scenario_same_class_fkey`**. The insert policy allows B to
+name `assignments_scenario_same_class_fkey`. The insert policy allows B to
 write into B's own class; the Gate 4a constraint is what refuses the scenario
 from somebody else's.
 
@@ -948,14 +1058,16 @@ Switch B1, B2, B3 and read every surface each time.
 
 **EXPECT:**
 
-| Surface | B1 | B2 | B3 |
-|---|---|---|---|
-| Roster, registered students | 2 | 1 | 0 |
-| Roster, pending invites | 1 | 1 | 0 |
-| Dashboard enrolled tile | 2 | 1 | "No assignments yet" |
-| Manage Assignments | B1's assignment | B2's assignment | empty |
-| AI Persona Framework, Recent generations | B1's generations | B2's generation | empty |
-| Invite Users | works, targets B3 when B3 is selected | | |
+
+| Surface                                  | B1                                    | B2              | B3                   |
+| ---------------------------------------- | ------------------------------------- | --------------- | -------------------- |
+| Roster, registered students              | 2                                     | 1               | 0                    |
+| Roster, pending invites                  | 1                                     | 1               | 0                    |
+| Dashboard enrolled tile                  | 2                                     | 1               | "No assignments yet" |
+| Manage Assignments                       | B1's assignment                       | B2's assignment | empty                |
+| AI Persona Framework, Recent generations | B1's generations                      | B2's generation | empty                |
+| Invite Users                             | works, targets B3 when B3 is selected |                 |                      |
+
 
 **A surface that does not follow the picker is a surface that was missed.**
 
@@ -987,6 +1099,7 @@ G5.ids.B1_GATEKEEPER = "";  // 0.7, a row labelled [gatekeeper], if there is one
 ```js
 G5.post("2.14 / 11 assignment delete", "/api/instructor/assignment/" + G5.ids.B1_ASSIGNMENT + "/delete", {});
 ```
+
 **EXPECT 404**, "That assignment was not found."
 **IF IT SUCCEEDED:** B1's assignment and any practices under it are gone. Rebuild
 it before continuing and tell CC.
@@ -1004,6 +1117,7 @@ ACTUAL: not runnable, no submission exists in any of B's classes.
 ```js
 G5.post("2.14 / 13 delete student", "/api/instructor/delete-student", { studentId: G5.ids.B1_STUDENT });
 ```
+
 **EXPECT 404**, "That student was not found."
 **IF IT SUCCEEDED:** that student's account and sessions are gone. Re-invite and
 re-register before continuing.
@@ -1013,6 +1127,7 @@ ACTUAL:
 ```js
 G5.post("2.14 / 14 uninvite", "/api/instructor/uninvite", { email: G5.ids.B1_INVITE });
 ```
+
 **EXPECT 404**, "That email is not on the invite list."
 **IF IT SUCCEEDED:** re-invite the address from B1's Invite Users page.
 
@@ -1021,6 +1136,7 @@ ACTUAL:
 ```js
 G5.post("2.14 / 15 choose", "/api/instructor/scaffold/choose", { winnerId: G5.ids.B1_CANDIDATE });
 ```
+
 **EXPECT 404**, "That candidate was not found. It may already be deleted."
 **IF IT SUCCEEDED:** B1's undecided generation now has a winner and its sibling
 is deleted, which also removes item 20's discardable rows. Tell CC before going
@@ -1031,6 +1147,7 @@ ACTUAL:
 ```js
 G5.post("2.14 / 16 disable", "/api/instructor/scaffold/disable", { scenarioId: G5.ids.B1_WINNER });
 ```
+
 **EXPECT 404**, "That persona was not found."
 **IF IT SUCCEEDED:** B1's live persona is switched off. Switch it back on.
 
@@ -1039,6 +1156,7 @@ ACTUAL:
 ```js
 G5.post("2.14 / 17 edit", "/api/instructor/scaffold/edit", { candidateId: G5.ids.B1_CANDIDATE, edits: {} });
 ```
+
 **EXPECT 404**, "That candidate was not found. It may already be deleted."
 
 ACTUAL:
@@ -1046,6 +1164,7 @@ ACTUAL:
 ```js
 G5.post("2.14 / 18 discard", "/api/instructor/scaffold/discard", { groupId: G5.ids.B1_GROUP });
 ```
+
 **EXPECT 404**, "That generation was not found. It may already be discarded."
 **IF IT SUCCEEDED:** B1's undecided candidates are gone and item 20 needs a fresh
 generation first.
@@ -1055,6 +1174,7 @@ ACTUAL:
 ```js
 G5.post("2.14 / 19 chain", "/api/instructor/scaffold/generate", { chainFromScenarioId: G5.ids.B1_GATEKEEPER });
 ```
+
 **EXPECT 404**, "That gatekeeper persona was not found." Skip this line and note
 it if B1's generation produced no gatekeeper.
 **IF IT SUCCEEDED:** a new persona was created in B2 carrying B1's case. Discard
@@ -1099,8 +1219,7 @@ is in on their first page load after a deploy, so it has to be the ordinary one.
 **EXPECT, in all three states and on all five pages:** the "Working in" line says
 **B1**, and every surface shows **B1's content** (2 students, B1's assignment,
 B1's generations). **No page may show a single row of A's data.** Each refusal
-writes a line to the Vercel function log beginning `Gate 6 refused a stored class
-selection`. Seeing those is confirmation, not a problem.
+writes a line to the Vercel function log beginning `Gate 6 refused a stored class selection`. Seeing those is confirmation, not a problem.
 
 ACTUAL (state 1, five pages):
 ACTUAL (state 2, five pages):
@@ -1141,7 +1260,7 @@ must be deleted from B1.
 G5.post("20a preview from B2", "/api/instructor/scaffold/discard-all", { preview: true });
 ```
 
-**EXPECT:** `deletable: 0` and an **empty `names` list**. **If a single one of
+**EXPECT:** `deletable: 0` and an **empty** `names` **list**. **If a single one of
 B1's persona names appears in that list, stop.** The count is not scoped to the
 working class, and the delete would not have been either.
 
@@ -1338,19 +1457,25 @@ ACTUAL:
 
 ### Item 18. Discard one of A's generations
 
-Target: **A_GROUP_LIVE**, a group of A's that has a **switched-on winner**, which
-is what defends it a second time.
+Target: **A_GROUP_18**, chosen at query 0.4b. A has no generated group with a
+switched-on winner, so the second guard here is the other one the route offers: a
+group whose candidates have been role-played or assigned cannot be discarded. If
+0.4b found no such group, this item runs undefended and 0.4b records the decision.
 
 ```js
-G5.post("item 18 discard", "/api/instructor/scaffold/discard", { groupId: G5.ids.A_GROUP_LIVE });
+G5.post("item 18 discard", "/api/instructor/scaffold/discard", { groupId: G5.ids.A_GROUP_18 });
 ```
 
 **EXPECT:** status **404**, "That generation was not found. It may already be
 discarded."
 
-**IF THE GUARD FAILED:** status **409** beginning "This generation has a chosen
-persona that is switched on", and it will **name A's persona**, which is itself a
-leak. **Stop the run.**
+**IF THE GUARD FAILED, with a defended target:** status **409** beginning "This
+generation has been role-played", and it will **name A's persona**, which is
+itself a leak. Nothing was destroyed. **Stop the run.**
+
+**IF THE GUARD FAILED, with an undefended target:** `ok: true` and a `deleted`
+count. Those draft candidates of A's are gone and cannot be recovered. **Stop the
+run** and record exactly which rows went.
 
 ACTUAL:
 
@@ -1366,8 +1491,13 @@ G5.post("item 19 chain", "/api/instructor/scaffold/generate", { chainFromScenari
 
 **EXPECT:** status **404**, "That gatekeeper persona was not found."
 
-**IF THE GUARD FAILED:** a 200 and a new persona in B's class carrying A's case.
-Discard it, and **stop the run**.
+**IF THE GUARD FAILED:** status **400**, "Choose and switch on the gatekeeper
+first, then generate its decision maker." Nothing was generated and nothing
+leaked, because A's only gatekeeper is switched off, but the class guard did not
+fire. **Stop the run.**
+
+**IF BOTH FAILED:** a 200 and a new persona in B's class carrying A's case
+details. Discard it from B's Recent generations and **stop the run**.
 
 ACTUAL:
 
@@ -1463,6 +1593,8 @@ ACTUAL:
 
 ## The remaining Gate 6 handoff items, still as B
 
+
+
 ### H8. The add-student route refuses a student from another instructor's class
 
 **Target the student named on A_SUB in query 0.3**, not just any of A's students.
@@ -1539,6 +1671,8 @@ ACTUAL: not re-run, covered by Gate 6 and by 2.15.
 
 ---
 
+
+
 # Step 3. Signed in as a student. The column leak.
 
 **Sign out of B completely and sign in as a student.** One of B's newly
@@ -1567,7 +1701,7 @@ SB.q("S1 positive control", "scenarios?select=id,title,persona_name");
 ```
 
 **EXPECT:** status 200 and **real rows**, the personas of this student's own
-class. **If this comes back `[]` or errors, stop.** Everything below is a denial,
+class. **If this comes back** `[]` **or errors, stop.** Everything below is a denial,
 and a denial proves nothing if the request was never authenticated as a student:
 an unauthenticated request is denied too, for a completely different reason.
 
@@ -1639,17 +1773,21 @@ ACTUAL:
 
 ---
 
+
+
 # Step 4. Supabase SQL editor, after the run
+
+
 
 ## 4.1 Every query in the three files
 
 Run each one and compare against the expectation written above it in the file.
 
 - `supabase/gate-3b-tests.sql`, queries 1 to 6.
-  **EXPECT** on query 1: `still_on_is_instructor` **0**,
-  `now_on_instructs_class` **8**, `on_can_read_class` **3**.
+**EXPECT** on query 1: `still_on_is_instructor` **0**,
+`now_on_instructs_class` **8**, `on_can_read_class` **3**.
 - `supabase/gate-4b-tests.sql`, every query.
-  **EXPECT** the export-token query to show B3's unused export from step 1.7.
+**EXPECT** the export-token query to show B3's unused export from step 1.7.
 - `supabase/gate-6-checks.sql`, queries 1 to 8.
 
 ACTUAL (3b):
@@ -1678,7 +1816,7 @@ ACTUAL:
 The browser test in step 3 proves the two secret columns are closed. It cannot
 prove the opposite half: that nothing else was closed by accident. Section 9 of
 `supabase/gate-2-policies.sql` revokes the whole table and grants back every
-column except two, **and a column added to `scenarios` after that file last ran
+column except two, **and a column added to** `scenarios` **after that file last ran
 is granted to nobody**, so ordinary users cannot read it and any page that tries
 fails with "permission denied for column".
 
@@ -1708,7 +1846,7 @@ ACTUAL:
 
 ## 4.5 Item 23's standing check
 
-Query **6 of `gate-6-checks.sql`**.
+Query **6 of** `gate-6-checks.sql`.
 
 **EXPECT:** the first two lines **0**. The third is informational and is allowed
 to be non-zero. Combined with item 23 above, this says both that no cross-class
@@ -1718,20 +1856,24 @@ ACTUAL:
 
 ---
 
+
+
 # Items settled rather than tested
 
 - **Item 22, the invite collision.** Settled by the multi-class rulings of
-  2026-09-02: a student is in one class at a time, so `allowed_emails.email`
-  stays a primary key. Item 22 above confirms the message is the legible one; it
-  does not re-open the question.
+2026-09-02: a student is in one class at a time, so `allowed_emails.email`
+stays a primary key. Item 22 above confirms the message is the legible one; it
+does not re-open the question.
 - **Item 23, the cross-class reference question.** Settled by Gate 4a with a
-  constraint rather than a creation-time check. Item 23 above confirms the
-  constraint bites.
+constraint rather than a creation-time check. Item 23 above confirms the
+constraint bites.
 - **Group 3 item G3.4, the spent delete token.** Skipped. It needs a completed
-  cascade delete to exist at all, Gate 4b proved it against a throwaway on
-  2026-09-02, and the owner ruled on 2026-09-03 not to build a throwaway class
-  for it.
+cascade delete to exist at all, Gate 4b proved it against a throwaway on
+2026-09-02, and the owner ruled on 2026-09-03 not to build a throwaway class
+for it.
 - **Gate 6 handoff item 10, the relaxed reassign.** Not re-run; see H10 above.
+
+
 
 # If something fails
 
@@ -1739,14 +1881,16 @@ ACTUAL:
 
 1. **Stop the affected group and tell CC.** Nothing gets fixed in flight.
 2. **Say what the failure proves and what it does not.** One route refusing
-   wrongly is a different thing from a shared helper failing, and the second
+  wrongly is a different thing from a shared helper failing, and the second
    invalidates every item that went through it. Items 1 to 7, 11 to 19 and the
    cookie tamper all pass through `refuseOutsideClass` or `resolveWorkingClassId`;
    if either of those is what broke, every one of those items stops being
    evidence regardless of what it answered.
 3. **A fix means the items that ran before it are no longer evidence**, exactly
-   as a Gate 5 pass earned before Gate 6 would have been void. The re-run list
+  as a Gate 5 pass earned before Gate 6 would have been void. The re-run list
    gets written down before the fix is built.
+
+
 
 # What a pass certifies, and what it does not
 
@@ -1754,9 +1898,9 @@ ACTUAL:
 data that existed on the day:
 
 - A second instructor account cannot read, list, download, edit, delete or reset
-  anything belonging to the first, by page or by route or by browser key.
+anything belonging to the first, by page or by route or by browser key.
 - One instructor's own surface follows the class they chose, and a hand-edited
-  class cookie gets the caller nothing but their own oldest class.
+class cookie gets the caller nothing but their own oldest class.
 - A student cannot read the two hidden persona columns through the web API.
 - The super admin surface refuses an ordinary instructor and a student.
 
