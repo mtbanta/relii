@@ -1630,7 +1630,9 @@ did not fire. **Stop the run.**
 **What would have been destroyed had both guards failed:** the assignment, every
 submission and practice under it, and each of their recordings in Storage.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 404, "That assignment was not found." Not the
+in-use 409, so the class guard fired first and the six sessions under that
+assignment were never in play.
 
 ### Item 12. Reset A's submission
 
@@ -1650,7 +1652,9 @@ fire. **Stop the run.**
 **What would have been destroyed had both guards failed:** the submission row and
 its recording.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 404. Not the "not a locked, interrupted submission"
+409, so the refusal came from the class check rather than the qualification check
+standing in for it.
 
 ### Item 13. Delete A's student
 
@@ -1667,7 +1671,8 @@ here **destroys the throwaway account and its sessions**. That is why the target
 is the throwaway: it is re-invitable and re-registerable in a couple of minutes.
 **Stop the run.**
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 404. **This is the item with no second guard**, so
+the 404 is the only thing that stood between the request and student3's account.
 
 ### Item 14. Withdraw A's invite
 
@@ -1682,7 +1687,7 @@ G5.post("item 14 uninvite", "/api/instructor/uninvite", { email: G5.ids.A_CANARY
 **IF THE GUARD FAILED:** `ok: true`, and one pending invite row is gone. Recreate
 it from A's Invite Users page and **stop the run.**
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 404. The canary invite survives, which 2.16 needs.
 
 ### Item 15. Choose one of A's candidates as a winner
 
@@ -1705,7 +1710,8 @@ guard did not fire. **Stop the run.**
 **What would have happened against a real candidate:** that candidate switched
 on and its losing sibling deleted, inside A's class.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 404, not the 400 naming the AI Persona Framework, so
+the class check refused Alex before the hand-written check ever saw the row.
 
 ### Item 16. Switch off one of A's personas
 
@@ -1723,7 +1729,7 @@ the AI Persona Framework, so it cannot be switched off here." **Stop the run.**
 **What would have happened against a generated winner:** A's live persona goes
 dark for A's students until somebody notices and switches it back on.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 404, not the 400. Alex stays switched on.
 
 ### Item 17. Rewrite one of A's candidates
 
@@ -1741,7 +1747,7 @@ deleted."
 **IF THE GUARD FAILED:** status **400** naming the AI Persona Framework. **Stop
 the run.**
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 404, not the 400. Alex's hidden prompt is untouched.
 
 ### Item 18. Discard one of A's generations
 
@@ -1765,7 +1771,8 @@ itself a leak. Nothing was destroyed. **Stop the run.**
 count. Those draft candidates of A's are gone and cannot be recovered. **Stop the
 run** and record exactly which rows went.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 404, not the 409 naming a role-played persona, and
+Leslie's group is intact.
 
 ### Item 19. Chain a new persona from A's gatekeeper
 
@@ -1787,7 +1794,22 @@ fire. **Stop the run.**
 **IF BOTH FAILED:** a 200 and a new persona in B's class carrying A's case
 details. Discard it from B's Recent generations and **stop the run**.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** 404, not the 400 about switching the gatekeeper on.
+Nothing was generated and none of A's case text reached B's class.
+
+**ITEMS 11 TO 19 ARE COMPLETE AND EVERY ONE REFUSED WITH 404.**
+
+**READ THE 404s AGAINST THE SIGNATURES THAT DID NOT APPEAR, BECAUSE THAT IS WHAT
+MAKES THEM EVIDENCE.** Every target was a real row in A's real class, chosen so a
+failed class guard would be caught by a second one: an in-use assignment, a scored
+submission asked to be reset as interrupted, Alex three times, a role-played
+generation group, a switched-off gatekeeper. **Not one of those second guards ever
+spoke.** Had the class guard failed, the answer would have been a 409 or a 400
+from the backstop instead, and the run would have stopped with nothing destroyed.
+The 404s mean the first guard did the work.
+
+**Items 13 and 14 had no backstop at all**, which is why their targets were a
+zero-session account and a throwaway invite rather than anything of Tom's.
 
 ### 2.16 The capstone: a tampered cookie AND a target in A's class
 
