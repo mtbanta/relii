@@ -605,7 +605,9 @@ from the table.
 **EXPECT:** the dashboard renders with the tiles, and the submission page opens
 with the transcript and the score on it.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** Both rendered. Every refusal recorded in step 1
+below is therefore a refusal of an authenticated instructor request, which is the
+only reason a 404 further down means anything.
 
 ## 1.2 A's picker sweep, and it has a concrete expected value
 
@@ -630,7 +632,11 @@ has no tile; step 0.2 records why, and B1 and B2 carry the tile-against-Roster
 agreement instead. **Three empty surfaces in a row is the pass, not a problem:
 they show the picker being followed into a class with nothing in it.**
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS**, against every cell of the table above. Roster 4 then
+1, tile "of 4 enrolled" then "No assignments yet", Manage Assignments and Recent
+generations both populated then both empty. **The 4-and-1 the kickoff asked for is
+therefore proved on the Roster**, and the three empty surfaces in Pro Selling test
+are the picker being followed into a class holding nothing.
 
 ## 1.3 Group 2, item 1. The submission panel on the surface it matters most on
 
