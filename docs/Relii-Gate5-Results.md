@@ -4,14 +4,19 @@
 file rather than two, so the record and the run can never drift apart. Work top
 to bottom and write your answer on the `ACTUAL:` line under each item as you go.
 
-- **Date of the run:** (fill in)
-- **Commit tested:** (fill in, from the Vercel deployment)
+- **Date of the run:** **2026-09-04**, start to finish in one day.
+- **Commit tested:** the deploy live throughout was the tree at **3958318**, whose
+  last application-code change is **1982fbe, "Build Gate 6: multiple classes per
+  instructor"**. Everything committed after it in this run is documentation.
+- **Result: EVERY ITEM PASSED. Nothing failed, and nothing had to be fixed
+  mid-run.**
 - **Site:** relii.vercel.app, never localhost
 - **Instructor A:** [michaeltbanta@gmail.com](mailto:michaeltbanta@gmail.com) (super admin, owns the historical
 class "Relii Demo (Historical)" and a second class "Pro Selling test")
 - **Instructor B:** [instructor@test.com](mailto:instructor@test.com) (ordinary instructor, owns three classes,
 deliberately not a super admin)
-- **Student used for the column test:** (fill in)
+- **Student used for the column test:** a registered student of B1, confirmed by
+  S1 returning B1's own persona and nothing else.
 
 **THE CLASS NAMES DO NOT MATCH WHO OWNS THEM, AND THIS BIT THREW THE RUN ONCE
 ALREADY.** The class called **"Gate 6 Test class" belongs to instructor B**, not
@@ -274,7 +279,7 @@ them switched off**. So **no generated group of A's has a live winner**, and ite
 18 cannot lean on the "this generation has a chosen persona that is switched on"
 refusal the way this file first assumed. Query 0.4b finds it another guard.
 
-ACTUAL:
+ACTUAL: recorded in the block above, with the persona table and the settled ids.
 
 ALEX: a21ce861-ebbd-4a29-b915-052e55668fec
 A_CANDIDATE: ece231cb-3331-4694-a1cd-938ee22912ee (Cameron, switched off)
@@ -602,7 +607,8 @@ console.log("preamble loaded", G5.ids);
 string, fix it before going on. Every refusal below is meaningless if the request
 was never aimed anywhere.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** Ids printed back filled in, and 1.5 and 1.6 ran off
+this preamble.
 
 ## 1.1 Positive control. Nothing below counts without this.
 
@@ -825,7 +831,9 @@ Step 1 leaves one row in `class_exports`: B3's export, with `used_at` empty. Tha
 is an export somebody took and did not act on. Query 6 of
 `supabase/gate-4b-tests.sql` will show it in step 4. It is not an anomaly.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** Confirmed at step 4.1: query 6 of
+`supabase/gate-4b-tests.sql` shows B3's export taken 2026-09-04 with `used_at`
+empty and every count zero.
 
 ---
 
@@ -889,7 +897,7 @@ console.log("preamble loaded", G5.ids);
 **EXPECT:** every id prints back filled in. An empty string means the request goes
 nowhere and its refusal proves nothing.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** Every id printed back filled in.
 
 ## 2.2 Positive controls. Nothing below counts without these.
 
@@ -1148,7 +1156,9 @@ positive control and see the five rows again**. Only then re-run the item that
 failed. Re-establishing the positive control is the part that matters: a new token
 that has not been shown to work is no better than the expired one. <==
 
-ACTUAL:
+ACTUAL, 2026-09-04: the token DID expire mid-step and item 23 returned it. The
+three-step recovery was performed and item 21's positive control was re-run and
+seen again before item 23 was retried.
 
 ### Item 21. The invite list over the web API
 
@@ -2054,7 +2064,7 @@ Paste **the same browser-key preamble from step 2**, with the anon key again.
 
 **EXPECT:** "session token: ... FOUND".
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** "session token: ... FOUND".
 
 ### S1. The positive control. Run this first and do not skip it.
 
@@ -2382,7 +2392,13 @@ Re-run query **0.6**.
 all" while this run was in progress; if either number moved, `planBulkDiscard`
 reached outside the working class.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS. 5 and 0 for the historical class, 0 and 0 for Pro
+Selling test, identical to step 0.6 in every figure.**
+
+**This is item 20's real check and it is stronger than the two console answers.**
+20a and 20b reported what the route SAID it would touch. This measures what
+actually moved, from outside the application, after B ran "Discard all" twice in
+two different classes. A's five generated candidates are all still there.
 
 ## 4.4 Was every column of scenarios granted back?
 
@@ -2415,7 +2431,15 @@ the repair is to re-run section 9 of `supabase/gate-2-policies.sql`, which is
 written as a loop precisely so a second run fixes exactly this drift. Report it,
 do not fix it in flight.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS, no rows.** Every column of `scenarios` except the two
+secret ones is granted to `authenticated`, so nothing has been added to that table
+since Gate 2 ran without being granted back.
+
+**This is the half S2 to S4 could not prove and it needed asking separately.** The
+browser test showed the two columns are CLOSED. A table-level permission-denied
+message names no column at all, so it can never show that nothing ELSE was closed
+by accident. Together they say: exactly two columns are shut, and they are the
+right two.
 
 ## 4.5 Item 23's standing check
 
@@ -2425,7 +2449,11 @@ Query **6 of** `gate-6-checks.sql`.
 to be non-zero. Combined with item 23 above, this says both that no cross-class
 reference exists **and** that one cannot be created.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** All three lines 0, as recorded under step 4.1's
+gate-6 results. **With item 23, this closes the last of the two matrix entries
+that were carried as design questions rather than tests**: no cross-class
+reference exists, and the database refuses one when an instructor writes it
+directly.
 
 ---
 
