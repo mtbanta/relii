@@ -325,7 +325,19 @@ owner's:**
 
 **Write down which was chosen and why.**
 
-ACTUAL:
+ACTUAL, run 2026-09-04:
+
+| group_id | candidates | rows | switched-on winner | sessions | assignments |
+|---|---|---|---|---|---|
+| 151d9443-96dd-447c-b574-f0998ddf4e54 | Alex, Jamie | 2 | false | 0 | 0 |
+| a98c23dd-b61d-48c0-b2af-25e4ffc50885 | Cameron, Emilie | 2 | false | 0 | 0 |
+| cdf87d4f-4984-4a60-835a-49dfaeea36b7 | Leslie | 1 | false | **1** | **1** |
+
+**SETTLED: A_GROUP_18 = `cdf87d4f-4984-4a60-835a-49dfaeea36b7` (Leslie).** It
+carries one session and one assignment, so the "has been role-played" refusal is
+live on it. **Item 18 runs fully defended and no draft row is at risk**, so
+neither of the two fallback options above is needed. The other two groups are
+undefended and are deliberately not used as the target.
 
 
 
