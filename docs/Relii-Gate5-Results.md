@@ -137,13 +137,26 @@ class second) and three for [instructor@test.com](mailto:instructor@test.com). *
 row is B1, the second is B2, the third is B3.** Write the three ids down; the
 cookie tamper test needs to know which is oldest.
 
-ACTUAL:
+ACTUAL, run 2026-09-04:
 
-B1: A demo class
+| instructor | class | class_id | created |
+|---|---|---|---|
+| instructor@test.com | B1: A demo class | 196770e0-cdd5-4fe4-80e4-421ee6c7d13f | 2026-08-25 |
+| instructor@test.com | B2: Gate 6 Test class | 1a83a9f1-fbcc-4e39-ae73-95bd43da0e8f | 2026-09-02 |
+| instructor@test.com | B3: The demo class | 98859b39-79a2-4fbc-b2c8-3a9de9e50223 | 2026-09-03 |
+| michaeltbanta@gmail.com | Relii Demo (Historical) | b03df6d8-8485-4d27-a712-b78d8bfc9453 | 2026-08-25 |
+| michaeltbanta@gmail.com | Pro Selling test | be13eabb-ece1-4fdd-a034-74700fe96007 | 2026-09-03 |
 
-B2: Gate 6 Test class
+**B's oldest is B1**, which is the class every cookie-tamper state at 2.15 must
+fall back to. **The classes carry their B1, B2 and B3 prefixes in their real
+names**, so the picker itself says which one you are in and the fallback is
+readable at a glance rather than inferred from the content.
 
-B3: The demo class
+**One thing that looks odd and is not.** B1 and A's historical class carry the
+identical `created_at`, to the microsecond. Both were written by the same backfill
+in `supabase/gate-1-class-spine.sql` on 2026-08-25. It affects nothing: the oldest
+class is resolved per instructor, and each instructor's own timestamps are
+distinct from each other.
 
 ## 0.2 The "before" picture
 
@@ -565,11 +578,11 @@ G5.post = function (label, url, body) {
   });
 };
 G5.ids = {
-  A_SUB: "",          // step 0.3
-  A_ASSIGNMENT: "",   // step 0.3
-  A_CLASS_1: "",      // step 0.1, A's historical class
-  A_CLASS_2: "",      // step 0.1, A's second class, "Pro Selling test"
-  B3: "",             // step 0.1, B's third and empty class
+  A_SUB:        "d5373ffc-8b13-447a-8e09-e48a2628c49a", // 0.3 scored submission
+  A_ASSIGNMENT: "9d884360-d672-476b-a722-b6889b66fda7", // 0.3 has 6 sessions
+  A_CLASS_1:    "b03df6d8-8485-4d27-a712-b78d8bfc9453", // 0.1 Relii Demo (Historical)
+  A_CLASS_2:    "be13eabb-ece1-4fdd-a034-74700fe96007", // 0.1 Pro Selling test
+  B3:           "98859b39-79a2-4fbc-b2c8-3a9de9e50223", // 0.1 B3, empty
   NONSENSE: "11111111-2222-3333-4444-555555555555"
 };
 console.log("preamble loaded", G5.ids);
@@ -626,7 +639,7 @@ historical submission in
 the address bar:
 
 ```
-/instructor/submission/<A_SUB>
+/instructor/submission/d5373ffc-8b13-447a-8e09-e48a2628c49a
 ```
 
 **EXPECT:** the friendly panel, headed **"This submission is in another of your
@@ -640,7 +653,7 @@ ACTUAL:
 Still working in Pro Selling test:
 
 ```
-/instructor?assignment=<A_ASSIGNMENT>
+/instructor?assignment=9d884360-d672-476b-a722-b6889b66fda7
 ```
 
 **EXPECT:** the same panel, worded **"This assignment is in another of your
@@ -806,20 +819,22 @@ G5.post = function (label, url, body) {
   });
 };
 G5.ids = {
-  A_SUB: "",           // 0.3  A's scored submission
-  A_ASSIGNMENT: "",    // 0.3  A's assignment that HAS sessions
-  A_GROUP: "",         // 0.4  any group of A's, for item 5
-  A_GROUP_18: "",      // 0.4b the group item 18 aims at, chosen there
-  A_CANDIDATE: "",     // 0.4  one of A's generated, switched-off candidates
-  A_GATEKEEPER: "",    // 0.4  A's generated gatekeeper, switched off is fine
-  ALEX: "",            // 0.4  Alex's scenario id
-  A_STUDENT: "",       // 0.5  the throwaway student's profile id in A's class
-  A_CANARY_INVITE: "", // 0.5  the pending canary address in A's class
-  A_CLASS_1: "",       // 0.1  A's historical class id
-  B1: "", B2: "", B3: "",   // 0.1, oldest first
-  B_PRACTICE: "",      // 0.7  "B1 practice session"
-  B1_GROUP: "",        // 0.7  "B1 generation group", the UNDECIDED one
-  B1_ASSIGNMENT: ""    // 0.7  "B1 assignment"
+  A_SUB:           "d5373ffc-8b13-447a-8e09-e48a2628c49a", // 0.3
+  A_ASSIGNMENT:    "9d884360-d672-476b-a722-b6889b66fda7", // 0.3 has 6 sessions
+  A_GROUP:         "a98c23dd-b61d-48c0-b2af-25e4ffc50885", // 0.4 Cameron + Emilie
+  A_GROUP_18:      "cdf87d4f-4984-4a60-835a-49dfaeea36b7", // 0.4b Leslie, DEFENDED
+  A_CANDIDATE:     "ece231cb-3331-4694-a1cd-938ee22912ee", // 0.4 Cameron, off
+  A_GATEKEEPER:    "aab2ba60-5fd8-45ba-831d-2183cc8176dd", // 0.4 Leslie, off
+  ALEX:            "a21ce861-ebbd-4a29-b915-052e55668fec", // 0.4 hand written
+  A_STUDENT:       "16ef6cf3-9e2f-4dc8-bea6-c45ce6a50421", // 0.5 student3, 0 sessions
+  A_CANARY_INVITE: "ta1+michaeltbanta@gmail.com",          // 0.5 ta2 is the spare
+  A_CLASS_1:       "b03df6d8-8485-4d27-a712-b78d8bfc9453", // 0.1 Historical
+  B1:              "196770e0-cdd5-4fe4-80e4-421ee6c7d13f", // 0.1 B's OLDEST
+  B2:              "1a83a9f1-fbcc-4e39-ae73-95bd43da0e8f", // 0.1
+  B3:              "98859b39-79a2-4fbc-b2c8-3a9de9e50223", // 0.1 empty
+  B_PRACTICE:      "529a15dc-c018-4d78-aa75-403d6669d954", // 0.7
+  B1_GROUP:        "5d27b9df-18d9-47f1-9186-e7ed051df3a4", // 0.7 the UNDECIDED one
+  B1_ASSIGNMENT:   "f63ec110-46e8-4c65-ad4b-bb86ea3ba295"  // 0.7
 };
 console.log("preamble loaded", G5.ids);
 ```
@@ -855,7 +870,7 @@ class, which is a small leak of exactly the kind this gate closes.
 Put this in the address bar:
 
 ```
-/instructor/submission/<A_SUB>
+/instructor/submission/d5373ffc-8b13-447a-8e09-e48a2628c49a
 ```
 
 **EXPECT:** the plain Next.js 404 page, reading **"This page could not be
@@ -890,7 +905,7 @@ being taken on trust. **Aimed at B's own practice, so it is completely safe.**
 `G5.ids.B_PRACTICE` was captured at step 0.7. Then:
 
 ```
-/instructor/submission/<B_PRACTICE>
+/instructor/submission/529a15dc-c018-4d78-aa75-403d6669d954
 ```
 
 ```js
@@ -908,7 +923,7 @@ ACTUAL:
 ### Item 5. A's comparison page
 
 ```
-/instructor/scaffold/compare/<A_GROUP>
+/instructor/scaffold/compare/a98c23dd-b61d-48c0-b2af-25e4ffc50885
 ```
 
 **EXPECT:** the plain 404 page. Not the friendly panel.
@@ -918,7 +933,7 @@ ACTUAL:
 ### Item 6. A's candidate edit page
 
 ```
-/instructor/scaffold/edit/<A_CANDIDATE>
+/instructor/scaffold/edit/ece231cb-3331-4694-a1cd-938ee22912ee
 ```
 
 **EXPECT:** the plain 404 page.
@@ -928,7 +943,7 @@ ACTUAL:
 ### Item 7. A's gatekeeper chain page
 
 ```
-/instructor/scaffold/chain/<A_GATEKEEPER>
+/instructor/scaffold/chain/aab2ba60-5fd8-45ba-831d-2183cc8176dd
 ```
 
 **EXPECT:** the plain 404 page.
@@ -1122,10 +1137,10 @@ own surface follow the class they chose".
 **Switch the picker to B2.** Then open each of these:
 
 ```
-/instructor/scaffold/compare/<B1_GROUP>
+/instructor/scaffold/compare/5d27b9df-18d9-47f1-9186-e7ed051df3a4
 /instructor/scaffold/edit/<one of B1's candidate ids>
 /instructor/scaffold/chain/<B1's gatekeeper, if the generation made one>
-/instructor?assignment=<B1_ASSIGNMENT>
+/instructor?assignment=f63ec110-46e8-4c65-ad4b-bb86ea3ba295
 ```
 
 **EXPECT:** the friendly panel each time, headed "This comparison / persona /
@@ -1181,11 +1196,11 @@ what to rebuild if it wrongly succeeds.
 Fill in five more ids first, **all of them captured at step 0.7**:
 
 ```js
-G5.ids.B1_STUDENT    = "";  // 0.7, "B1 student"
-G5.ids.B1_INVITE     = "";  // 0.7, "B1 pending invite"
-G5.ids.B1_CANDIDATE  = "";  // 0.7, a "B1 candidate (switched off)" row
-G5.ids.B1_WINNER     = "";  // 0.7, a "B1 winner (switched on)" row
-G5.ids.B1_GATEKEEPER = "";  // 0.7, a row labelled [gatekeeper], if there is one
+G5.ids.B1_STUDENT    = "12334ee0-ac19-42da-8a26-90ee0513ab9d"; // 1studentb1
+G5.ids.B1_INVITE     = "3studentb1@gmail.com";
+G5.ids.B1_CANDIDATE  = "c7be92b3-6ed3-4b0e-9f6f-4d2f2e455342"; // Linda, off
+G5.ids.B1_WINNER     = "68bc4303-e5ae-4fdb-bcc4-0372631dc729"; // Alex, on
+G5.ids.B1_GATEKEEPER = "c7be92b3-6ed3-4b0e-9f6f-4d2f2e455342"; // the same Linda
 ```
 
 **Every line below must answer 404.** Not a friendly panel, not a 200.
@@ -1650,7 +1665,7 @@ ACTUAL:
 Then try a class page directly:
 
 ```
-/admin/class/<A_CLASS_1>
+/admin/class/b03df6d8-8485-4d27-a712-b78d8bfc9453
 ```
 
 **EXPECT:** the same bounce back to /instructor.
