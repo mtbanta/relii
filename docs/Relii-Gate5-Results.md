@@ -695,7 +695,19 @@ content, while video comes back **status 0, type** `opaqueredirect`, because the
 route mints a signed link and redirects to it and `redirect: "manual"` stops the
 console from following it. In this direction that opaqueredirect is the pass.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS, both directions.** From Pro Selling test all three
+answered 404 with "Submission not found." and the video line minted no link. From
+the historical class all three succeeded, transcript and csv with content and
+video as the opaqueredirect.
+
+**This is the item that proves the friendly panel did not leak into the routes**,
+and it is the strongest thing step 1 produces. 1.3 and 1.4 showed the pages
+naming the owner's other class; these three show the routes refusing the same
+caller, the same id and the same working class outright. The friendly answer
+belongs on a page a person navigates to, and a route is reached from a page that
+is already scoped. **The second direction is what makes the first mean something:
+the same three lines succeed when the picker is on the right class, so the 404s
+were a refusal rather than a broken request.**
 
 ## 1.6 Group 3. The crafted delete requests
 
