@@ -1257,8 +1257,8 @@ own surface follow the class they chose".
 
 ```
 /instructor/scaffold/compare/5d27b9df-18d9-47f1-9186-e7ed051df3a4
-/instructor/scaffold/edit/<one of B1's candidate ids>
-/instructor/scaffold/chain/<B1's gatekeeper, if the generation made one>
+/instructor/scaffold/edit/c7be92b3-6ed3-4b0e-9f6f-4d2f2e455342
+/instructor/scaffold/chain/c7be92b3-6ed3-4b0e-9f6f-4d2f2e455342
 /instructor?assignment=f63ec110-46e8-4c65-ad4b-bb86ea3ba295
 ```
 
@@ -1266,10 +1266,15 @@ own surface follow the class they chose".
 assignment is in another of your classes", naming **B1**, with a switch button.
 **Not** a 404, and **not** a silent fallback to B2's own content.
 
-The chain line is skippable if B's generation produced no gatekeeper; note it if
-so.
+**The edit and chain lines use the same id on purpose.** Query 0.7 showed both of
+B1's undecided candidates are gatekeepers, so Linda `c7be92b3` is both "a
+candidate" and "a gatekeeper" and serves both pages.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS**, all four, each naming B1.
+
+**This is the mirror of items 5, 6 and 7 and only the pair means anything.** The
+same three page types gave B the plain 404 for A's ids and name the class for B's
+own. One without the other is either a leak or an unusable product.
 
 ### 2.12 The switch button actually works
 
@@ -1278,7 +1283,10 @@ On one of those panels, click **"Switch to B1 and open it"**.
 **EXPECT:** the page opens on the thing you asked for, and the "Working in" line
 now says B1. Nothing switched until you clicked.
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS.** Nothing switched until it was clicked, which is the
+half worth checking: a link that silently moved the working class would rewrite
+the state every other page reads, and the next thing created would land somewhere
+nobody chose.
 
 ### 2.13 B's picker sweep across three classes
 
@@ -1299,7 +1307,12 @@ Switch B1, B2, B3 and read every surface each time.
 
 **A surface that does not follow the picker is a surface that was missed.**
 
-ACTUAL:
+ACTUAL, 2026-09-04: **PASS**, every cell across all three classes.
+
+**This is the strongest form of the check the kickoff asked for.** A's sweep could
+only offer 4 and then 1 on the Roster, since A's second class has no tile at all.
+B gives three classes, two of them with tiles, and the enrolled numbers agree with
+the Rosters at 2 and 1 while B3 shows the empty state. No surface was missed.
 
 ### 2.14 Items 11 to 19 aimed at B's OWN other class must still be REFUSED
 
