@@ -13,6 +13,7 @@ import { StartAssignmentButton } from "@/components/start-assignment-button";
 import { SubmitPracticeButton } from "@/components/submit-practice-button";
 import { PracticeRowActions } from "@/components/practice-row-actions";
 import { NameGate } from "@/components/name-gate";
+import { ConsentGate } from "@/components/consent-gate";
 import { Card, cardClasses } from "@/components/ui/card";
 import { buttonClasses } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/icon";
 import { KEPT_PRACTICES } from "@/lib/practice";
 import { displayName, hasName } from "@/lib/name";
+import { hasConsented } from "@/lib/consent";
 import { isLockedUntil, formatAvailableDate } from "@/lib/available-date";
 import { resolveMeetingMinutes } from "@/lib/meeting-length";
 import {
@@ -126,6 +128,16 @@ export default async function StudentHome() {
   // Instructors who land here get sent to their own page.
   if (profile?.role !== "student") {
     redirect("/instructor");
+  }
+
+  // PHASE 5: the consent gate, and it comes FIRST, ahead of the name gate,
+  // because agreeing to the terms is the precondition for using Relii at all.
+  // Every student who registers from now on already has a consent row, written
+  // with their account in one transaction, so this only fires for an account
+  // that predates the click-through. It fails OPEN on a database error, on
+  // purpose: see lib/consent.ts.
+  if (!(await hasConsented(user.id))) {
+    return <ConsentGate email={user.email ?? ""} />;
   }
 
   // The required name gate: with no name set, the whole home is replaced by the

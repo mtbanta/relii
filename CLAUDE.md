@@ -36,5 +36,6 @@ Relii is an AI sales training app for a university sales course.
 
 - File names use kebab-case (for example: project-state.md, alex-persona.md).
 - No em dashes in any text, anywhere. Use commas, parentheses, or separate sentences instead.
+- That rule governs prose we author. It does not govern legal text we reproduce verbatim, because reproducing a document means reproducing it. There is exactly one such case today: line 51 of docs/Relii-clickthrough-agreement.md, the acknowledgment sentence in Tom's pilot agreement, which contains an em dash and must stay exactly as written. A repo-wide dash grep will find that line; it is not a defect. Do not resolve it by rewriting the sentence into the register page's checkbox label either: the agreement page shows Tom's full text verbatim, and the checkbox carries a short label of our own that follows this convention on its own.
 - The project owner is a non-coder. Write all code, explain things in plain English, and avoid unexplained jargon.
 - Ask before making big decisions (new dependencies, schema changes, anything hard to reverse, or anything that changes the agreed plan).

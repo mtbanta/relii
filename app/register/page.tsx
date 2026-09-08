@@ -7,17 +7,35 @@ import { createClient } from "@/lib/supabase/client";
 import { Input, Label } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PRIVACY_VERSION, AGREEMENT_VERSION } from "@/lib/legal";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // PHASE 5: the consent click-through. Nothing here is the real enforcement,
+  // see the block above supabase/phase-5-consent.sql section 2 and the comment
+  // on the signUp call below.
+  const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    // The second of the three consent layers. The button below is disabled
+    // until the box is ticked; this catches a submit that got past it (the
+    // Enter key on a form is the ordinary way that happens). Neither of these
+    // two is the real enforcement: the database is, and it refuses a signup
+    // carrying no accepted version in the same transaction as the account.
+    if (!accepted) {
+      setError(
+        "Please tick the box to accept the Pilot Agreement and the Privacy Policy.",
+      );
+      return;
+    }
+
     setLoading(true);
 
     const supabase = createClient();
@@ -43,9 +61,31 @@ export default function RegisterPage() {
     }
 
     // On the list: create the account. (The database double-checks the invite.)
+    //
+    // ==> PHASE 5, AND THIS IS WHERE CONSENT ACTUALLY GETS RECORDED. The two
+    //     accepted versions ride along as signup metadata, which means they are
+    //     part of the SAME insert as the account itself. The signup trigger
+    //     (supabase/phase-5-consent.sql) reads them, refuses the signup if
+    //     either is missing, and writes the consent row inside that one
+    //     transaction, so an account cannot exist without a consent record and
+    //     the two cannot drift apart.
+    //
+    //     WHY IT IS DONE HERE RATHER THAN IN A ROUTE AFTER SIGNUP: this call
+    //     goes STRAIGHT AT SUPABASE from the browser with the public anon key.
+    //     Our server is not in the conversation at all. A route called after a
+    //     successful signup would not merely be at risk of failing, it would be
+    //     skippable, so a crafted request could create an account and never
+    //     visit it. There is nothing to enforce a checkbox from except the
+    //     database.
     const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          privacy_version: PRIVACY_VERSION,
+          agreement_version: AGREEMENT_VERSION,
+        },
+      },
     });
 
     if (signUpError) {
@@ -122,12 +162,58 @@ export default function RegisterPage() {
           </span>
         </Label>
 
+        {/* PHASE 5: the consent click-through.
+            THIS LABEL IS OURS AND IT IS DELIBERATELY SHORT. Tom's own
+            acknowledgment sentence is the last line of the Pilot Agreement and
+            it stays there, in full, on /agreement, where the page shows his text
+            verbatim. It is not paraphrased into this label and this label is not
+            a substitute for reading it: the two links below open the documents
+            themselves, in a new tab so a half-filled form is not lost. Because
+            this sentence is ours rather than reproduced, it follows the
+            project's no-dash convention on its own. See lib/legal.ts. */}
+        <div className="flex items-start gap-2">
+          <input
+            id="accept-terms"
+            type="checkbox"
+            required
+            checked={accepted}
+            onChange={(e) => setAccepted(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border border-line-secondary accent-accent-solid"
+          />
+          <label
+            htmlFor="accept-terms"
+            className="text-body text-content-secondary"
+          >
+            I have read and agree to the{" "}
+            <Link
+              href="/agreement"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-content-info underline"
+            >
+              Pilot Agreement
+            </Link>{" "}
+            and the{" "}
+            <Link
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-content-info underline"
+            >
+              Privacy Policy
+            </Link>
+            .
+          </label>
+        </div>
+
         {error && <p className="text-body text-content-danger">{error}</p>}
 
+        {/* The first of the three consent layers: the button is not clickable
+            until the box is ticked. */}
         <Button
           fullWidth
           type="submit"
-          disabled={loading}
+          disabled={loading || !accepted}
         >
           {loading ? "Creating account..." : "Create account"}
         </Button>

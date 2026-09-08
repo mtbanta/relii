@@ -224,6 +224,22 @@ end $$;
 -- ---------------------------------------------------------------------------
 -- 7. Signup: put each new user on the spine.
 -- ---------------------------------------------------------------------------
+-- ==> STOP. THIS SECTION IS NO LONGER THE LIVE SIGNUP RULE, AND RE-RUNNING THIS
+--     FILE WOULD SILENTLY UNDO PHASE 5. supabase/phase-5-consent.sql now owns
+--     public.handle_new_user(). It is this function plus one block that refuses
+--     a signup carrying no accepted version and writes the consent row in the
+--     same transaction as the account. The body below is the version WITHOUT
+--     that block, so running this file today would put open, unrecorded
+--     registration back with NO error, nothing visible on screen and no failing
+--     check anywhere. The only thing that would catch it is a signup that
+--     produced no row in public.consents.
+--
+--     IF THIS FILE EVER HAS TO BE RE-RUN, RUN supabase/phase-5-consent.sql
+--     AFTERWARDS. This is the same shape of hazard as the three older migration
+--     files listed in the Open Issues section of PROJECT_STATE.md, and it is
+--     listed there beside them. Nothing is wrong with the database as it stands;
+--     this is a note about what not to do. <==
+--
 -- This REPLACES the signup rule from supabase/schema.sql. Everything it did
 -- before it still does, in the same order, including the part that matters
 -- most: an email that is not on the invite list still stops the signup cold.

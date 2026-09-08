@@ -3,21 +3,25 @@
 // navigation menu below it, and it wraps every route under /instructor, so the
 // nav is always there and the chrome is written once.
 //
-// It also holds the two gates for the whole instructor surface:
+// It also holds the three gates for the whole instructor surface:
 //   1. Signed in AND an instructor (role read from the database).
-//   2. The required name gate. With no first and last name set, this renders the
+//   2. PHASE 5: the consent gate, for an account that predates the
+//      click-through. Nothing else is reachable until the terms are accepted.
+//   3. The required name gate. With no first and last name set, this renders the
 //      gate INSTEAD of the page, so no instructor destination can be reached,
 //      not even by typing its address, until a name is entered.
 //
-// The name check lives here and only here. Each page re-checks the user and the
-// role for itself (it needs the user's id for its own reads anyway), but does
-// NOT re-check the name, because a page that redirected on a missing name would
-// bounce against this gate forever.
+// The consent and name checks live here and only here. Each page re-checks the
+// user and the role for itself (it needs the user's id for its own reads
+// anyway), but does NOT re-check either gate, because a page that redirected on
+// a missing name would bounce against this gate forever.
 import { AppHeader } from "@/components/app-header";
 import { InstructorNav } from "@/components/instructor-nav";
 import { ClassPicker } from "@/components/class-picker";
 import { NameGate } from "@/components/name-gate";
+import { ConsentGate } from "@/components/consent-gate";
 import { requireInstructor } from "@/lib/instructor-auth";
+import { hasConsented } from "@/lib/consent";
 import { displayName, hasName } from "@/lib/name";
 
 export default async function InstructorLayout({
@@ -26,6 +30,18 @@ export default async function InstructorLayout({
   children: React.ReactNode;
 }) {
   const { user, profile, classId, classes } = await requireInstructor();
+
+  // PHASE 5. Consent comes FIRST, ahead of the name gate: agreeing to the terms
+  // is the precondition for using Relii at all, and a name is not.
+  //
+  // In practice this only ever fires for an account created before the
+  // click-through existed. It is also the ONE guard in this app that fails OPEN
+  // rather than closed, deliberately, and lib/consent.ts explains why: this gate
+  // covers the whole instructor surface, so failing closed on a transient error
+  // would lock an instructor out of their own dashboard mid-class.
+  if (!(await hasConsented(user.id))) {
+    return <ConsentGate email={user.email ?? ""} />;
+  }
 
   // No name yet: the gate replaces the entire instructor surface, header and
   // nav included, so there is nothing else on screen to click.
