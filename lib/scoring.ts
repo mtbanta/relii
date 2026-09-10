@@ -58,7 +58,14 @@ const buildScoringSystemMessage = (personaName: string) =>
     "You are an impartial, consistent sales-training grader.",
     `You grade ONLY the student's performance in a role-play sales meeting transcript. The student plays a sales representative; the persona named ${personaName} is the customer. Never grade the customer.`,
     "",
-    "Each criterion below carries its own ladder of six performance levels, listed from the strongest performance to the weakest, each with the rubric's own description of what that level means. For each criterion, choose EXACTLY ONE level and return its name copied exactly as it is written in that criterion's list. Do not invent a level, do not combine two of them, and do not return a number.",
+    "Each criterion below carries its own ladder of six performance levels, listed from the strongest performance to the weakest. Each level is written on two lines: a \"name:\" line and a \"means:\" line carrying the rubric's own description of what that level means.",
+    "",
+    // ==> RETURN THE NAME ALONE. See the note above formatLevels: the previous
+    //     wording ("copied exactly as it is written in that criterion's list")
+    //     pointed at a string that INCLUDED the descriptor, and the lookup
+    //     cannot accept that string. This says which of the two lines to copy
+    //     and says it three ways, because the failure it prevents is silent.
+    "For each criterion, choose EXACTLY ONE level and return ONLY the text that follows \"name:\" for that level. Return the name by itself. Do NOT include the \"means:\" description, do NOT include the \"name:\" label, do NOT join the name and the description together, do not combine two levels, do not invent a level, and do not return a number.",
     "",
     // ==> THE RUBRIC'S OWN WORDS DECIDE THE BOUNDARY, NOT OURS. This paragraph
     //     used to be a six-rung ladder we wrote ("excellent", "solid", "a clear
@@ -102,12 +109,32 @@ function formatTranscript(
 //     CRITERION'S OWN LIST". Validation below is per criterion for the same
 //     reason. One prompt shape, no branch: the prompt that was reviewed is the
 //     prompt that runs. <==
+// ==> THE NAME AND THE DESCRIPTOR SIT ON SEPARATE LABELLED LINES, AND THAT IS A
+//     FIX RATHER THAN A STYLE CHOICE. PHASE 2c, 2026-09-10.
+//
+//     This used to render one line per level reading "Excellent: Ready for an
+//     entry-level sales role.", while the system message told the model to
+//     return the level's name "copied exactly as it is written in that
+//     criterion's list". Written in the list, it WAS "Excellent: Ready for an
+//     entry-level sales role." A model that obeyed literally returned exactly
+//     that, findLevel matched on the name alone and rejected it, and the
+//     criterion fell to the bottom rung. Caught in production: the same
+//     transcript scored 200/200 and 20/200 on consecutive calls with the same
+//     seed and the same backend fingerprint, and the 20/200 reply had named
+//     Excellent seven times out of seven.
+//
+//     The two halves of that contradiction went in on the same day. Keeping
+//     Tom's descriptors was the owner's decision of 2026-09-09 and it stands:
+//     without them the six names are bare labels. What was never updated
+//     alongside it was the "copied exactly" wording. So the descriptor stays and
+//     the AMBIGUITY goes: there is now exactly one thing after "name:", and the
+//     instruction points at it. <==
 function formatLevels(levels: RubricLevel[]): string {
   return levels
     .map((level) =>
       level.descriptor
-        ? `    ${level.name}: ${level.descriptor}`
-        : `    ${level.name}`,
+        ? `    - name: ${level.name}\n      means: ${level.descriptor}`
+        : `    - name: ${level.name}`,
     )
     .join("\n");
 }
@@ -126,7 +153,10 @@ function buildUserMessage(
       if (criterion.description) {
         lines.push(`  what it asks for: ${criterion.description}`);
       }
-      lines.push("  levels, strongest first:", formatLevels(criterion.levels));
+      lines.push(
+        "  levels, strongest first (choose one and return its name only):",
+        formatLevels(criterion.levels),
+      );
       return lines.join("\n");
     })
     .join("\n\n");
@@ -140,7 +170,7 @@ function buildUserMessage(
     "TRANSCRIPT:",
     formatTranscript(transcript, personaName),
     "",
-    `Return JSON with an "items" array containing exactly one entry for each of the ${criteria.length} criteria above, each with its id, the level name you chose copied exactly from that criterion's own list, and a short comment.`,
+    `Return JSON with an "items" array containing exactly one entry for each of the ${criteria.length} criteria above, each with its id, the NAME ONLY of the level you chose for that criterion (the text after "name:", with nothing else on the line), and a short comment.`,
   ].join("\n");
 }
 
@@ -189,12 +219,37 @@ function findLevel(
   named: unknown,
 ): RubricLevel | null {
   if (typeof named !== "string") return null;
+  const exact = (want: string): RubricLevel | null =>
+    want
+      ? (criterion.levels.find(
+          (level) => level.name.trim().toLowerCase() === want,
+        ) ?? null)
+      : null;
+
   const want = named.trim().toLowerCase();
   if (!want) return null;
-  return (
-    criterion.levels.find((level) => level.name.trim().toLowerCase() === want) ??
-    null
-  );
+
+  // The ordinary case, and the only one before Phase 2c.
+  const direct = exact(want);
+  if (direct) return direct;
+
+  // ==> BELT AND BRACES WITH THE PROMPT FIX, NOT A SUBSTITUTE FOR IT. PHASE 2c.
+  //
+  //     The prompt no longer writes a level as "Name: descriptor", so a model
+  //     following it returns a bare name and never reaches this. This is here
+  //     because the cost of the two disagreeing was a student receiving 10 per
+  //     cent for excellent work, silently, and a second reading of the same
+  //     answer is cheap insurance against any future edit reopening that gap.
+  //
+  //     It accepts the shapes a literal-minded model actually produced or could
+  //     produce: the descriptor joined on with a colon, the "name:" label
+  //     echoed, and the two lines returned together. It does NOT guess: every
+  //     candidate below is still required to match a real level name exactly.
+  //     Nothing here invents a rung or picks a nearest one. <==
+  const firstLine = want.split("\n")[0].trim();
+  const withoutLabel = firstLine.replace(/^name\s*:\s*/, "").trim();
+  const beforeColon = withoutLabel.split(":")[0].trim();
+  return exact(withoutLabel) ?? exact(beforeColon);
 }
 
 // ==> EVERY REFUSAL IN ONE PLACE, AND THEY ARE REFUSALS RATHER THAN DEFAULTS.
@@ -290,20 +345,45 @@ export async function scoreTranscriptAgainstRubric(
     const got = byId.get(criterion.id);
     const chosen = findLevel(criterion, got?.level);
 
-    // ==> A CRITERION THE MODEL OMITTED, OR A LEVEL IT NAMED THAT IS NOT ON THIS
-    //     CRITERION'S LADDER, TAKES THE BOTTOM RUNG. NOT ZERO.
+    // ==> AN UNMATCHED LEVEL, OR AN OMITTED CRITERION, NOW REFUSES TO SCORE
+    //     RATHER THAN TAKING THE BOTTOM RUNG. PHASE 2c, 2026-09-10.
     //
-    //     Tom's ladder bottoms out at 10 per cent and there is no true zero
-    //     anywhere in it: the weakest level of a 55-point criterion is worth
-    //     5.5, not 0. Awarding a 0 would be inventing a grade the rubric does
-    //     not contain, which is a bigger wrong than awarding the lowest grade it
-    //     does. Stick to the rubric.
+    //     THIS REVERSES THE OWNER'S OWN RULING OF 2026-09-09, DELIBERATELY, AND
+    //     THE REASON IS WHAT PHASE 2c MEASURED. The old fallback could not tell
+    //     "the model invented a level" from "the model named the right level and
+    //     wrote it the way we asked it to", and it resolved BOTH into the lowest
+    //     grade on the rubric. Silently. With the model's own praise printed
+    //     underneath it. A real score read "Approach, Unsatisfactory, 2 / 20"
+    //     above the comment "The student professionally reconnected with Alex,
+    //     reinforced the meeting's purpose, and established an agenda."
     //
-    //     The consequence, stated plainly because it is a grading policy and not
-    //     a coding detail: a student who says nothing at all still scores the
-    //     bottom rung of every criterion, which on the Discovery rubric is 10
-    //     out of 100. That is Tom's ladder working as designed. <==
-    const level = chosen ?? criterion.levels[criterion.levels.length - 1];
+    //     AN UNMATCHED LEVEL IS A SYSTEM FAILURE, NOT A STUDENT PERFORMING
+    //     BADLY, and the two must not share an outcome. Refusing surfaces it
+    //     through the scoring-failure note and retry that 2b-2 already built. A
+    //     student reading "ask your instructor to provide a score or try again"
+    //     is strictly better off than a student reading 10 per cent for
+    //     excellent work.
+    //
+    //     ==> TOM'S 10 PER CENT FLOOR IS UNCHANGED AND THIS DOES NOT TOUCH IT.
+    //         A student who genuinely earns the weakest rung still scores it,
+    //         because the model NAMED that rung and it matched. There is still
+    //         no true zero anywhere. What changed is only that OUR parse failure
+    //         no longer borrows his floor to hide behind. <==
+    //
+    //     The throw is caught by app/api/session/end/route.ts, which logs it and
+    //     returns the student-facing scoring-failure message. It leaves the
+    //     session at 'completed' with no score, which is the state Open Issues
+    //     records as a redirect loop; that issue is unchanged by this and is
+    //     filed separately.
+    if (!chosen) {
+      const which = criterion.name ?? criterion.id;
+      throw new Error(
+        got
+          ? `The scorer could not match the level "${String(got.level)}" to any level on the criterion "${which}".`
+          : `The scorer returned no level for the criterion "${which}".`,
+      );
+    }
+    const level = chosen;
 
     const comment =
       got && typeof got.comment === "string" && got.comment.trim()

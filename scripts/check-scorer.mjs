@@ -84,11 +84,12 @@ writeFileSync(
 // THE INVENTED RUBRIC. Six criteria, six levels, none of it Tom's.
 // ---------------------------------------------------------------------------
 // Every ladder here is HIGHEST FIRST, which is the order the parser produces and
-// the order the scorer reads at both ends: points_max is the first entry and the
-// fallback rung is the last one.
+// the order the scorer reads: points_max is the first entry.
 //
-// The bottom rung of every criterion is a HALF and is never zero, which is what
-// makes the fallback assertions below measure two things at once.
+// The bottom rung of every criterion is a HALF and is never zero. Since Phase 2c
+// that rung is reached only by a model that NAMES it, never by a failed lookup,
+// so "a genuine bottom rung pays 0.5" and "an unmatched level refuses" are two
+// separate assertions below rather than one.
 const LADDER = (top, second, third, fourth, fifth, bottom) => [
   { name: "Gold", descriptor: "Exemplary throughout.", points: top },
   { name: "Silver", descriptor: "Strong, with real specifics.", points: second },
@@ -112,16 +113,47 @@ const CRITERIA = [
 // report 100 here and be caught.
 const STATED_MAX = 96;
 
-// The canned reply, carrying one of every malformed answer the scorer must
-// survive. Criterion 5 is ABSENT on purpose.
+// The canned reply for block A. Every entry here is an answer the scorer must
+// UNDERSTAND. The two answers it must REFUSE (an invented level, an omitted
+// criterion) moved to block B in Phase 2c, because refusing aborts the whole
+// call and so cannot share a reply with the cases that must succeed.
+//
+// ==> TWO OF THESE ARE THE PHASE 2c BUG, WRITTEN DOWN AS FIXTURES.
+//     "Tin: Barely attempted." is the descriptor joined onto the name, which is
+//     literally what the old prompt told the model to send and what the old
+//     lookup then rejected. On Tom's real Presentation rubric that exact shape
+//     turned seven Excellents into seven Unsatisfactorys, 200/200 into 20/200.
+//     "name: Slag" is the label echoed too. Both must now resolve. <==
 const REPLY = JSON.stringify({
   items: [
     { id: "1-groundwork", level: "Silver", comment: "Set an agenda in the first turn." },
     { id: "2-probing", level: "bRoNzE", comment: "Asked, but did not follow up." },
     { id: "3-framing", level: "  Copper  ", comment: "Generic value statement." },
-    { id: "4-handling", level: "Platinum", comment: "A level that does not exist." },
-    // 5-manner is missing entirely.
+    { id: "4-handling", level: "Tin: Barely attempted.", comment: "Conceded the point at once." },
+    { id: "5-manner", level: "name: Slag", comment: "Read from a script throughout." },
     { id: "6-overall", level: "Gold", comment: "   " },
+  ],
+});
+
+// The two replies block B refuses. Each is the WHOLE reply for its own call.
+const REPLY_INVENTED = JSON.stringify({
+  items: [
+    { id: "1-groundwork", level: "Platinum", comment: "A level that does not exist." },
+    { id: "2-probing", level: "Silver", comment: "Fine." },
+    { id: "3-framing", level: "Silver", comment: "Fine." },
+    { id: "4-handling", level: "Silver", comment: "Fine." },
+    { id: "5-manner", level: "Silver", comment: "Fine." },
+    { id: "6-overall", level: "Silver", comment: "Fine." },
+  ],
+});
+const REPLY_OMITTED = JSON.stringify({
+  items: [
+    { id: "1-groundwork", level: "Silver", comment: "Fine." },
+    { id: "2-probing", level: "Silver", comment: "Fine." },
+    { id: "3-framing", level: "Silver", comment: "Fine." },
+    { id: "4-handling", level: "Silver", comment: "Fine." },
+    // 5-manner is missing entirely.
+    { id: "6-overall", level: "Silver", comment: "Fine." },
   ],
 });
 
@@ -135,6 +167,8 @@ import type { RubricCriterion } from "./lib/types";
 const CRITERIA: RubricCriterion[] = ${JSON.stringify(CRITERIA, null, 2)};
 const STATED_MAX = ${STATED_MAX};
 const REPLY = ${JSON.stringify(REPLY)};
+const REPLY_INVENTED = ${JSON.stringify(REPLY_INVENTED)};
+const REPLY_OMITTED = ${JSON.stringify(REPLY_OMITTED)};
 
 let failures = 0;
 function check(label: string, actual: unknown, expected: unknown) {
@@ -164,26 +198,50 @@ async function main() {
   check("wrong case still matches",      [by.get("2-probing")!.level,    by.get("2-probing")!.points_earned],    ["Bronze", 17.5]);
   check("padded name still matches",     [by.get("3-framing")!.level,    by.get("3-framing")!.points_earned],    ["Copper", 11]);
 
-  // ==> THE TWO FALLBACK CASES. Both must land on the LAST rung of that
-  //     criterion's own ladder, and neither may be 0.
-  check("invented level -> bottom rung", [by.get("4-handling")!.level,   by.get("4-handling")!.points_earned],   ["Slag", 1.5]);
-  check("omitted criterion -> bottom",   [by.get("5-manner")!.level,     by.get("5-manner")!.points_earned],     ["Slag", 0.5]);
-  check("a fallback is never zero",      score.items.filter((i) => i.points_earned === 0).length, 0);
+  // ==> THE PHASE 2c PAIR. The descriptor joined onto the name, and the "name:"
+  //     label echoed. Both must resolve to the rung the model actually chose.
+  //     Before the fix each of these returned null and took the bottom rung, so
+  //     "Tin" scored 1.5 instead of 6 and the student was told they had failed.
+  check("descriptor echoed still matches", [by.get("4-handling")!.level, by.get("4-handling")!.points_earned], ["Tin", 6]);
+  check("the name: label echoed matches", [by.get("5-manner")!.level,   by.get("5-manner")!.points_earned],   ["Slag", 0.5]);
+
+  // ==> TOM'S FLOOR STILL STANDS FOR GENUINE GRADING, which is the half of the
+  //     2026-09-09 ruling Phase 2c did NOT reverse. 5-manner really was graded
+  //     Slag, the weakest rung, and it pays 0.5 rather than 0.
+  check("a genuine bottom rung pays",    by.get("5-manner")!.points_earned, 0.5);
+  check("no score is ever zero",         score.items.filter((i) => i.points_earned === 0).length, 0);
 
   check("empty comment gets a default",  by.get("6-overall")!.comment, "No evidence of this in the transcript.");
   check("every criterion is scored",     score.items.length, CRITERIA.length);
   check("rubric order is preserved",     score.items.map((i) => i.id), CRITERIA.map((c) => c.id));
   check("points_max is the top rung",    score.items.map((i) => i.points_max), [30, 25, 20, 15, 5, 5]);
 
-  // ==> THE HALF POINT, MEASURED RATHER THAN HOPED FOR. 25.5 + 17.5 + 11 + 1.5
-  //     + 0.5 + 5 = 61. Two of those addends carry a half and the sum does not,
-  //     which is the case a stray Math.round() would still pass; so the item
-  //     values are asserted individually above as well as in this total.
-  check("the total is exact",            score.total, 61);
+  // ==> THE HALF POINT, MEASURED RATHER THAN HOPED FOR. 25.5 + 17.5 + 11 + 6
+  //     + 0.5 + 5 = 65.5. THREE of those addends carry a half, an odd count, so
+  //     the TOTAL carries one too: this asserts both that a half survives in an
+  //     item and that it survives the sum. The item values are asserted
+  //     individually above as well, because an even count of halves sums whole
+  //     and would let a stray Math.round() through unnoticed.
+  check("the total is exact",            score.total, 65.5);
   check("max_total is the STATED one",   score.max_total, STATED_MAX);
 
   console.log("");
-  console.log("B. THE REFUSALS. Each one is a rubric this scorer must not grade against.");
+  console.log("B. THE REFUSALS. A rubric this scorer must not grade against, or a reply it must not guess at.");
+
+  // ==> PHASE 2c, 2026-09-10. These two used to be scored, not refused, and
+  //     they took the bottom rung. The reversal is the owner's, and the reason
+  //     is that the old fallback could not tell an invented level from a
+  //     correctly named one written the way the prompt asked for, and gave both
+  //     the same 10 per cent. An unmatched level is a SYSTEM failure. <==
+  queue(REPLY_INVENTED);
+  await refuses("an invented level refuses to score",
+    () => scoreTranscriptAgainstRubric([], CRITERIA, STATED_MAX, "Riley"),
+    'could not match the level "Platinum"');
+  queue(REPLY_OMITTED);
+  await refuses("an omitted criterion refuses to score",
+    () => scoreTranscriptAgainstRubric([], CRITERIA, STATED_MAX, "Riley"),
+    'returned no level for the criterion "Manner"');
+
   queue(REPLY);
   await refuses("a legacy flat rubric (no levels)",
     () => scoreTranscriptAgainstRubric([], [{ id: "1-x", name: "X", description: "", weight: 1, levels: [] }] as unknown as RubricCriterion[], 100, "Riley"),
