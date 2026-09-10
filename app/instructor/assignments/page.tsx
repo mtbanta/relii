@@ -20,6 +20,12 @@ import { EditAssignmentForm } from "@/components/edit-assignment-form";
 import { DeleteAssignmentButton } from "@/components/delete-assignment-button";
 import { requireInstructor } from "@/lib/instructor-auth";
 import { Card } from "@/components/ui/card";
+import {
+  tallySessions,
+  plainDeleteApplies,
+  EMPTY_TALLY,
+  type SessionTally,
+} from "@/lib/assignment-sessions";
 
 // One assignment as read for the management list (the working class's).
 type AssignmentRow = {
@@ -37,6 +43,10 @@ type AssignmentRow = {
   // the standard 30 minutes, which is what every pre-PD-4 assignment has.
   duration_minutes: number | null;
   instructions: string | null;
+  // PHASE 3a: whether this assignment is graded. It is what makes a practice at
+  // 'completed' mean a scoring failure rather than ordinary finished work, so
+  // the delete control cannot be decided without it.
+  rubric_id: string | null;
   scenarios: { title: string; persona_name: string } | null;
 };
 
@@ -118,7 +128,7 @@ export default async function InstructorAssignments() {
         // ==> IF A SECOND FOREIGN KEY IS EVER ADDED BETWEEN THESE TWO TABLES,
         //     THIS LINE BREAKS EXACTLY THAT WAY AGAIN. See PROJECT_STATE Open
         //     Issues. <==
-        .select("id, title, company_name, required_mode, due_at, available_date, duration_minutes, instructions, scenarios ( title, persona_name )")
+        .select("id, title, company_name, required_mode, due_at, available_date, duration_minutes, instructions, rubric_id, scenarios ( title, persona_name )")
         .eq("class_id", classId)
         .order("created_at", { ascending: false })
         .returns<AssignmentRow[]>()
@@ -140,25 +150,42 @@ export default async function InstructorAssignments() {
   //     anything about classes, so an undercount here would offer a delete that
   //     then fails at the database. The rule is written out once in
   //     lib/class-scope.ts. <==
-  const assignmentCounts = new Map<
-    string,
-    { submissions: number; practices: number }
-  >();
-  const ownAssignmentIds = (assignments ?? []).map((a) => a.id);
+  // ==> PHASE 3a. THE COUNTS ARE NOW A TALLY, BECAUSE HOW MUCH WORK EXISTS IS NO
+  //     LONGER THE QUESTION. The question is how much FINISHED work exists. An
+  //     assignment carrying nothing but abandoned or failed-scoring practices
+  //     shows the plain confirm, because a rubric can never be replaced on an
+  //     existing assignment and one invisible session used to block the only
+  //     repair path there is. status therefore joins the read below, and each
+  //     assignment's own rubric_id decides what 'completed' means for its rows.
+  //
+  //     THIS PAGE DECIDES WHAT TO SHOW AND NOTHING ELSE. The delete route runs
+  //     this same shared rule against its own read inside the request, and it is
+  //     the one that decides what happens. If a student finishes a practice
+  //     between this page rendering and the button being clicked, the route
+  //     refuses with a 409 rather than acting on these now-stale numbers. <==
+  const assignmentTallies = new Map<string, SessionTally>();
+  const ownAssignments = assignments ?? [];
+  const ownAssignmentIds = ownAssignments.map((a) => a.id);
   if (ownAssignmentIds.length > 0) {
     const { data: countRows } = await admin
       .from("sessions")
-      .select("assignment_id, kind")
+      .select("assignment_id, kind, status")
       .in("assignment_id", ownAssignmentIds);
+    // Group the rows by assignment first, because the rule needs each
+    // assignment's rubric alongside its own rows and cannot be applied row by
+    // row across the whole class.
+    const rowsByAssignment = new Map<string, { kind: string; status: string }[]>();
     for (const row of countRows ?? []) {
       if (!row.assignment_id) continue;
-      const current = assignmentCounts.get(row.assignment_id) ?? {
-        submissions: 0,
-        practices: 0,
-      };
-      if (row.kind === "submission") current.submissions += 1;
-      else if (row.kind === "practice") current.practices += 1;
-      assignmentCounts.set(row.assignment_id, current);
+      const list = rowsByAssignment.get(row.assignment_id) ?? [];
+      list.push({ kind: row.kind, status: row.status });
+      rowsByAssignment.set(row.assignment_id, list);
+    }
+    for (const a of ownAssignments) {
+      assignmentTallies.set(
+        a.id,
+        tallySessions(rowsByAssignment.get(a.id) ?? [], a.rubric_id !== null),
+      );
     }
   }
 
@@ -190,11 +217,11 @@ export default async function InstructorAssignments() {
         {assignments && assignments.length > 0 ? (
           <ul className="space-y-2">
             {assignments.map((a) => {
-              const counts = assignmentCounts.get(a.id) ?? {
-                submissions: 0,
-                practices: 0,
-              };
-              const inUse = counts.submissions + counts.practices > 0;
+              const tally = assignmentTallies.get(a.id) ?? EMPTY_TALLY;
+              const sessionsTotal = tally.submissions + tally.practices;
+              // The same one rule the button and the route use: the plain
+              // confirm applies when no FINISHED work exists.
+              const plainDelete = plainDeleteApplies(tally);
               return (
                 <Card key={a.id} as="li" padding="md">
                   <EditAssignmentForm
@@ -212,16 +239,20 @@ export default async function InstructorAssignments() {
                     }}
                   />
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line-tertiary pt-2">
+                    {/* PHASE 3a: three states rather than two, so the label
+                        never calls an assignment "not in use" without saying
+                        that something is nevertheless about to be removed. */}
                     <span className="text-meta text-content-tertiary">
-                      {inUse
-                        ? `In use: ${counts.submissions} submission${counts.submissions === 1 ? "" : "s"}, ${counts.practices} practice${counts.practices === 1 ? "" : "s"}`
-                        : "Not in use (no student work)"}
+                      {!plainDelete
+                        ? `In use: ${tally.submissions} submission${tally.submissions === 1 ? "" : "s"}, ${tally.practices} practice${tally.practices === 1 ? "" : "s"}`
+                        : sessionsTotal === 0
+                          ? "Not in use (no student work)"
+                          : `Not in use (${tally.unfinished} unfinished practice${tally.unfinished === 1 ? "" : "s"}, no finished student work)`}
                     </span>
                     <DeleteAssignmentButton
                       assignmentId={a.id}
                       title={a.title}
-                      submissionsCount={counts.submissions}
-                      practicesCount={counts.practices}
+                      tally={tally}
                     />
                   </div>
                 </Card>

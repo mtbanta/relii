@@ -6,18 +6,34 @@
 // SERVER-SIDE (never trusting the browser), so the path cannot be spoofed and
 // the audit numbers are true:
 //
-//   UNUSED (0 sessions): a clean, low-stakes delete. Nothing exists under the
+//   EMPTY (0 sessions): a clean, low-stakes delete. Nothing exists under the
 //     assignment, so only the empty assignment row is removed. No audit record
 //     is written (nothing was destroyed).
 //
-//   IN-USE (1+ sessions): the high-stakes case. It permanently destroys the
+//   IN-USE (any FINISHED work): the high-stakes case. It permanently destroys the
 //     students' submissions and practices for this assignment, including their
 //     recordings. It requires an explicit destructive acknowledgment
 //     (confirmInUse = true, sent by the strong type-DELETE confirmation). If the
-//     route finds the assignment in-use but the request did not carry that
+//     route finds finished work but the request did not carry that
 //     acknowledgment (for example a stale "clean delete" from before a student
 //     submitted), it refuses, so student work is never destroyed by accident.
 //
+//   ==> PHASE 3a ADDED A THIRD: UNFINISHED ONLY (sessions exist, none of them
+//       finished). The plain confirm proceeds. This is not a convenience, it is
+//       a repair path. A rubric can never be replaced on an existing assignment,
+//       so deleting and recreating is THE ONLY fix for a wrong rubric, and an
+//       unfinished session appears on no screen anybody can reach: one abandoned
+//       practice used to hold its assignment hostage and leave only the confirm
+//       that destroys real submissions.
+//
+//       IT IS STILL DESTRUCTIVE AND IT IS TREATED AS SUCH. It runs the SAME body
+//       as the in-use case, not a lighter copy of it: the audit row is written,
+//       and Storage objects are removed before the rows. A failed-scoring VOICE
+//       practice sits at 'completed' WITH a recording, so a plain path that
+//       skipped Storage would leak files on the exact case this was built for.
+//       The ONLY thing the three cases differ in is whether the typed
+//       acknowledgment is demanded. What "unfinished" means lives in
+//       lib/assignment-sessions.ts and is shared with the two screens. <==
 // The database blocks deleting an assignment while any session still points at
 // it (sessions.assignment_id references assignments ON DELETE RESTRICT), so the
 // in-use path must clear the sessions FIRST. Sessions are server-written (data
@@ -33,6 +49,7 @@ import { NextResponse } from "next/server";
 import { requireInstructorRequest, refuseOutsideClass } from "@/lib/class-scope";
 import type { AdminClient } from "@/lib/class-scope";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
+import { tallySessions, plainDeleteApplies } from "@/lib/assignment-sessions";
 
 // ==> PHASE 2a. DELETE THE ASSIGNMENT'S RUBRIC TOO, BUT ONLY IF NOTHING ELSE
 //     POINTS AT IT. CALLED AFTER THE ASSIGNMENT ROW IS ALREADY GONE.
@@ -171,7 +188,10 @@ export async function POST(
   //    recording. Scoped to this assignment_id only.
   const { data: sessions, error: sessionsError } = await admin
     .from("sessions")
-    .select("id, kind, video_path")
+    // PHASE 3a: status joins this read. Without it this route can count sessions
+    // but cannot tell finished work from an abandoned or failed-scoring one, and
+    // that distinction is now what decides whether the typed confirm is demanded.
+    .select("id, kind, status, video_path")
     .eq("assignment_id", id);
   if (sessionsError) {
     console.error("Reading the assignment's sessions failed:", sessionsError);
@@ -182,10 +202,28 @@ export async function POST(
   }
 
   const linked = sessions ?? [];
-  const submissionsCount = linked.filter((s) => s.kind === "submission").length;
-  const practicesCount = linked.filter((s) => s.kind === "practice").length;
 
-  // ---- UNUSED: clean delete of the empty assignment row ------------------
+  // ==> PHASE 3a. THE ROUTE DECIDES, SERVER-SIDE, FROM ITS OWN COUNT, AND THAT
+  //     SENTENCE IS THE WHOLE SAFETY ARGUMENT FOR LETTING THE PLAIN CONFIRM
+  //     THROUGH AT ALL. The assignments page and the delete button run this same
+  //     shared rule, but they run it against numbers read when the PAGE loaded.
+  //     This runs it against the database as it is inside THIS request. If a
+  //     student finishes a practice in between, the browser sends no
+  //     acknowledgment, the tally here says finished work exists, and the 409
+  //     below refuses. The screens choose what to show; only this chooses what
+  //     to destroy.
+  //
+  //     hasRubric is what makes 'completed' mean two different things: a scoring
+  //     failure on a graded assignment, and ordinary finished work on a
+  //     conversation-only one. It comes from the assignment row already read
+  //     above for its own deletion, so this costs no extra query. <==
+  const hasRubric = assignment.rubric_id !== null;
+  const tally = tallySessions(linked, hasRubric);
+  const submissionsCount = tally.submissions;
+  const practicesCount = tally.practices;
+  const plainDelete = plainDeleteApplies(tally);
+
+  // ---- EMPTY: clean delete of the empty assignment row -------------------
   if (linked.length === 0) {
     const { error: deleteError } = await admin
       .from("assignments")
@@ -202,13 +240,26 @@ export async function POST(
     return NextResponse.json({ ok: true, deleted: "clean" });
   }
 
-  // ---- IN-USE: destroys student work, so guard and audit -----------------
+  // ---- SESSIONS EXIST: rows are about to be destroyed either way ---------
+  //
+  // ==> ONE BODY FROM HERE DOWN, FOR BOTH REMAINING CASES, AND THAT IS
+  //     DELIBERATE RATHER THAN TIDY. Everything below (the audit row, the
+  //     Storage removal, the session rows, the assignment row, the orphaned
+  //     rubric) runs identically whether or not the typed confirmation was
+  //     demanded. Writing the unfinished case as its own shorter branch is the
+  //     obvious shape and it is the wrong one: it would be a second copy of a
+  //     destructive sequence, free to fall behind this one, and the first thing
+  //     such a copy tends to omit is the Storage removal, which is exactly the
+  //     leg that matters here (a failed-scoring voice practice HAS a recording).
+  //     The audit row likewise: it exists because student data was destroyed,
+  //     never because a strong confirm was shown. <==
 
-  // 5b. Backstop: the destructive path requires an explicit acknowledgment. If
-  //     it is missing, the assignment has student work the caller may not have
-  //     known about (for example a student submitted after the page loaded), so
-  //     we refuse rather than destroy anything.
-  if (!confirmInUse) {
+  // 5b. Backstop: the destructive path requires an explicit acknowledgment, and
+  //     since Phase 3a it requires it only when FINISHED work exists. If it is
+  //     missing then, the assignment has student work the caller may not have
+  //     known about (for example a student submitted, or a retry finally scored,
+  //     after the page loaded), so we refuse rather than destroy anything.
+  if (!plainDelete && !confirmInUse) {
     return NextResponse.json(
       {
         error:
@@ -326,10 +377,15 @@ export async function POST(
 
   await deleteRubricIfUnused(admin, assignment.rubric_id);
 
+  // The browser only checks res.ok, so `deleted` is for the response log and for
+  // whoever reads this route next. Phase 3a gives the two destructive paths
+  // different names because "in_use" would be a lie about the new one: nothing
+  // finished was in use.
   return NextResponse.json({
     ok: true,
-    deleted: "in_use",
+    deleted: plainDelete ? "unfinished_only" : "in_use",
     submissions: submissionsCount,
     practices: practicesCount,
+    unfinished: tally.unfinished,
   });
 }
