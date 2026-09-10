@@ -17,6 +17,23 @@ export type TranscriptTurn = {
 // One scored rubric line, saved inside sessions.score.items.
 export type ScoreItem = {
   id: string;
+  // PHASE 2b-1. The short name of the performance level the grader chose, copied
+  // exactly from the criterion's own ladder ("Proficient", "Limited", and so
+  // on). points_earned below is the value looked up FOR THAT LEVEL, server-side,
+  // from the criterion's own levels. The model never supplies a number.
+  //
+  // ==> OPTIONAL, AND THAT IS HONESTY RATHER THAN LAZINESS. 32 scores were
+  //     saved before this field existed and they do not carry one. Marking it
+  //     required would make this type lie about every one of them, and the
+  //     reader that eventually renders a level (Phase 2b-2) has to handle a
+  //     score that has none anyway. The scorer always writes it. <==
+  level?: string;
+  // ==> HALF POINTS ARE REAL AND MUST NOT BE ROUNDED. Tom's Discovery rubric
+  //     awards 49.5, 38.5, 13.5, 4.5 and 0.5 on four of its six criteria. This
+  //     number is copied straight out of the rubric, so there is nothing to
+  //     clamp and nothing to round: a Math.round() anywhere near it turns 49.5
+  //     into 50 and silently changes a grade. sessions.score_total is numeric,
+  //     so the database keeps the fraction too. <==
   points_earned: number;
   points_max: number;
   comment: string;
@@ -178,8 +195,37 @@ export function formatLimit(bytes: number): string {
 
 // One performance level of one criterion, as stored.
 export type RubricLevel = {
-  // The short name only: "Excellent", not the descriptor beneath it.
+  // The short name: "Excellent", "Proficient", "Limited". It is the FIRST LINE
+  // of the header cell, and it is what the grader returns and what the student
+  // is shown.
   name: string;
+  // ==> PHASE 2b-1. THE SECOND LINE OF THE HEADER CELL, AND IT IS THE ONLY
+  //     THING IN TOM'S FILE THAT SAYS WHAT A LEVEL MEANS.
+  //
+  //         Excellent       Ready for an entry-level sales role.
+  //         Proficient      Emerging professional skills
+  //         Developing      Growth opportunity
+  //         Limited         Partially conducted this aspect
+  //         Minimal         Initial effort shown
+  //         Unsatisfactory  No effort shown or does not meet expectations
+  //
+  //     2a stored the left column and discarded the right one, which was
+  //     correct for 2a: nothing read a level. 2b-1 makes an AI choose one of
+  //     these names for every criterion, and WITHOUT THE DESCRIPTOR THE SIX
+  //     NAMES ARE BARE LABELS. The only thing left defining where one level
+  //     ends and the next begins would be a generic ladder WE wrote, which
+  //     would make our prompt the grade boundary instead of Tom's rubric.
+  //     Owner's ruling, 2026-09-10: keep his words.
+  //
+  //     OPTIONAL because a header cell may carry a name and nothing else, which
+  //     is not a defect worth refusing a whole file over. Absent means the
+  //     grader is told the name and the ladder position only.
+  //
+  //     THE COST OF DOING THIS NOW WAS ONE PARSER CHANGE AND NOTHING ELSE,
+  //     because at the time it was made there were ZERO levels-rubrics stored
+  //     anywhere. After 2b-2 ships and Tom uploads, the same change means
+  //     asking him to re-upload every rubric. <==
+  descriptor?: string;
   // Absolute points for this level of this criterion. Half points are real
   // (49.5, 38.5, 4.5) and are stored exactly as the spreadsheet states them.
   points: number;

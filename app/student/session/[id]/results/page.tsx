@@ -48,28 +48,49 @@ export default async function ResultsPage({
   const { data: session } = await supabase
     .from("sessions")
     .select(
-      "id, kind, status, mode, scenario_id, transcript, score, score_total, video_path, recorded_seconds, submitted_at, created_at",
+      // PHASE 2b-1: assignment_id joins this read because the rubric is now
+      // reached through the assignment rather than through the scenario.
+      "id, kind, status, mode, scenario_id, assignment_id, transcript, score, score_total, video_path, recorded_seconds, submitted_at, created_at",
     )
     .eq("id", id)
     .single();
 
   if (!session) notFound();
 
-  // The scenario is loaded BEFORE deciding whether to show this page, because
-  // whether it has a rubric is what decides which kind of results page this is.
+  // The scenario is read for its title and persona name only. PHASE 2b-1 took
+  // the rubric off it: whether this session was scored is now the ASSIGNMENT's
+  // answer, resolved just below.
   const { data: scenario } = await supabase
     .from("scenarios")
-    .select("title, persona_name, rubric_id")
+    .select("title, persona_name")
     .eq("id", session.scenario_id)
     .single();
 
-  // A scenario with NO rubric is conversation-only: it is never scored, so its
+  // The assignment is loaded BEFORE deciding whether to show this page, because
+  // whether it has a rubric is what decides which kind of results page this is.
+  //
+  // ==> A SESSION WITH NO ASSIGNMENT IS CONVERSATION-ONLY. The initialiser is
+  //     the whole implementation of that rule: no assignment leaves this null,
+  //     which reads as "nothing to grade". Twenty-five such rows exist
+  //     (pre-Stage-7 practices), and they are recorded in PROJECT_STATE so a
+  //     later session does not read them as corruption. <==
+  let assignmentRubricId: string | null = null;
+  if (session.assignment_id) {
+    const { data: assignment } = await supabase
+      .from("assignments")
+      .select("rubric_id")
+      .eq("id", session.assignment_id)
+      .single();
+    assignmentRubricId = assignment?.rubric_id ?? null;
+  }
+
+  // An assignment with NO rubric is conversation-only: it is never scored, so its
   // finished state is 'completed' and there is no score to show. Note this keys
-  // on the scenario having no rubric, NOT on the status being 'completed'. A
-  // scored case also passes through 'completed', and stays there if its scoring
-  // failed; that student must still be sent back to end the session again rather
-  // than shown a permanent "no score" page.
-  const conversationOnly = scenario?.rubric_id === null;
+  // on there being no rubric, NOT on the status being 'completed'. A scored case
+  // also passes through 'completed', and stays there if its scoring failed; that
+  // student must still be sent back to end the session again rather than shown a
+  // permanent "no score" page.
+  const conversationOnly = assignmentRubricId === null;
 
   if (conversationOnly) {
     // Still talking? Back to the live conversation. Otherwise show the results.
@@ -106,9 +127,25 @@ export default async function ResultsPage({
     : await supabase
         .from("rubrics")
         .select("items")
-        .eq("id", scenario?.rubric_id)
+        .eq("id", assignmentRubricId)
         .single();
 
+  // ==> THIS CAST IS KNOWINGLY WRONG AND IT IS LABELLED RATHER THAN LEFT TO READ
+  //     AS FINE. PHASE 2b-2 FIXES IT; DO NOT TREAT IT AS SETTLED.
+  //
+  //     Since Phase 2b-1 every rubric reachable from here is a LEVELS rubric
+  //     (weighted criteria, six levels each), not the flat RubricItem[] this
+  //     line claims. items is jsonb, so TypeScript cannot object, and
+  //     <RubricScore> below still expects the flat shape. The visible effect is
+  //     that a score would render with criterion ids instead of names, every
+  //     row in one "Other" group, and the chosen LEVEL not shown at all.
+  //
+  //     IT REACHES NO REAL USER TODAY, and that is the only reason it is
+  //     acceptable to leave: 2b-1's migration detaches every rubric, so nothing
+  //     is scored until 2b-2, which is the piece that rewrites this component
+  //     and this cast together. Changing the rendering was explicitly out of
+  //     scope for 2b-1, and half-rewriting it here would have left the screen in
+  //     a state neither piece owns. <==
   const rubricItems = (rubric?.items ?? []) as RubricItem[];
 
   // PD-5: a submission shows the moment it was handed in (the same stamp the

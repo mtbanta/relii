@@ -46,35 +46,45 @@ export default async function SessionPage({
 
   const { data: scenario } = await supabase
     .from("scenarios")
-    .select("title, persona_name, rubric_id")
+    .select("title, persona_name")
     .eq("id", session.scenario_id)
     .single();
 
   const isSubmission = session.kind === "submission";
-  // No rubric means this case is never scored, so the end-of-session wording
-  // must not promise a score.
-  const conversationOnly = scenario?.rubric_id === null;
 
-  // The assignment behind this session, when there is one. Two things come from
-  // it: the title, used only on the locked screen for a submission, and the
+  // The assignment behind this session, when there is one. THREE things come
+  // from it: the title, used only on the locked screen for a submission; the
   // meeting length (PD-4), which is how long a PRACTICE's count-up clock runs
-  // before it auto-ends. One read covers both.
+  // before it auto-ends; and, since Phase 2b-1, whether this case is scored at
+  // all. One read covers all three.
   //
   // A practice with no assignment link (pre-Stage-7 test data) and an assignment
   // with no duration set (every assignment created before PD-4) both fall back
   // to the standard 30 minutes, so the clock always has a working auto-end.
   let assignmentTitle: string | undefined;
   let assignmentDuration: number | null = null;
+  let assignmentRubricId: string | null = null;
   if (session.assignment_id) {
     const { data: assignment } = await supabase
       .from("assignments")
-      .select("title, duration_minutes")
+      .select("title, duration_minutes, rubric_id")
       .eq("id", session.assignment_id)
       .single();
     assignmentTitle = assignment?.title ?? undefined;
     assignmentDuration = assignment?.duration_minutes ?? null;
+    assignmentRubricId = assignment?.rubric_id ?? null;
   }
   const meetingMinutes = resolveMeetingMinutes(assignmentDuration);
+
+  // PHASE 2b-1: no rubric means this case is never scored, so the end-of-session
+  // wording must not promise a score. The rubric is THE ASSIGNMENT'S now, not
+  // the scenario's, which is why this line moved below the assignment read.
+  //
+  // ==> A SESSION WITH NO ASSIGNMENT IS CONVERSATION-ONLY, and that falls out of
+  //     the initialiser above rather than needing its own branch: no assignment
+  //     leaves assignmentRubricId null, which is exactly "nothing to grade".
+  //     Twenty-five such rows exist (pre-Stage-7 practices). See PROJECT_STATE. <==
+  const conversationOnly = assignmentRubricId === null;
 
   // A graded submission whose single-attempt window has elapsed is locked
   // server-side: no resume, no restart.

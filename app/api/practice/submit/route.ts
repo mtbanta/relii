@@ -106,13 +106,17 @@ export async function POST(request: Request) {
     );
   }
 
-  // 5. The assignment must be GRADABLE: required_mode = voice_video AND its
-  //    scenario has a rubric. required_mode is repurposed in Piece 4 (voice_video
-  //    means gradable, text means practice-only), and a conversation-only scenario
-  //    (no rubric) has nothing to grade.
+  // 5. The assignment must be GRADABLE: required_mode = voice_video AND THE
+  //    ASSIGNMENT has a rubric. required_mode is repurposed in Piece 4
+  //    (voice_video means gradable, text means practice-only), and a
+  //    conversation-only assignment (no rubric) has nothing to grade.
+  //
+  //    PHASE 2b-1 MOVED THE RUBRIC FROM THE SCENARIO TO THE ASSIGNMENT, so the
+  //    separate scenario read this route used to make for rubric_id alone is
+  //    gone: it answered nothing else.
   const { data: assignment, error: assignmentError } = await admin
     .from("assignments")
-    .select("id, required_mode, scenario_id, available_date")
+    .select("id, required_mode, scenario_id, available_date, rubric_id")
     .eq("id", session.assignment_id)
     .single();
   if (assignmentError || !assignment) {
@@ -137,15 +141,16 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const { data: scenario, error: scenarioError } = await admin
-    .from("scenarios")
-    .select("rubric_id")
-    .eq("id", assignment.scenario_id)
-    .single();
-  if (scenarioError || !scenario) {
-    return NextResponse.json({ error: "Scenario not found." }, { status: 404 });
-  }
-  if (scenario.rubric_id === null) {
+  // ==> THIS CHECK IS A BACKSTOP AND IT IS PRACTICALLY UNREACHABLE, WHICH IS
+  //     WRITTEN DOWN RATHER THAN DISCOVERED LATER BY SOMEBODY WONDERING WHY IT
+  //     NEVER FIRES. Every path into it is closed earlier: a practice on an
+  //     assignment with no rubric never reaches 'scored' (it stops at
+  //     'completed'), so the status check above refuses it first. Reaching THIS
+  //     line needs a practice that WAS scored and whose assignment has since
+  //     lost its rubric. It stays because that is a real sequence an instructor
+  //     can cause, and because a route that stops enforcing a rule when the rule
+  //     becomes hard to trigger is how holes open. <==
+  if (assignment.rubric_id === null) {
     return NextResponse.json(
       { error: "This assignment is practice only and has nothing to submit." },
       { status: 400 },

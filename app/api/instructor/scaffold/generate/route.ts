@@ -223,7 +223,21 @@ export async function POST(request: Request) {
     //      enabled = false   nobody can assign or start one (the create-
     //                        assignment picker lists enabled scenarios only, and
     //                        the start routes refuse a disabled scenario)
-    //      rubric_id = null  conversation-only, so nothing is ever scored
+    //      rubric_id = null  this scenario names no rubric of its own
+    //
+    //    ==> PHASE 2b-1 CHANGED WHAT THAT SECOND LINE MEANS, AND THE OLD COMMENT
+    //        HERE ("conversation-only, so nothing is ever scored") IS NOW WRONG.
+    //        Grading reads assignments.rubric_id, not scenarios.rubric_id, so a
+    //        GENERATED PERSONA CAN BE GRADED once an instructor attaches a rubric
+    //        to the assignment built on it. That is a feature, not a regression:
+    //        it is what unblocks the one Gate 4b export check and the one Gate 5
+    //        item that could not run, both of which needed a graded submission in
+    //        a generated-persona class.
+    //
+    //        THE BEHAVIOUR HERE IS UNCHANGED ON PURPOSE. Writing null is still
+    //        right: these rows are candidates nobody has chosen yet, and the
+    //        scenario is no longer where a grade comes from. Only the comment
+    //        was wrong. <==
     //
     //    The pair shares one generation_group_id, which is how the compare view
     //    finds them again after a reload.

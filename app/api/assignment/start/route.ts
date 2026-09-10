@@ -45,10 +45,11 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
-  // 3. Load the assignment: which scenario, and which mode is required.
+  // 3. Load the assignment: which scenario, which mode is required, and (since
+  //    Phase 2b-1) whether it carries a rubric at all.
   const { data: assignment, error: assignmentError } = await admin
     .from("assignments")
-    .select("id, scenario_id, required_mode, available_date")
+    .select("id, scenario_id, required_mode, available_date, rubric_id")
     .eq("id", assignmentId)
     .single();
   if (assignmentError || !assignment) {
@@ -70,18 +71,24 @@ export async function POST(request: Request) {
     );
   }
 
-  // 3b. A scenario with NO rubric is conversation-only: there is nothing to
+  // 3b. AN ASSIGNMENT WITH NO RUBRIC is conversation-only: there is nothing to
   //     grade, so it can never be submitted. The student home already hides the
   //     graded control for these assignments, but that is only the button; this
   //     is the actual enforcement, refused server-side the way every other
   //     session rule in this app is.
+  //
+  //     PHASE 2b-1 MOVED THE RUBRIC FROM THE SCENARIO TO THE ASSIGNMENT, and the
+  //     assignment is already loaded above, so the rubric check now reads a
+  //     column this route already has in hand. The scenario is still read below
+  //     for the two things only it can answer: whether it is switched on, and
+  //     which class the new session row belongs to.
   const { data: gradedCheck, error: gradedCheckError } = await admin
     .from("scenarios")
     // GATE 3a: class_id is read here so the session row below can carry it. A
     // session takes its class from its SCENARIO, not its assignment, because
     // assignment_id is nullable (free practice) while scenario_id never is.
     // That is the same rule Gate 1's backfill used.
-    .select("rubric_id, enabled, class_id")
+    .select("enabled, class_id")
     .eq("id", assignment.scenario_id)
     .single();
   if (gradedCheckError || !gradedCheck) {
@@ -101,7 +108,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (gradedCheck.rubric_id === null) {
+  if (assignment.rubric_id === null) {
     return NextResponse.json(
       {
         error:

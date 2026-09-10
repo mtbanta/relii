@@ -30,8 +30,10 @@
 //   Row 4      the level header. Six cells, D..I. EACH IS A richText OBJECT,
 //              not a string, so cell.value is {richText:[...]} and String() on
 //              it gives "[object Object]". Use cell.text. Each packs a short
-//              name and a descriptor split by a newline; only the short name is
-//              stored.
+//              name and a descriptor split by a newline, and SINCE PHASE 2b-1
+//              BOTH ARE STORED. The descriptor is the only thing in the file
+//              that says what a level means, and 2b-1 makes an AI choose a
+//              level for every criterion. See RubricLevel in lib/types.ts.
 //   Criteria   TWO ROWS EACH. First row: number in A, weight in B, name in C,
 //              six points values in D..I. Second row: description in C.
 //   Totals     a row of six values in D..I (Discovery) or one value in D
@@ -284,12 +286,23 @@ export async function parseRubricXlsx(file: ArrayBuffer): Promise<ParseResult> {
     );
   }
 
+  // PHASE 2b-1. BOTH LINES OF EACH HEADER CELL ARE KEPT. The first is the short
+  // name the grader returns and the student is shown; the rest is Tom's
+  // descriptor, which is the only statement anywhere of what that level MEANS.
+  // The note on RubricLevel.descriptor in lib/types.ts says why that is
+  // load-bearing rather than decorative.
   const levelNames: string[] = [];
+  const levelDescriptors: (string | undefined)[] = [];
   for (let c = FIRST_LEVEL_COL; c <= LAST_LEVEL_COL; c += 1) {
-    // Only the short name, which is the first line. The descriptor beneath it
-    // ("Ready for an entry-level sales role.") is not stored.
-    const short = cellText(sheet.getRow(headerRow).getCell(c)).split("\n")[0];
-    levelNames.push(normaliseName(short));
+    const lines = cellText(sheet.getRow(headerRow).getCell(c)).split("\n");
+    levelNames.push(normaliseName(lines[0]));
+    // Everything after the first line, in case a descriptor wraps onto two.
+    // Whitespace is collapsed but the text is otherwise left exactly as Tom
+    // wrote it: normaliseName is for NAMES, and it strips a trailing colon,
+    // which would quietly edit a sentence. An empty descriptor is undefined
+    // rather than "", so a level either carries Tom's words or carries nothing.
+    const rest = lines.slice(1).join(" ").replace(/\s+/g, " ").trim();
+    levelDescriptors.push(rest || undefined);
   }
 
   // The rubric's name sits in column A of the row above the header. Tied to the
@@ -335,7 +348,12 @@ export async function parseRubricXlsx(file: ArrayBuffer): Promise<ParseResult> {
         );
       }
 
-      levels.push({ name: levelNames[c - FIRST_LEVEL_COL], points });
+      const descriptor = levelDescriptors[c - FIRST_LEVEL_COL];
+      levels.push(
+        descriptor
+          ? { name: levelNames[c - FIRST_LEVEL_COL], descriptor, points }
+          : { name: levelNames[c - FIRST_LEVEL_COL], points },
+      );
     }
 
     // The description is column C of the following row. Optional in the sense

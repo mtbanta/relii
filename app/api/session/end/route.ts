@@ -1,9 +1,18 @@
 // POST /api/session/end
 // Body: { sessionId, recordedSeconds? }
-// Ends the session, scores the transcript against the content rubric items for
-// this scenario's meeting (discovery or presentation) with a single
-// low-temperature pass, and saves the itemized score. Both the text and the
-// voice+video paths finish here. All writes use the server-only service role.
+// Ends the session, scores the transcript against THE ASSIGNMENT'S rubric with a
+// single low-temperature pass, and saves the itemized score. Both the text and
+// the voice+video paths finish here. All writes use the server-only service role.
+//
+// ==> PHASE 2b-1 CHANGED WHERE THE RUBRIC COMES FROM. It used to be
+//     scenario.rubric_id. It is now assignment.rubric_id, reached through
+//     session.assignment_id. Everything else about this route is unchanged.
+//
+//     THE SCENARIO'S meeting_type NO LONGER GOVERNS SCORING AT ALL. A weighted
+//     rubric has no sub-items and no voice-only concept, so there is nothing to
+//     select by meeting: every criterion is scored whenever a rubric is
+//     attached. The scenario is still read here, but only for the persona's
+//     name, which the grader needs so a Jordan transcript is graded as Jordan. <==
 //
 // PD-5: this is also where the session's Recording Length is stored, because it
 // is the one place BOTH screens and BOTH endings (scored, and conversation-only)
@@ -11,14 +20,14 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { scoreTranscriptContent } from "@/lib/scoring";
+import { scoreTranscriptAgainstRubric } from "@/lib/scoring";
 import { isSubmissionLocked } from "@/lib/submission";
 import { prunePractices } from "@/lib/practice";
 import {
   isUsableRecordedSeconds,
   msToRecordedSeconds,
 } from "@/lib/recording-length";
-import { isMeetingType, type RubricItem, type TranscriptTurn } from "@/lib/types";
+import type { RubricCriterion, TranscriptTurn } from "@/lib/types";
 
 export async function POST(request: Request) {
   // 1. Must be a logged-in user.
@@ -119,31 +128,45 @@ export async function POST(request: Request) {
   }
   await admin.from("sessions").update(completedUpdate).eq("id", session.id);
 
-  // 5. Load this scenario: whether it has a rubric at all, which meeting it is,
-  //    and who the persona is. The rubric decides whether there is anything to
-  //    score; the meeting and persona are what the scorer needs if there is.
-  const { data: scenario, error: scenarioError } = await admin
-    .from("scenarios")
-    .select("rubric_id, meeting_type, persona_name")
-    .eq("id", session.scenario_id)
-    .single();
-  if (scenarioError || !scenario) {
-    return NextResponse.json({ error: "Scenario not found." }, { status: 404 });
+  // 5. WHERE THE RUBRIC COMES FROM, AND SINCE PHASE 2b-1 IT IS THE ASSIGNMENT.
+  //
+  //    ==> A SESSION WITH NO ASSIGNMENT IS CONVERSATION-ONLY. sessions.assignment_id
+  //        is nullable and 25 rows in this database are null: pre-Stage-7 test
+  //        practices, which every current start route makes impossible to create
+  //        but which exist. No assignment means no rubric means nothing to
+  //        score, and that is the rule rather than an accident of this code's
+  //        shape. It is written down in PROJECT_STATE alongside the count, so a
+  //        later session that meets those rows does not read them as
+  //        corruption. <==
+  let rubricId: string | null = null;
+  if (session.assignment_id) {
+    const { data: assignment, error: assignmentError } = await admin
+      .from("assignments")
+      .select("rubric_id")
+      .eq("id", session.assignment_id)
+      .single();
+    if (assignmentError || !assignment) {
+      return NextResponse.json(
+        { error: "Assignment not found." },
+        { status: 404 },
+      );
+    }
+    rubricId = assignment.rubric_id;
   }
 
-  // 5a. CONVERSATION-ONLY: a scenario with no rubric has nothing to score, so we
-  //     stop here. The session is already marked 'completed' above, which is its
-  //     terminal state: the transcript is saved (it was saved turn by turn during
-  //     the conversation) and so is the recording for voice+video, but no score
-  //     JSON, no total, and no scored_at is ever written.
+  // 5a. CONVERSATION-ONLY: an assignment with no rubric has nothing to score, so
+  //     we stop here. The session is already marked 'completed' above, which is
+  //     its terminal state: the transcript is saved (it was saved turn by turn
+  //     during the conversation) and so is the recording for voice+video, but no
+  //     score JSON, no total, and no scored_at is ever written.
   //
-  //     Note this branches on the scenario having NO RUBRIC, never on the status
-  //     being 'completed'. Those are different things: a scenario that DOES have
-  //     a rubric also sits at 'completed' for the moment between the conversation
+  //     Note this branches on there being NO RUBRIC, never on the status being
+  //     'completed'. Those are different things: an assignment that DOES have a
+  //     rubric also sits at 'completed' for the moment between the conversation
   //     ending and the score saving, and it stays there if scoring fails. Keying
   //     off the status would turn a temporary scoring failure into a permanent
   //     "no score" result instead of letting the student end the session again.
-  if (scenario.rubric_id === null) {
+  if (rubricId === null) {
     // The retention cap still applies, so it has to run on this path too. For a
     // conversation-only case a FINISHED practice is a 'completed' one, since it
     // will never be 'scored'. Best-effort, exactly like the scored path below.
@@ -157,40 +180,46 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  // The database constrains meeting_type to discovery or presentation, so this
-  // should never fail. It is checked anyway because the alternative to failing
-  // here is scoring against the wrong meeting's items, which would save a wrong
-  // score that looks entirely legitimate. Better to stop and be noticed.
-  if (!isMeetingType(scenario.meeting_type)) {
-    console.error(
-      "Scenario has an unusable meeting_type:",
-      session.scenario_id,
-      scenario.meeting_type,
-    );
-    return NextResponse.json(
-      { error: "This scenario is not set up for scoring yet." },
-      { status: 500 },
-    );
+  // 5b. The persona's name, which is all the scenario is read for now. The
+  //     grader names the customer so a Jordan transcript is graded as Jordan.
+  //     meeting_type is deliberately NOT read: it no longer governs scoring.
+  const { data: scenario, error: scenarioError } = await admin
+    .from("scenarios")
+    .select("persona_name")
+    .eq("id", session.scenario_id)
+    .single();
+  if (scenarioError || !scenario) {
+    return NextResponse.json({ error: "Scenario not found." }, { status: 404 });
   }
+
+  // 5c. The rubric itself. max_total joins this read because it is the stated
+  //     maximum the score is reported against, and it is a COLUMN rather than a
+  //     value hidden inside items. The scorer refuses rather than deriving one
+  //     by summing, so a missing maximum is a visible failure and not a
+  //     plausible-looking wrong denominator.
   const { data: rubric, error: rubricError } = await admin
     .from("rubrics")
-    .select("items")
-    .eq("id", scenario.rubric_id)
+    .select("items, max_total")
+    .eq("id", rubricId)
     .single();
   if (rubricError || !rubric) {
     return NextResponse.json({ error: "Rubric not found." }, { status: 404 });
   }
 
-  // 6. Score the transcript (content-only) and save the result.
+  // 6. Score the transcript against every criterion, and save the result.
   const transcript = (session.transcript ?? []) as TranscriptTurn[];
-  const rubricItems = (rubric.items ?? []) as RubricItem[];
+  // items is jsonb, so this cast is unchecked either way. The scorer does the
+  // actual checking and REFUSES a shape it cannot grade against, which is the
+  // backstop that turns a legacy flat rubric into a legible error rather than a
+  // walk through the wrong shape.
+  const criteria = (rubric.items ?? []) as RubricCriterion[];
 
   let score;
   try {
-    score = await scoreTranscriptContent(
+    score = await scoreTranscriptAgainstRubric(
       transcript,
-      rubricItems,
-      scenario.meeting_type,
+      criteria,
+      rubric.max_total,
       scenario.persona_name ?? "the customer",
     );
   } catch (err) {

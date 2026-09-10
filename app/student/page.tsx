@@ -73,12 +73,14 @@ type AssignmentRow = {
   // to the query: the duration already reached the session page, but not here.
   duration_minutes: number | null;
   instructions: string | null;
-  // rubric_id is null for a conversation-only case: nothing to grade, so the
-  // assignment is practice-only.
+  // PHASE 2b-1: rubric_id is THE ASSIGNMENT'S OWN, and null means this
+  // assignment is conversation-only: nothing to grade, so it is practice-only.
+  // It used to be read from the scenario. The scenario is still embedded below
+  // for its title and persona name, which is all this page needs from it.
+  rubric_id: string | null;
   scenarios: {
     title: string;
     persona_name: string;
-    rubric_id: string | null;
   } | null;
 };
 
@@ -195,18 +197,20 @@ export default async function StudentHome() {
     // page rendered EMPTY with nothing on screen and nothing in the logs.
     // ==> IF A SECOND FOREIGN KEY IS EVER ADDED BETWEEN THESE TWO TABLES, THIS
     //     LINE BREAKS EXACTLY THAT WAY AGAIN. See PROJECT_STATE Open Issues. <==
-    .select("id, title, required_mode, due_at, available_date, duration_minutes, instructions, scenarios ( title, persona_name, rubric_id )")
+    .select("id, title, required_mode, due_at, available_date, duration_minutes, instructions, rubric_id, scenarios ( title, persona_name )")
     .order("available_date", { ascending: true, nullsFirst: true })
     .order("created_at", { ascending: false })
     .returns<AssignmentRow[]>();
 
-  // Which of those assignments are conversation-only (their scenario has no
+  // Which of those assignments are conversation-only (THE ASSIGNMENT has no
   // rubric, so there is nothing to grade). Used twice below: to decide what a
   // "finished" practice looks like, and to hide the graded controls.
+  //
+  // PHASE 2b-1: this used to require the scenario to have loaded before it could
+  // answer, because the rubric lived on the scenario. The rubric is now a column
+  // on the assignment itself, so the embed is no longer part of the decision.
   const conversationOnlyAssignments = new Set(
-    (assignments ?? [])
-      .filter((a) => a.scenarios != null && a.scenarios.rubric_id === null)
-      .map((a) => a.id),
+    (assignments ?? []).filter((a) => a.rubric_id === null).map((a) => a.id),
   );
 
   // This student's submissions, so we can show each assignment's state. RLS lets
@@ -341,8 +345,9 @@ export default async function StudentHome() {
             const interrupted = submission?.status === "in_progress";
             const kept = practicesByAssignment.get(a.id) ?? [];
             const practiceOnly = conversationOnlyAssignments.has(a.id);
-            // Piece 4: an assignment is GRADABLE when its scenario has a rubric
-            // (not practice-only) AND its required_mode is voice_video. Only then
+            // Piece 4, as amended by Phase 2b-1: an assignment is GRADABLE when
+            // THE ASSIGNMENT has a rubric (not practice-only) AND its
+            // required_mode is voice_video. Only then
             // can a completed voice+video practice be submitted as the graded
             // assignment. `hasSubmission` gates the submit control on ANY
             // submission row already existing (even a legacy in_progress one),
