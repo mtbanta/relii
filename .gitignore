@@ -39,3 +39,6 @@ npm-debug.log*
 # file broken. Run it before the parser proof:
 #     node scripts/make-rubric-fixtures.mjs
 test-fixtures/
+
+# Playwright MCP scratch output (page snapshots, console logs) from test runs.
+.playwright-mcp/

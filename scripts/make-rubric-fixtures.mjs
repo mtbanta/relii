@@ -142,4 +142,48 @@ writeFileSync(OUT + "not-a-spreadsheet.xlsx", "This is a text file wearing an .x
   console.log(`  near-cap fixture: ${buf.length} bytes against a cap of ${MAX_FILE_BYTES}`);
 }
 
+// 10. REGRESSION FIXTURE, AND IT MUST PARSE. A minimal but VALID rubric with a
+//     DELIBERATE BLANK ROW 2.
+//
+//     ==> WHY THIS EXISTS. The row-scan bound used to read
+//         sheet.actualRowCount, which is the COUNT of non-empty rows and not
+//         the INDEX of the last one. Both real workbooks fill every row from 1
+//         to 18, so the two numbers coincide and the wrong property gave the
+//         right answer on every sample we had. One blank row makes them
+//         diverge, the scan stops early, and "Maximum points:" is reported
+//         missing when it is plainly there.
+//
+//         Neither real file can catch that, which is exactly why this fixture
+//         is hand-built rather than derived from them. Found 2026-09-09. <==
+{
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Rubric");
+  ws.getCell("A1").value = "Sales 300";
+  // Row 2 is deliberately left empty. That is the whole point of this fixture.
+  ws.getCell("A3").value = "Blank Row Regression Rubric";
+  [["Excellent","Top"],["Proficient","Good"],["Developing","Fair"],
+   ["Limited","Weak"],["Minimal","Poor"],["Unsatisfactory","None"]]
+    .forEach(([n, d], i) => { ws.getCell(4, 4 + i).value = `${n}\n${d}`; });
+  const criteria = [
+    ["Approach", 0.2, [20, 18, 16, 14, 10, 2]],
+    ["Discovery", 0.2, [20, 18, 16, 14, 10, 2]],
+    ["Presentation", 0.2, [20, 18, 16, 14, 10, 2]],
+    ["Close", 0.2, [20, 18, 16, 14, 10, 2]],
+    ["Objections", 0.1, [10, 9, 8, 7, 5, 1]],
+    ["Overall", 0.1, [10, 9, 8, 7, 5, 1]],
+  ];
+  let row = 5;
+  criteria.forEach(([name, weight, pts], i) => {
+    ws.getCell(row, 1).value = i + 1;
+    ws.getCell(row, 2).value = weight;
+    ws.getCell(row, 3).value = name;
+    pts.forEach((pt, j) => { ws.getCell(row, 4 + j).value = pt; });
+    ws.getCell(row + 1, 3).value = `Description for ${name}.`;
+    row += 2;
+  });
+  ws.getCell(row, 3).value = "Maximum points:";
+  ws.getCell(row, 4).value = 100;
+  await wb.xlsx.writeFile(OUT + "valid-with-a-blank-row.xlsx");
+}
+
 console.log("fixtures written to " + OUT);

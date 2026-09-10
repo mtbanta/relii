@@ -240,9 +240,29 @@ export async function parseRubricXlsx(file: ArrayBuffer): Promise<ParseResult> {
     return refuse("That workbook has no sheets in it.");
   }
 
-  // actualRowCount, not rowCount: rowCount reports 1000 on these files because
-  // of trailing formatting, and walking all of it is a thousand empty rows.
-  const lastRow = sheet.actualRowCount;
+  // ==> HOW FAR DOWN TO SCAN. THIS LINE WAS WRONG AND THE TWO REAL FILES HID IT.
+  //
+  //     It used to read sheet.actualRowCount. THAT IS THE COUNT OF NON-EMPTY
+  //     ROWS, NOT THE INDEX OF THE LAST ONE. Both real workbooks have content in
+  //     every row from 1 to 18, so the count and the last index are both 18 and
+  //     the wrong property gave the right answer.
+  //
+  //     PUT ONE BLANK ROW ANYWHERE and they diverge: a rubric using rows 1 and
+  //     3 to 17 with row 2 empty has a count of 16 and a last index of 17, the
+  //     scan stops a row early, and "Maximum points:" is never found. The file
+  //     is refused with a message saying the maximum is missing when it is
+  //     plainly there. Tom adding a spacer row would have hit this.
+  //
+  //     Found on 2026-09-09 by a hand-built minimal rubric, not by the samples.
+  //     A regression fixture with a deliberate blank row now guards it.
+  //
+  //     rowCount IS an upper bound on the last row carrying anything, which is
+  //     what a scan needs. It reads 1000 on the real files because of trailing
+  //     formatting, so it is capped: scanning a few hundred empty rows costs
+  //     nothing, and the cap stops a sparse sheet that declares a huge dimension
+  //     from turning a cheap scan into an expensive one. <==
+  const MAX_ROWS_SCANNED = 2000;
+  const lastRow = Math.min(sheet.rowCount, MAX_ROWS_SCANNED);
 
   // RULE 2. A level header row with six level cells is findable.
   let headerRow = 0;
