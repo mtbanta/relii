@@ -1,4 +1,10 @@
 // Shared data shapes used across the role-play feature.
+//
+// ==> THIS FILE IMPORTS NOTHING, AND THAT IS A RULE RATHER THAN AN ACCIDENT.
+//     Client components pull types from here. Anything this file imports, the
+//     browser bundle inherits. Adding a single import of a Node library or a
+//     heavy package at the top of this file would push it into every page that
+//     names one of these shapes. Keep the imports at zero. <==
 
 // One line of the saved conversation. "persona" is the AI (Alex); "student" is
 // the human sales rep. Stored as a JSON list on sessions.transcript.
@@ -34,6 +40,11 @@ export function isMeetingType(value: unknown): value is MeetingType {
 }
 
 // A single rubric line as stored in rubrics.items.
+//
+// PHASE 2a NOTE: this is the ORIGINAL flat shape, 29 items each worth 10 points,
+// and it is still what every current reader expects. The uploaded-rubric shapes
+// below are the new one. Both live in rubrics.items, and which is which is
+// decided by what wrote the row. Nothing reads the new shape until Phase 2b.
 export type RubricItem = {
   id: string;
   category?: string;
@@ -43,3 +54,171 @@ export type RubricItem = {
   guidance?: string;
   meetings: string[];
 };
+
+// ---------------------------------------------------------------------------
+// PHASE 2a. The uploaded rubric: weighted criteria, each scored by picking one
+// of six performance levels.
+// ---------------------------------------------------------------------------
+// ==> THESE SHAPES LIVE HERE, AND NOT BESIDE THE PARSER THAT PRODUCES THEM, ON
+//     PURPOSE. lib/rubric-xlsx.ts imports ExcelJS, which is 96 packages of Node
+//     library. components/create-assignment-form.tsx is a CLIENT component and
+//     needs these shapes for the preview. If it imported them from the parser
+//     module and anybody ever wrote a plain "import { ParsedRubric }" instead of
+//     "import type", ExcelJS would land in the browser bundle.
+//
+//     Putting them in this import-free file makes that impossible rather than
+//     merely discouraged. It is the same split, for the same reason, as
+//     lib/legal.ts against lib/legal-server.ts in Phase 5. The parser therefore
+//     does NOT re-export these: there must be exactly one place to import them
+//     from, and it must be the safe one. <==
+
+// ==> RULE ZERO: HOW BIG AN UPLOAD MAY BE, CHECKED BEFORE ANYTHING IS PARSED.
+//
+//     WHY IT EXISTS. Both routes hand the upload to ExcelJS, which reads the
+//     whole workbook into memory inside a serverless function, and Next.js
+//     route handlers do NOT impose the body limit the old pages API did. With
+//     no cap, an oversized upload fails as an exhausted function rather than as
+//     a refusal anyone can act on.
+//
+//     THE NUMBERS COME FROM THE REAL FILES, measured 2026-09-09:
+//       on disk        55,994 and 55,050 bytes
+//       uncompressed  557,384 and 528,870 bytes across 11 to 12 zip entries
+//       natural ratio  about 10x
+//
+//     TWO LIMITS, AND WHAT EACH ONE ACTUALLY BUYS. An .xlsx is a zip.
+//
+//       The byte cap bounds a LARGE UPLOAD, and it is the only limit here that
+//       an attacker cannot talk their way around.
+//
+//       The expanded cap is read from the sizes the zip DECLARES about itself,
+//       without inflating anything. It catches an honest workbook that is
+//       genuinely too big, and a naive bomb that declares its true size.
+//
+//     ==> WHAT THE EXPANDED CAP DOES NOT DO, WRITTEN DOWN SO NOBODY LATER READS
+//         IT AS A ZIP-BOMB DEFENCE. The uncompressed size in a central
+//         directory is written by whoever made the file. A crafted archive can
+//         declare 1 KB and still carry a deflate stream that expands to
+//         gigabytes, because the inflater works from the STREAM and never
+//         consults the declaration. A liar walks straight past this check.
+//
+//         So the real bound on worst-case memory is the byte cap, and deflate's
+//         maximum ratio is about 1032:1: 512 KB of hostile input can still
+//         reach roughly 500 MB. THAT IS ACCEPTED RATHER THAN SOLVED. The
+//         genuine fix is a bounded inflate, ExcelJS does not expose one, and
+//         replacing the unzip layer is not justified here: this route sits
+//         behind requireInstructorRequest(), instructors are added only by a
+//         super admin, and the realistic event is Tom uploading the wrong file,
+//         which these checks catch cleanly and explain in plain words. <==
+export const MAX_RUBRIC_FILE_BYTES = 512 * 1024;
+export const MAX_RUBRIC_UNCOMPRESSED_BYTES = 20 * 1024 * 1024;
+
+//     WHY THESE TWO NUMBERS, AND WHY THEY ARE NOT IN PROPORTION TO EACH OTHER.
+//
+//     512 KB on disk is about 9 times the largest real file. That still leaves
+//     room for an Excel re-save that adds an image or a theme, and a rubric is
+//     seven rows of numbers, so nothing honest approaches it.
+//
+//     20 MB expanded is about 36 times the real files' 557 KB. THE RATIO
+//     BETWEEN THE TWO LIMITS IS NOT A QUANTITY THAT MEANS ANYTHING, and making
+//     them symmetrical would make this worse rather than tidier:
+//
+//       The byte cap is a POLICY about how big an honest rubric can be. It is
+//       also the only real bound on worst-case memory, for the reason in the
+//       next comment block.
+//
+//       The expanded cap is a CEILING WHOSE ONLY JOB IS TO AVOID FALSE
+//       REFUSALS while still catching an honest oversized workbook. Spreadsheet
+//       XML compresses far better than our two samples' 10x when a sheet is
+//       text-heavy: 25x is ordinary. A 512 KB file at 25x is 12.8 MB, so
+//       tightening this toward the observed 10x would start refusing legitimate
+//       workbooks. It would also buy nothing in the worst case, which is
+//       governed by the byte cap and not by this number. <==
+
+// A byte count as a person reads it, for the refusal messages, because
+// "512 KB" is clearer to Tom than "524288 bytes".
+//
+// ==> IT ROUNDS UP, NEVER TO NEAREST, AND THAT IS THE WHOLE POINT. With
+//     rounding to nearest, a file ONE BYTE over the cap formats to exactly the
+//     same string as the cap, and the refusal reads "That file is 512 KB and
+//     the limit is 512 KB", which tells the reader their file is precisely the
+//     limit and was rejected anyway. Rounding up means a file over the limit
+//     always DISPLAYS as over the limit. Found by the boundary fixture on
+//     2026-09-09; a comfortably oversized test file would never have shown it.
+//
+//     THE RULE, WHICH IS DIRECTIONAL: A SIZE ROUNDS UP AND A LIMIT ROUNDS
+//     DOWN. Rounding both the same way reintroduces the bug from whichever
+//     side the rounding happens to fall, and a message must never be able to
+//     claim a file sits inside a limit it actually exceeds. Rounding a size up
+//     never understates it; rounding a limit down never overstates it; so the
+//     displayed size is over the displayed limit whenever the real one is.
+//
+//     IT CANNOT BITE TODAY, because both caps are exact powers of two and floor
+//     and ceil agree on them. It is written this way for the cap that is not,
+//     which is the one a later session will choose without thinking about
+//     rounding at all. That is why these are two named functions rather than
+//     one with a flag: the call site has to say which kind of number it holds. <==
+function formatBytesRounded(bytes: number, direction: "up" | "down"): string {
+  const round = direction === "up" ? Math.ceil : Math.floor;
+  if (bytes >= 1024 * 1024) {
+    return `${(round((bytes / (1024 * 1024)) * 10) / 10).toFixed(1)} MB`;
+  }
+  if (bytes >= 1024) return `${round(bytes / 1024)} KB`;
+  return `${bytes} bytes`;
+}
+
+// The size of something that exists. Rounds UP.
+export function formatSize(bytes: number): string {
+  return formatBytesRounded(bytes, "up");
+}
+
+// A ceiling we are enforcing. Rounds DOWN.
+export function formatLimit(bytes: number): string {
+  return formatBytesRounded(bytes, "down");
+}
+
+// One performance level of one criterion, as stored.
+export type RubricLevel = {
+  // The short name only: "Excellent", not the descriptor beneath it.
+  name: string;
+  // Absolute points for this level of this criterion. Half points are real
+  // (49.5, 38.5, 4.5) and are stored exactly as the spreadsheet states them.
+  points: number;
+};
+
+// One weighted criterion.
+export type RubricCriterion = {
+  // Stable within one rubric. Encodes the criterion's POSITION in the parsed
+  // list, not the number in column A, which is why "Close" is 3-close in
+  // Discovery and 4-close in Presentation.
+  //
+  // ==> DO NOT "SIMPLIFY" THIS TO A NAME-ONLY SLUG. Position makes it unique by
+  //     construction. A name-only slug would introduce a collision risk that
+  //     does not exist today, and ids only ever need to be unique inside a
+  //     single rubric. <==
+  id: string;
+  name: string;
+  description: string;
+  // Column B: this criterion's share of the total, so 0.1 means 10 per cent.
+  // Carried for Phase 2b. NEVER used to recompute a points value, because every
+  // level already stores its absolute points and two ways to reach one number
+  // is two records that can disagree about a grade.
+  weight: number;
+  // Six levels, HIGHEST FIRST, which is the order the columns are in.
+  levels: RubricLevel[];
+};
+
+// A whole parsed rubric, as the parser returns it and the route stores it.
+// maxTotal goes to the rubrics.max_total COLUMN, never inside rubrics.items:
+// items is constrained to an array and every consumer treats each element as a
+// criterion.
+export type ParsedRubric = {
+  name: string;
+  maxTotal: number;
+  criteria: RubricCriterion[];
+};
+
+// What the parser hands back. The refusal half matches the Refusal shape in
+// lib/class-scope.ts, so a route can pass either straight to the browser.
+export type ParseResult =
+  | { ok: true; rubric: ParsedRubric }
+  | { ok: false; error: string };

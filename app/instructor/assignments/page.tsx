@@ -42,8 +42,13 @@ type AssignmentRow = {
 
 export default async function InstructorAssignments() {
   // The layout already gated this page; this confirms it again for the page
-  // itself, and is also how it gets the signed-in instructor's id.
-  const { user, classId } = await requireInstructor();
+  // itself, and is how it gets the class the instructor is working in.
+  //
+  // PHASE 2a stopped destructuring `user` here. It existed only to hand
+  // created_by to the create form, and the create route now takes the author
+  // from the signed-in session instead, so the browser cannot claim to be
+  // somebody else. The gate itself is unchanged and still runs.
+  const { classId } = await requireInstructor();
 
   const supabase = await createClient();
   const admin = createAdminClient();
@@ -169,11 +174,10 @@ export default async function InstructorAssignments() {
         page to see another one.
       </p>
 
-      <CreateAssignmentForm
-        scenarios={scenarios ?? []}
-        createdBy={user.id}
-        classId={classId}
-      />
+      {/* PHASE 2a: createdBy is no longer passed. The create route takes the
+          author from the signed-in session, so the browser cannot claim to be
+          somebody else. */}
+      <CreateAssignmentForm scenarios={scenarios ?? []} classId={classId} />
 
       {/* PD-8g: a header over the list below, so the created assignments read as
           their own section rather than as loose cards trailing the create form.

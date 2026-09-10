@@ -260,6 +260,38 @@ create policy "read assignments"
 -- 3a is the create form and there is no write path for the edit form.
 --
 -- Otherwise word for word what Gate 2 shipped.
+--
+-- ===========================================================================
+-- ==> PHASE 2a NOTE, ADDED 2026-09-09. THIS RULE IS NO LONGER THE ENFORCEMENT.
+--     IT IS THE BACKSTOP. DO NOT DELETE IT.
+--
+--     WHY IT WILL LOOK LIKE DEAD CODE. Until Phase 2a, this rule WAS the
+--     authorisation for creating an assignment, because
+--     components/create-assignment-form.tsx inserted straight from the browser
+--     with the ordinary logged-in client and the database refused anything
+--     else. Phase 2a moved that write to
+--     app/api/instructor/assignment/create/route.ts, WHICH USES THE
+--     SERVICE-ROLE KEY AND THEREFORE BYPASSES ROW LEVEL SECURITY COMPLETELY.
+--
+--     So nothing in the browser writes assignments any more, and a search for
+--     callers of this rule will come back empty. A tidy-minded session will
+--     conclude it is unused. IT IS NOT UNUSED, IT IS UNTRIGGERED, AND THOSE ARE
+--     DIFFERENT THINGS.
+--
+--     WHAT IT STILL DOES:
+--       - It is the reason a browser CANNOT go back to writing assignments
+--         directly. Delete it and the anon key plus a crafted request is once
+--         again a write path into any class.
+--       - It still governs the ordinary logged-in client everywhere else,
+--         including any future browser read or write of this table.
+--       - It is what Gate 2 and Gate 3a built it to be: defence in depth
+--         underneath the application check, not a substitute for it.
+--
+--     THE APPLICATION CHECK THAT NOW SITS ABOVE IT is requireInstructorRequest()
+--     plus refuseOutsideClass() in that route. Gate Finding 1 says the isolation
+--     lives in the application layer or it does not exist. This rule is the
+--     floor under that, and a floor you never stand on is still holding you up.
+-- ===========================================================================
 drop policy if exists "instructors manage assignments" on public.assignments;
 create policy "instructors manage assignments"
   on public.assignments for all

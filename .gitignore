@@ -26,3 +26,16 @@ npm-debug.log*
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Phase 2a rubric test fixtures. Generated, not authored.
+#
+# scripts/make-rubric-fixtures.mjs rebuilds every one of these in a second, and
+# it reads the size cap out of lib/types.ts so the boundary fixtures cannot
+# disagree with the guard they test. Two of them are about 500 KB of padding and
+# pseudo-random noise, which is a megabyte of unreviewable binary in every clone
+# forever, and a diff of a .xlsx tells a reviewer nothing anyway.
+#
+# The GENERATOR is the artifact worth keeping: it says in words what makes each
+# file broken. Run it before the parser proof:
+#     node scripts/make-rubric-fixtures.mjs
+test-fixtures/

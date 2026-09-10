@@ -31,7 +31,76 @@
 // deletes the students themselves, only their sessions FOR this assignment.
 import { NextResponse } from "next/server";
 import { requireInstructorRequest, refuseOutsideClass } from "@/lib/class-scope";
+import type { AdminClient } from "@/lib/class-scope";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
+
+// ==> PHASE 2a. DELETE THE ASSIGNMENT'S RUBRIC TOO, BUT ONLY IF NOTHING ELSE
+//     POINTS AT IT. CALLED AFTER THE ASSIGNMENT ROW IS ALREADY GONE.
+//
+//     WHY THE CHECK IS NOT OPTIONAL, WITH THE REAL CASE RATHER THAN A
+//     HYPOTHETICAL ONE. Today there is exactly ONE rubric in the database,
+//     Great Northwoods. Two scenarios reference it, and after the Phase 2a
+//     backfill the Alex and Jordan assignments do too. Both
+//     scenarios_rubric_same_class_fkey and assignments_rubric_same_class_fkey
+//     are ON DELETE RESTRICT.
+//
+//     So an unconditional delete here would destroy the assignment, write its
+//     audit row, and only THEN hit a raw Postgres foreign-key error the user
+//     cannot act on, with the destructive half already committed. Checking
+//     first is what makes the failure impossible instead of merely reported.
+//
+//     Great Northwoods therefore survives, which is correct: it carries the
+//     labels for every historical score. A rubric UPLOADED through the create
+//     form is one-to-one with its assignment, so nothing else references it and
+//     it is always cleaned up.
+//
+//     IT NEVER FAILS THE REQUEST. By the time this runs the assignment is
+//     deleted and that is the operation the caller asked for. A rubric left
+//     behind is untidy; reporting the whole delete as failed after it succeeded
+//     would be wrong. Anything unexpected is logged and swallowed. <==
+async function deleteRubricIfUnused(
+  admin: AdminClient,
+  rubricId: string | null | undefined,
+): Promise<void> {
+  if (!rubricId) return;
+
+  try {
+    const [{ count: scenarioRefs }, { count: assignmentRefs }] =
+      await Promise.all([
+        admin
+          .from("scenarios")
+          .select("id", { count: "exact", head: true })
+          .eq("rubric_id", rubricId),
+        admin
+          .from("assignments")
+          .select("id", { count: "exact", head: true })
+          .eq("rubric_id", rubricId),
+      ]);
+
+    // FAILS CLOSED. A null count means the check did not answer, and the safe
+    // response to "we do not know whether anything needs this" is to keep it.
+    if (scenarioRefs === null || assignmentRefs === null) {
+      console.warn(
+        `Phase 2a: could not count references to rubric ${rubricId}. Leaving it in place.`,
+      );
+      return;
+    }
+
+    if (scenarioRefs > 0 || assignmentRefs > 0) {
+      console.info(
+        `Phase 2a: rubric ${rubricId} kept, still referenced by ${scenarioRefs} scenario(s) and ${assignmentRefs} assignment(s).`,
+      );
+      return;
+    }
+
+    const { error } = await admin.from("rubrics").delete().eq("id", rubricId);
+    if (error) {
+      console.error("Phase 2a: deleting the orphaned rubric failed:", rubricId, error);
+    }
+  } catch (err) {
+    console.error("Phase 2a: the rubric cleanup threw:", rubricId, err);
+  }
+}
 
 export async function POST(
   request: Request,
@@ -68,7 +137,9 @@ export async function POST(
     .from("assignments")
     // GATE 3a: class_id joins this read so the audit record below can carry it.
     // GATE 3b: and so the check immediately below has something to compare.
-    .select("id, title, required_mode, scenario_id, class_id")
+    // PHASE 2a: rubric_id joins this read because the row is about to be
+    // deleted, and step 11 needs to know which rubric it pointed at.
+    .select("id, title, required_mode, scenario_id, class_id, rubric_id")
     .eq("id", id)
     .single();
   if (assignmentError || !assignment) {
@@ -127,6 +198,7 @@ export async function POST(
         { status: 500 },
       );
     }
+    await deleteRubricIfUnused(admin, assignment.rubric_id);
     return NextResponse.json({ ok: true, deleted: "clean" });
   }
 
@@ -251,6 +323,8 @@ export async function POST(
       { status: 500 },
     );
   }
+
+  await deleteRubricIfUnused(admin, assignment.rubric_id);
 
   return NextResponse.json({
     ok: true,
