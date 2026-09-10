@@ -13,7 +13,12 @@ import {
   RECORDING_LENGTH_LABEL,
   recordingLengthText,
 } from "@/lib/recording-length";
-import type { RubricItem, SessionScore, TranscriptTurn } from "@/lib/types";
+import { formatPoints } from "@/lib/types";
+import type {
+  RubricCriterion,
+  SessionScore,
+  TranscriptTurn,
+} from "@/lib/types";
 import { cardClasses } from "@/components/ui/card";
 import { Icon, IconArrowLeft } from "@/components/ui/icon";
 import { Badge } from "@/components/ui/badge";
@@ -119,9 +124,9 @@ export default async function ResultsPage({
     videoUrl = signed?.signedUrl ?? null;
   }
 
-  // Load the rubric so we can show each item's human-friendly label and category
-  // next to its score. A conversation-only session has no rubric and no itemized
-  // score to label, so this is skipped entirely.
+  // Load the rubric so each scored line can carry its criterion's name and the
+  // description of what that criterion asks for. A conversation-only session has
+  // no rubric and no itemized score to label, so this is skipped entirely.
   const { data: rubric } = conversationOnly
     ? { data: null }
     : await supabase
@@ -130,23 +135,18 @@ export default async function ResultsPage({
         .eq("id", assignmentRubricId)
         .single();
 
-  // ==> THIS CAST IS KNOWINGLY WRONG AND IT IS LABELLED RATHER THAN LEFT TO READ
-  //     AS FINE. PHASE 2b-2 FIXES IT; DO NOT TREAT IT AS SETTLED.
+  // ==> PHASE 2b-2 CORRECTED THIS CAST, AND WHAT IT USED TO SAY IS WORTH ONE
+  //     LINE: it claimed the flat RubricItem[] shape, which since 2b-1 nothing
+  //     reachable from here has. It was labelled as knowingly wrong rather than
+  //     left to read as fine, because half-rewriting the renderer in 2b-1 would
+  //     have left this screen in a state neither piece owned.
   //
-  //     Since Phase 2b-1 every rubric reachable from here is a LEVELS rubric
-  //     (weighted criteria, six levels each), not the flat RubricItem[] this
-  //     line claims. items is jsonb, so TypeScript cannot object, and
-  //     <RubricScore> below still expects the flat shape. The visible effect is
-  //     that a score would render with criterion ids instead of names, every
-  //     row in one "Other" group, and the chosen LEVEL not shown at all.
-  //
-  //     IT REACHES NO REAL USER TODAY, and that is the only reason it is
-  //     acceptable to leave: 2b-1's migration detaches every rubric, so nothing
-  //     is scored until 2b-2, which is the piece that rewrites this component
-  //     and this cast together. Changing the rendering was explicitly out of
-  //     scope for 2b-1, and half-rewriting it here would have left the screen in
-  //     a state neither piece owns. <==
-  const rubricItems = (rubric?.items ?? []) as RubricItem[];
+  //     items is jsonb, so TypeScript cannot check either version of this line.
+  //     What makes the new one true is structural rather than hopeful: 2b-1's
+  //     migration put the legacy flat shape out of reach (no assignment points
+  //     at it), and the scorer REFUSES a rubric whose criteria carry no levels,
+  //     so a rubric that reaches this page and was scored is a levels rubric. <==
+  const criteria = (rubric?.items ?? []) as RubricCriterion[];
 
   // PD-5: a submission shows the moment it was handed in (the same stamp the
   // instructor view shows), a practice the moment it was started.
@@ -200,15 +200,30 @@ export default async function ResultsPage({
         {score && !conversationOnly && (
           <div className="shrink-0 text-right">
             <p className="text-stat font-medium tabular-nums text-content-primary">
-              {score.total}
+              {formatPoints(score.total)}
               <span className="text-card-title font-normal text-content-tertiary">
                 {" "}
-                / {score.max_total}
+                / {formatPoints(score.max_total)}
               </span>
             </p>
-            <p className="text-meta font-medium text-content-success">
-              {Math.round((score.total / score.max_total) * 100)}%
-            </p>
+            {/* ==> THE PERCENTAGE KEEPS A HALF TOO, AND IT USED TO NOT. This
+                    line rounded to a whole number, so a 59.5 out of 100 sat
+                    directly beneath the words "59.5 / 100" reading "60%": two
+                    numbers on one screen disagreeing about one grade, which is
+                    the failure this project keeps paying for. It now rounds to
+                    at most ONE decimal, because unlike the points themselves a
+                    percentage genuinely can run on (59.5 out of 180 is 33.05...),
+                    so something has to stop it. A half can no longer be rounded
+                    away, and formatPoints drops a trailing .0 so an ordinary
+                    score still reads "65%". <== */}
+            {score.max_total > 0 && (
+              <p className="text-meta font-medium text-content-success">
+                {formatPoints(
+                  Math.round((score.total / score.max_total) * 1000) / 10,
+                )}
+                %
+              </p>
+            )}
           </div>
         )}
       </header>
@@ -340,15 +355,36 @@ export default async function ResultsPage({
           pair above, which is where PD-8d's collapsible categories read best.
           PD-7 renamed this heading from "Itemized score" to "Rubric score", so
           the student and the instructor call the same list by the same name. */}
-      {score && (
+      {/* ==> GATED ON conversationOnly AS WELL AS ON THERE BEING A SCORE, AND
+              THE SECOND HALF WAS MISSING. The 32 scores stored before 2b-1 sit
+              on sessions whose assignment now names no rubric, so this page
+              shows them the "no score" card above and then rendered this
+              heading underneath it with nothing at all beneath, because the
+              rubric read was skipped and the component correctly draws nothing
+              from an empty one. One condition on the card and a different one
+              on the section is how a screen ends up contradicting itself. <== */}
+      {score && !conversationOnly && (
         <section>
           <h2 className="mb-2 text-section font-medium text-content-secondary">Rubric score</h2>
-          <RubricScore items={score.items} rubricItems={rubricItems} />
+          <RubricScore items={score.items} criteria={criteria} />
           {/* Kept from the old score box, restyled: it explains why the total is
-              out of what it is, which is the first thing a student wonders. */}
+              out of what it is, which is the first thing a student wonders.
+
+              ==> PHASE 2b-2 REPLACED WHAT THIS SAID, AND BOTH HALVES OF IT HAD
+                  BECOME FALSE. It read "Scored by AI on the discovery content
+                  items. Delivery items (tone, pace, and other spoken-only
+                  points) are added in a later stage." Since 2b-1 EVERY criterion
+                  is scored, communication and overall impression included, and
+                  there are no delivery items to add later: a weighted rubric has
+                  no such concept. It also has to explain the LEVEL, which is the
+                  one thing a student seeing this screen for the first time will
+                  not otherwise understand. It deliberately does NOT mention an
+                  instructor adjusting the grade: that is Phase 4 and it is not
+                  true yet. <== */}
           <p className="mt-2 max-w-reading text-micro text-content-tertiary">
-            Scored by AI on the discovery content items. Delivery items (tone,
-            pace, and other spoken-only points) are added in a later stage.
+            Scored by AI against this assignment&apos;s rubric. Every criterion
+            is graded from the transcript, and its points come from the level
+            chosen.
           </p>
         </section>
       )}

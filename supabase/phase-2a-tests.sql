@@ -217,47 +217,57 @@ select * from (
   -- Every assignment whose scenario carries a rubric must now carry that SAME
   -- rubric. Expected: zero disagreements.
   --
-  -- ==> THIS CHECK HAS AN EXPIRY DATE, AND IT IS PHASE 2B. READ THIS BEFORE
-  --     ACTING ON A FAILED VERDICT HERE.
+  -- ==> THIS CHECK EXPIRED, AND PHASE 2b-2 REPLACED IT ON 2026-09-11. THE
+  --     REPLACEMENT IS THE `exists` CLAUSE AT THE BOTTOM OF THE QUERY BELOW.
   --
-  --     It is true today for one reason only: the backfill has just made every
-  --     assignment's rubric equal to its scenario's. It is NOT a standing
-  --     property of the data. The first rubric an instructor attaches through
-  --     the form deliberately makes an assignment's rubric DIFFER from its
-  --     scenario's, because that is the entire point of the feature. At that
-  --     moment this check starts reporting FAILED on a database that is
-  --     perfectly correct.
+  --     WHAT IT USED TO SAY, KEPT BECAUSE THE SEQUENCE IS THE LESSON. This note
+  --     used to predict that the check would go red "when 2b enables the field",
+  --     and it said to leave it alone until then. THAT PREDICTION WAS RIGHT
+  --     ABOUT THE OUTCOME AND WRONG ABOUT THE MOMENT, AND NOBODY NOTICED FOR A
+  --     WHOLE PHASE. It went red at 2b-1, not at 2b-2.
   --
-  --     THIS IS THE GATE 5 FINDING REPEATING, AND IT IS WRITTEN DOWN HERE SO
-  --     IT DOES NOT COST ANOTHER SESSION. Query 4 of supabase/gate-3b-tests.sql
-  --     went stale exactly this way: it encoded "an instructor owns one class",
-  --     Gate 6 made several classes normal, and nobody ran the file in between,
-  --     so the staleness surfaced during a gate run instead of before one.
+  --     HERE IS WHY, AND IT IS ONE LINE OF SQL SEMANTICS. The unscoped check
+  --     counted an assignment whose SCENARIO carries a rubric and whose own
+  --     rubric `is distinct from` it. 2b-1 set every assignments.rubric_id to
+  --     NULL, and in SQL `null is distinct from <uuid>` is TRUE. So from the
+  --     moment 2b-1 ran, every assignment sitting on a rubric-naming scenario
+  --     was counted. MEASURED ON 2026-09-11 BY supabase/phase-2b2-preflight.sql:
+  --     it returned 2, on a database in exactly the state it was designed to be
+  --     in. Both the 2b-1 handoff and the 2b-2 kickoff asserted in prose that it
+  --     "passes vacuously at zero rows"; both were written from the sentence
+  --     describing the check rather than from the query, and both were wrong.
   --
-  --     WHAT IT SHOULD BECOME IN 2B. Scope it to the rows the backfill created
-  --     and exclude anything attached since, which the form makes identifiable
-  --     because an uploaded rubric is referenced by its assignment and by no
-  --     scenario:
+  --     THE RULE THAT COMES OUT OF IT, WHICH IS NOT THE ONE ABOUT EXPIRY DATES:
+  --     a check that is going to expire needs its EXPIRY CONDITION written in
+  --     SQL terms, not in project terms. "When the upload field goes live" is a
+  --     fact about a roadmap. "When any assignment's rubric_id stops equalling
+  --     its scenario's, INCLUDING BY BECOMING NULL" is a fact about the query,
+  --     and it is the one that would have caught this a phase earlier.
   --
-  --       ... and exists (select 1 from public.scenarios s2
-  --                        where s2.rubric_id = a.rubric_id)
-  --
-  --     Do that when 2b enables the field, not before: while the field is off
-  --     the unscoped form above is the stronger check, because every row is
-  --     supposed to match and any difference is a real defect. <==
+  --     WHAT THE REPLACEMENT DOES. It counts only an assignment whose rubric
+  --     CAME FROM a scenario, which is identifiable because an uploaded rubric
+  --     is referenced by its assignment and by no scenario. So a detached
+  --     assignment (rubric_id null) is excluded, and so is every rubric Tom
+  --     uploads from 2b-2 onward. What remains measured is the thing this check
+  --     was always for: that 2a's backfill did not mismatch a pair. It returned
+  --     0 on the pre-flight before it was applied here. <==
   union all select 16,
-    'assignments whose rubric does not match their scenario''s',
+    'assignments whose SCENARIO-DERIVED rubric does not match their scenario''s',
     '0',
     (select count(*)::text
      from public.assignments a
      join public.scenarios s on s.id = a.scenario_id
      where s.rubric_id is not null
-       and a.rubric_id is distinct from s.rubric_id),
+       and a.rubric_id is distinct from s.rubric_id
+       and exists (select 1 from public.scenarios s2
+                    where s2.rubric_id = a.rubric_id)),
     case when (select count(*)
                from public.assignments a
                join public.scenarios s on s.id = a.scenario_id
                where s.rubric_id is not null
-                 and a.rubric_id is distinct from s.rubric_id) = 0
+                 and a.rubric_id is distinct from s.rubric_id
+                 and exists (select 1 from public.scenarios s2
+                              where s2.rubric_id = a.rubric_id)) = 0
          then 'PASSED' else 'FAILED' end
 
   -- Belt and braces on the rule itself. The constraint should make this

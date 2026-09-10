@@ -25,7 +25,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveWorkingClassId } from "@/lib/instructor-auth";
 import { refuseOutsideClass } from "@/lib/class-scope";
-import type { RubricItem, SessionScore, TranscriptTurn } from "@/lib/types";
+import type {
+  RubricCriterion,
+  SessionScore,
+  TranscriptTurn,
+} from "@/lib/types";
 
 export type LoadedSubmission = {
   admin: ReturnType<typeof createAdminClient>;
@@ -47,7 +51,14 @@ export type LoadedSubmission = {
   assignmentTitle: string;
   scenarioTitle: string;
   personaName: string;
-  rubricItems: RubricItem[];
+  // PHASE 2b-2: the ASSIGNMENT's rubric, not the scenario's. See the read below.
+  rubricName: string | null;
+  criteria: RubricCriterion[];
+  // Whether the assignment names a rubric at all. It is returned as its own
+  // fact rather than inferred from criteria being empty, because the CSV has to
+  // TELL its reader which of the two situations it is in and a guess is not
+  // good enough to print in a downloaded file.
+  rubricAttached: boolean;
 };
 
 export type LoadResult =
@@ -127,6 +138,13 @@ export async function loadInstructorSubmission(id: string): Promise<LoadResult> 
   if (outside) return { ok: false, status: outside.status, error: "Submission not found." };
 
   // 4. The student, assignment, and scenario (for labels), then the rubric.
+  //
+  // ==> PHASE 2b-2: THE RUBRIC COMES FROM THE ASSIGNMENT. It used to come from
+  //     scenarios.rubric_id, which 2b-1 deliberately left alone here so that an
+  //     instructor kept seeing the 32 historical scores with their labels while
+  //     the student's own page had already moved. That divergence was temporary
+  //     and this closes it. ONE RULE NOW GOVERNS EVERYWHERE: the rubric comes
+  //     from the assignment or there is none. <==
   const [{ data: student }, { data: assignment }, { data: scenario }] =
     await Promise.all([
       admin
@@ -136,21 +154,30 @@ export async function loadInstructorSubmission(id: string): Promise<LoadResult> 
         .single(),
       admin
         .from("assignments")
-        .select("title")
+        .select("title, rubric_id")
         .eq("id", submission.assignment_id)
         .single(),
       admin
         .from("scenarios")
-        .select("title, persona_name, rubric_id")
+        .select("title, persona_name")
         .eq("id", submission.scenario_id)
         .single(),
     ]);
 
-  const { data: rubric } = await admin
-    .from("rubrics")
-    .select("items")
-    .eq("id", scenario?.rubric_id)
-    .single();
+  // ==> THE GUARD ON THIS READ IS LOAD BEARING, NOT DEFENSIVE. Before 2b-2 the
+  //     id handed to .eq() was a scenario's rubric, which was never null on the
+  //     rows this page could reach. It is an ASSIGNMENT's rubric now, and that
+  //     is null on 32 of the 33 stored scores, so "no rubric" is the COMMON case
+  //     here rather than an edge one. Asking PostgREST for id equals undefined
+  //     is not a question with a sensible answer. <==
+  const rubricId = assignment?.rubric_id ?? null;
+  const { data: rubric } = rubricId
+    ? await admin
+        .from("rubrics")
+        .select("name, items")
+        .eq("id", rubricId)
+        .single()
+    : { data: null };
 
   return {
     ok: true,
@@ -165,7 +192,9 @@ export async function loadInstructorSubmission(id: string): Promise<LoadResult> 
       assignmentTitle: assignment?.title ?? "Assignment",
       scenarioTitle: scenario?.title ?? "Scenario",
       personaName: scenario?.persona_name ?? "Customer",
-      rubricItems: (rubric?.items ?? []) as RubricItem[],
+      rubricName: rubric?.name ?? null,
+      criteria: (rubric?.items ?? []) as RubricCriterion[],
+      rubricAttached: rubricId !== null,
     },
   };
 }

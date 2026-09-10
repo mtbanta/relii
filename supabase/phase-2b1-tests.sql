@@ -7,42 +7,57 @@
 -- to Claude. Do not repair anything by hand.
 --
 --
--- ==> A NOTE FOR WHOEVER RUNS supabase/phase-2a-tests.sql AFTER THIS PIECE, SO A
---     CHANGED VERDICT THERE IS NOT READ AS A BREAKAGE.
+-- ==> THE NOTE THAT USED TO BE HERE WAS WRONG, AND PHASE 2b-2 CORRECTED IT ON
+--     2026-09-11. IT IS REWRITTEN RATHER THAN DELETED BECAUSE THE ERROR IS MORE
+--     USEFUL THAN THE CORRECTION.
 --
---     CHECK 16 of that file is "every assignment's rubric matches its
---     scenario's". It was true because 2a's backfill had just made it so. After
---     2b-1 no assignment carries a rubric at all, so it now passes VACUOUSLY:
---     zero rows to disagree. It is still green and it is no longer measuring
---     anything.
+--     IT SAID: check 16 of supabase/phase-2a-tests.sql ("every assignment's
+--     rubric matches its scenario's") passes VACUOUSLY after this migration,
+--     because no assignment carries a rubric at all, and that it would expire
+--     for real in 2b-2 when Tom attaches his first one.
 --
---     IT EXPIRES FOR REAL IN 2b-2. The first rubric Tom attaches will differ
---     from his scenario's, and a correct database will make that check report
---     FAILED. The replacement query is written inside phase-2a-tests.sql itself,
---     and the instruction there stands: apply it when the upload field goes
---     live, not before. <==
+--     THE FIRST HALF WAS FALSE THE MOMENT THIS MIGRATION RAN. That check counts
+--     assignments whose SCENARIO carries a rubric and whose own rubric `is
+--     distinct from` it, and `null is distinct from <uuid>` is TRUE in SQL. This
+--     migration set every assignments.rubric_id to null, so it did not empty the
+--     count, it FILLED it. Measured on 2026-09-11 by
+--     supabase/phase-2b2-preflight.sql: 2 rows, on a database in exactly the
+--     state 2b-1 intended.
+--
+--     SO THE CHECK SPENT A WHOLE PHASE REPORTING FAILED ON CORRECT DATA while
+--     two handoff documents said it was green, because both were written from
+--     the sentence describing the check rather than from the query. 2b-2 applied
+--     the replacement, and the corrected note lives in phase-2a-tests.sql beside
+--     it. Nothing here needs re-running on that account.
+--
+--     THE TRANSFERABLE PART: prose describing a check is not the check, and a
+--     handoff that quotes the prose inherits whatever the prose got wrong. Read
+--     the query. <==
 --
 --
--- ==> AND THIS FILE HAS TWO OF ITS OWN THAT EXPIRE THE SAME WAY. CHECK 10 AND
---     CHECK 11 ARE POINT-IN-TIME COUNTS, NOT INVARIANTS.
+-- ==> CHECKS 10 AND 11 WERE POINT-IN-TIME COUNTS AND PHASE 2b-2 TURNED THEM INTO
+--     INFORMATION ROWS ON 2026-09-11. THEY NO LONGER CARRY A VERDICT.
 --
---     They hardcode 32 scored sessions and 5 assignments, which are the numbers
---     measured immediately before this migration. Their job is to prove THIS
---     MIGRATION deleted nothing, and for that one moment an exact number is the
---     right check: "about the same" would not catch a row quietly disappearing.
+--     They hardcoded 32 scored sessions and 5 assignments, the numbers measured
+--     immediately before this migration. Their job was to prove THIS MIGRATION
+--     deleted nothing, and for that one moment an exact number was the right
+--     check: "about the same" would not catch a row quietly disappearing.
 --
---     THEY GO RED ON A HEALTHY DATABASE THE MOMENT ANYTHING ELSE HAPPENS. The
---     2b-1 proof run itself creates two assignments in B1 and scores a session,
---     so re-running this file DURING the proof reports FAILED on both and
---     nothing is wrong. After 2b-2, every assignment Tom creates moves check 11
---     and every graded submission moves check 10, permanently.
+--     THAT MOMENT HAS PASSED AND CANNOT COME BACK. The migration ran on
+--     2026-09-10 and its verdict was read then, which is recorded in
+--     PROJECT_STATE. From 2b-2 onward every assignment Tom creates moves the
+--     second number and every graded submission moves the first, permanently and
+--     correctly. A check that can only ever go red from here is not a check; it
+--     is a trap for whoever runs this file next, and this session had just
+--     finished paying for exactly that with check 16 above.
 --
---     SO: run this file once, straight after the migration, and read its verdict
---     then. If you are reading a FAILED on 10 or 11 at any later date, compare
---     the number against what has happened since rather than treating it as a
---     defect. This is written down for the same reason the check 16 note is: a
---     later session that finds red here and does not know why will go looking
---     for a bug that is not there. <==
+--     WHY INFORMATION AND NOT A LOOSER CHECK. "At least 32" was the obvious
+--     alternative and it is worse: it would go red on a legitimate cleanup (this
+--     session's own proof run creates rows in B1 and deletes them again), and a
+--     threshold nobody can act on trains a reader to click past a red verdict.
+--     What these two numbers are actually good for now is COMPARISON, so they
+--     print the migration-day baseline in the label and the live count beside it,
+--     and the reader does the subtraction knowing what has happened since. <==
 
 
 with
@@ -153,17 +168,20 @@ select * from (
   --     what changed is that the STUDENT results page no longer displays them,
   --     because their assignment no longer names a rubric. That is the accepted
   --     consequence, and the number below is the one it was accepted against. <==
-  -- POINT IN TIME, NOT AN INVARIANT. See the note at the top of this file.
-  select 10, 'CHECK 10  sessions still scored (nothing lost, as at the migration)', '32',
+  -- NOT A CHECK SINCE 2b-2. See the note at the top of this file. The number in
+  -- the label is what this read returned on migration day; the actual column is
+  -- what it returns now, and every scored submission since then moves it up.
+  select 10, 'INFORMATION  sessions scored (32 on migration day, 2026-09-10)', 'compare, do not judge',
          (select count(*)::text from public.sessions where status = 'scored'),
-         case when (select count(*) from public.sessions where status = 'scored') = 32
-              then 'PASSED' else 'FAILED  investigate before doing anything else' end
+         'not a check'
 
   union all
-  -- POINT IN TIME, NOT AN INVARIANT. See the note at the top of this file.
-  select 11, 'CHECK 11  assignments in total (nothing deleted, as at the migration)', '5',
+  -- NOT A CHECK SINCE 2b-2. See the note at the top of this file. Every
+  -- assignment created since migration day moves this up, which is the upload
+  -- field working rather than anything being wrong.
+  select 11, 'INFORMATION  assignments in total (5 on migration day, 2026-09-10)', 'compare, do not judge',
          (select count(*)::text from public.assignments),
-         case when (select count(*) from public.assignments) = 5 then 'PASSED' else 'FAILED' end
+         'not a check'
 
   union all
   -- Not a check. It reads 0 until 2b-2, and it is the number that says the

@@ -35,7 +35,12 @@ import {
   RECORDING_LENGTH_LABEL,
   recordingLengthText,
 } from "@/lib/recording-length";
-import type { RubricItem, SessionScore, TranscriptTurn } from "@/lib/types";
+import { formatPoints } from "@/lib/types";
+import type {
+  RubricCriterion,
+  SessionScore,
+  TranscriptTurn,
+} from "@/lib/types";
 import { buttonClasses } from "@/components/ui/button";
 import { cardClasses } from "@/components/ui/card";
 import { Icon, IconArrowLeft } from "@/components/ui/icon";
@@ -113,8 +118,16 @@ export default async function InstructorSubmissionPage({
   const transcript = (session.transcript ?? []) as TranscriptTurn[];
   const isVoice = session.mode === "voice_video";
 
-  // The student, the assignment, and the scenario + its rubric (for the itemized
-  // labels and categories). All read with the admin client on the server.
+  // The student, the assignment and ITS rubric, and the scenario. All read with
+  // the admin client on the server.
+  //
+  // ==> PHASE 2b-2: THE RUBRIC COMES FROM THE ASSIGNMENT. It used to come from
+  //     scenarios.rubric_id. 2b-1 left this page and lib/instructor-submission.ts
+  //     on the old source on purpose, so an instructor kept seeing the 32
+  //     historical scores with their labels while the student's own results page
+  //     had already moved to the assignment. That divergence was temporary and
+  //     this closes it. ONE RULE NOW GOVERNS EVERYWHERE: the rubric comes from
+  //     the assignment or there is none. <==
   const [{ data: student }, { data: assignment }, { data: scenario }] =
     await Promise.all([
       admin
@@ -124,12 +137,12 @@ export default async function InstructorSubmissionPage({
         .single(),
       admin
         .from("assignments")
-        .select("title")
+        .select("title, rubric_id")
         .eq("id", session.assignment_id)
         .single(),
       admin
         .from("scenarios")
-        .select("title, persona_name, rubric_id")
+        .select("title, persona_name")
         .eq("id", session.scenario_id)
         .single(),
     ]);
@@ -138,13 +151,17 @@ export default async function InstructorSubmissionPage({
   // header and as the label on the student's transcript turns.
   const studentName = student ? displayName(student) : "Unknown student";
 
-  const { data: rubric } = await admin
-    .from("rubrics")
-    .select("items")
-    .eq("id", scenario?.rubric_id)
-    .single();
+  // ==> THE GUARD ON THIS READ IS LOAD BEARING, NOT DEFENSIVE. The id handed to
+  //     .eq() used to be a scenario's rubric, which is not null on any row this
+  //     page can reach. It is an ASSIGNMENT's rubric now, and that is null on 32
+  //     of the 33 stored scores, so "no rubric" is the COMMON case here rather
+  //     than an edge one. <==
+  const rubricId = assignment?.rubric_id ?? null;
+  const { data: rubric } = rubricId
+    ? await admin.from("rubrics").select("items").eq("id", rubricId).single()
+    : { data: null };
 
-  const rubricItems = (rubric?.items ?? []) as RubricItem[];
+  const criteria = (rubric?.items ?? []) as RubricCriterion[];
 
   // Signed video link, minted with the admin client after the instructor gate.
   // The link expires after an hour; reload the page to get a fresh one.
@@ -211,10 +228,10 @@ export default async function InstructorSubmissionPage({
           <div className="text-right">
             {score ? (
               <p className="text-stat font-medium tabular-nums">
-                {score.total}
+                {formatPoints(score.total)}
                 <span className="text-card-title font-normal text-content-secondary">
                   {" "}
-                  / {score.max_total}
+                  / {formatPoints(score.max_total)}
                 </span>
               </p>
             ) : (
@@ -355,9 +372,28 @@ export default async function InstructorSubmissionPage({
       <section>
         <h2 className="mb-2 text-section font-medium text-content-secondary">Rubric score</h2>
         {/* The SAME component the student results page uses, so the two views
-            of one submission cannot drift apart. */}
+            of one submission cannot drift apart.
+
+            ==> AND WHEN THE ASSIGNMENT NAMES NO RUBRIC, THIS SAYS SO RATHER THAN
+                LISTING THE SCORE UNDER ITS INTERNAL IDS. That is the owner's
+                ruling and it is the same answer the student's own page gives
+                for the same session, which is the point: 2b-2 exists partly to
+                stop these two screens telling different stories about one
+                submission. The stored total still shows in the header above,
+                because it was really awarded, and the CSV still carries every
+                row, with one line in its header block saying the item names in
+                it are identifiers. Nothing is hidden; what cannot be labelled
+                is simply not dressed up as if it could. <== */}
         {score && score.items.length > 0 ? (
-          <RubricScore items={score.items} rubricItems={rubricItems} />
+          criteria.length > 0 ? (
+            <RubricScore items={score.items} criteria={criteria} />
+          ) : (
+            <p className="text-body text-content-secondary">
+              This assignment has no rubric attached, so this score cannot be
+              itemized. The total above is the score as it was stored. The
+              scores CSV carries the individual rows.
+            </p>
+          )
         ) : (
           <p className="text-body text-content-secondary">
             This submission has no itemized score.

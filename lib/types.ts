@@ -58,10 +58,23 @@ export function isMeetingType(value: unknown): value is MeetingType {
 
 // A single rubric line as stored in rubrics.items.
 //
-// PHASE 2a NOTE: this is the ORIGINAL flat shape, 29 items each worth 10 points,
-// and it is still what every current reader expects. The uploaded-rubric shapes
-// below are the new one. Both live in rubrics.items, and which is which is
-// decided by what wrote the row. Nothing reads the new shape until Phase 2b.
+// ==> PHASE 2b-2: NOTHING IN THE APP READS THIS TYPE ANY MORE, AND IT IS KEPT ON
+//     PURPOSE RATHER THAN OVERLOOKED. It is the ORIGINAL flat shape, 29 items
+//     each worth 10 points. 2b-1 put it out of reach (no assignment names the
+//     legacy rubric, so no reader can resolve one) and 2b-2 moved the last four
+//     readers, the two instructor surfaces included, onto RubricCriterion.
+//
+//     THE ROW IT DESCRIBES STILL EXISTS IN THE DATABASE, which is the reason to
+//     keep the description of it. One legacy rubric is stored, two scenarios
+//     still name it, and 32 stored scores were produced against it. Deleting
+//     this type would leave that data with nothing in the codebase saying what
+//     shape it is in.
+//
+//     DO NOT RE-INTRODUCE A READER FOR IT. There is no discriminator, no version
+//     field and no shape probe on rubrics.items, and 2b-1 settled that
+//     deliberately: what enforces the ruling is the REFUSAL in lib/scoring.ts,
+//     which stops with a legible error on a rubric whose criteria carry no
+//     levels. <==
 export type RubricItem = {
   id: string;
   category?: string;
@@ -191,6 +204,34 @@ export function formatSize(bytes: number): string {
 // A ceiling we are enforcing. Rounds DOWN.
 export function formatLimit(bytes: number): string {
   return formatBytesRounded(bytes, "down");
+}
+
+// ==> PHASE 2b-2. A POINTS VALUE AS A PERSON READS IT, AND THE WHOLE JOB OF THIS
+//     FUNCTION IS TO NOT ROUND.
+//
+//     Tom's rubrics award halves: 49.5, 38.5, 13.5, 4.5, 0.5. A criterion has to
+//     read `44 / 55` when the number is whole and `3.5 / 5` when it is not, and
+//     a total has to read `59.5 / 100`. JavaScript's own number-to-text does
+//     exactly that: 44 gives "44" and 3.5 gives "3.5". So this function's real
+//     content is the Number() at the top and the comment you are reading.
+//
+//     WHY Number() AND NOT A CAST. This is the lesson 2b-1 paid for on
+//     rubrics.max_total: a Postgres `numeric` does not always cross a JSON
+//     boundary as a JavaScript number, and TypeScript cannot see that. Points
+//     inside sessions.score are jsonb and do arrive as numbers, but this helper
+//     is the one place points become text, so the conversion belongs here rather
+//     than in each caller. A value that is not a number at all is returned
+//     unchanged instead of becoming "NaN", because showing a student the raw
+//     stored value is more honest than showing them a word.
+//
+//     IT DOES NOT ROUND ANYTHING, INCLUDING TO ONE DECIMAL. Every value in a
+//     rubric is a whole number or a half by construction, so there is nothing to
+//     tidy. If a rubric ever carried a third, this prints it in full rather than
+//     rounding it away, which is the safer of the two failures: a long number is
+//     visibly odd, a quietly rounded grade is not. <==
+export function formatPoints(value: number): string {
+  const n = Number(value);
+  return Number.isFinite(n) ? String(n) : String(value);
 }
 
 // One performance level of one criterion, as stored.

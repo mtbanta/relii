@@ -47,35 +47,34 @@ type ScenarioOption = {
   persona_name: string;
 };
 
-// ==> THE RUBRIC FIELD IS SWITCHED OFF FOR THE WHOLE OF PHASE 2a, ON PURPOSE.
+// ==> THE RUBRIC FIELD IS ON. PHASE 2b-2 TURNED THIS ONE CONSTANT TRUE AND THAT
+//     IS THE WHOLE SWITCH-ON. Nothing else in this file is conditional.
 //
-//     Everything behind it is built and tested: the parser, the preview route,
-//     the create route's rubric branch, and the interaction below. It is off
-//     because attaching a rubric that does not yet drive scoring would be a
-//     LIVE TRAP: Tom would attach one, see it accepted, and be graded by the
-//     scenario's old rubric anyway. Phase 2b turns this one constant to true
-//     once the scoring model reads assignments.rubric_id.
+//     WHAT IT WAS WAITING FOR. Phase 2a built everything behind it (the parser,
+//     the preview route, the create route's rubric branch, and the preview and
+//     confirm interaction below) and left it OFF, because attaching a rubric
+//     that did not yet drive scoring would have been a live trap: Tom would
+//     attach one, see it accepted, and be graded by the scenario's old rubric
+//     anyway. 2b-1 moved scoring onto assignments.rubric_id and detached every
+//     rubric, which left the app grading NOTHING. This constant is what ends
+//     that, and until it was flipped nothing in the app was graded at all.
 //
-//     Flipping it is the whole switch-on. Nothing else here is conditional.
+//     ==> IT IS A CLIENT FLAG ONLY AND IT ALWAYS WAS. THE SERVER NEVER ENFORCED
+//         IT, AND THAT MATTERS MORE NOW THAT IT READS `true` THAN IT DID BEFORE,
+//         because a reader who finds this line on and assumes the server was
+//         switched on with it has the relationship backwards.
 //
-//     ==> IT IS A CLIENT FLAG ONLY. THE SERVER DOES NOT ENFORCE IT.
+//         app/api/instructor/assignment/create/route.ts HAS ACCEPTED A POSTED
+//         RUBRIC SINCE PHASE 2a. This constant only ever decided whether the
+//         control was shown and whether the FORM sent a file. Phase 2a proved
+//         its whole rubric branch in production through crafted requests while
+//         this said `false`.
 //
-//         app/api/instructor/assignment/create/route.ts ACCEPTS A POSTED RUBRIC
-//         TODAY. This constant hides the control and stops the form sending a
-//         file; it does not make the route refuse one. A crafted request can
-//         attach a rubric right now.
-//
-//         THAT IS HARMLESS AT PRESENT, and the reasons are specific rather than
-//         general: scoring still reads scenario.rubric_id until Phase 2b, so a
-//         rubric on an assignment changes nobody's grade; the route is behind
-//         requireInstructorRequest(); and only two instructor accounts exist.
-//
-//         IT IS WRITTEN DOWN BECAUSE "upload is off" IS THE KIND OF SENTENCE
-//         SOMEBODY LATER TREATS AS A SERVER GUARANTEE. It is not one. If the
-//         route ever needs to actually refuse a rubric, that has to be added in
-//         the route; this constant will not do it from here. Same discipline as
-//         the declaration-not-measurement note on the zip check. <== <==
-const RUBRIC_UPLOAD_ENABLED = false;
+//         SO IF THE UPLOAD EVER HAS TO BE SWITCHED OFF AGAIN, TURNING THIS BACK
+//         TO false HIDES THE CONTROL AND NOTHING MORE. A real refusal has to be
+//         added in the route. Same discipline as the declaration-not-measurement
+//         note on the zip check. <== <==
+const RUBRIC_UPLOAD_ENABLED = true;
 
 export function CreateAssignmentForm({
   scenarios,
@@ -338,10 +337,10 @@ export function CreateAssignmentForm({
         />
       </div>
 
-      {/* THE RUBRIC ATTACHMENT. Phase 2a built everything behind it and left the
-          control DISABLED, so nothing a user can see changes this session. The
-          copy is owner-approved and goes in now rather than later, so 2b flips
-          RUBRIC_UPLOAD_ENABLED and changes nothing else. */}
+      {/* THE RUBRIC ATTACHMENT, LIVE SINCE PHASE 2b-2. Every word of copy here
+          was written and approved in 2a and is unchanged: 2b-2 flipped the
+          constant above and edited nothing else in this control, which is what
+          2a set it up to be able to do. */}
       <div>
         <Label className="mb-1">Rubric (optional)</Label>
         <FileInput
@@ -375,9 +374,13 @@ export function CreateAssignmentForm({
         {preview && (
           <div className="mt-2 rounded border border-border-subtle p-2">
             <p className="text-body font-medium">{preview.name}</p>
+            {/* Keyed by POSITION, not by the name. Nothing stops a spreadsheet
+                carrying two criteria with the same name, and two children with
+                one key is a React fault in a list that exists to be read
+                carefully before a grade scale is stored. */}
             <ul className="mt-1 list-disc pl-5 text-meta text-content-secondary">
-              {preview.criteria.map((c) => (
-                <li key={c}>{c}</li>
+              {preview.criteria.map((c, i) => (
+                <li key={i}>{c}</li>
               ))}
             </ul>
             <label className="mt-2 flex items-start gap-2 text-meta">

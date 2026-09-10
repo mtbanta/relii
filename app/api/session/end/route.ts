@@ -236,9 +236,32 @@ export async function POST(request: Request) {
       scenario.persona_name ?? "the customer",
     );
   } catch (err) {
+    // ==> PHASE 2b-2. THIS STRING IS WHAT THE STUDENT READS, AND IT IS THE
+    //     OWNER'S WORDING. It appears on the CONVERSATION SCREEN, at the moment
+    //     scoring fails, because that is where the student still is: both screens
+    //     already display whatever error this route returns, and the failure
+    //     leaves the session at 'completed' so they can press End again.
+    //
+    //     ==> IT IS ONE STRING IN ONE PLACE RATHER THAN A FLAG AND TWO COPIES OF
+    //         THE COPY. The text screen and the voice screen each render this
+    //         message verbatim, so there is nothing to keep in step and no way
+    //         for the two screens to word the same failure differently.
+    //
+    //     WHAT IT DOES NOT COVER, DELIBERATELY: a refreshed or closed tab. That
+    //     session never reaches scoring at all, so it never reaches this line,
+    //     and per Tom's 2026-08-02 ruling that behaviour ships as it is. Two
+    //     different failures that would otherwise wear the same coat.
+    //
+    //     The save failure below keeps its own separate message, because a score
+    //     that was computed and then not written is a different fault with a
+    //     different remedy, and telling a student "ask your instructor for a
+    //     score" would be wrong there. <==
     console.error("Scoring failed:", err);
     return NextResponse.json(
-      { error: "Could not score the session. Please try again." },
+      {
+        error:
+          "The AI scoring encountered a problem. Ask your instructor to provide a score or try again.",
+      },
       { status: 502 },
     );
   }
