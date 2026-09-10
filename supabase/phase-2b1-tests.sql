@@ -21,6 +21,28 @@
 --     FAILED. The replacement query is written inside phase-2a-tests.sql itself,
 --     and the instruction there stands: apply it when the upload field goes
 --     live, not before. <==
+--
+--
+-- ==> AND THIS FILE HAS TWO OF ITS OWN THAT EXPIRE THE SAME WAY. CHECK 10 AND
+--     CHECK 11 ARE POINT-IN-TIME COUNTS, NOT INVARIANTS.
+--
+--     They hardcode 32 scored sessions and 5 assignments, which are the numbers
+--     measured immediately before this migration. Their job is to prove THIS
+--     MIGRATION deleted nothing, and for that one moment an exact number is the
+--     right check: "about the same" would not catch a row quietly disappearing.
+--
+--     THEY GO RED ON A HEALTHY DATABASE THE MOMENT ANYTHING ELSE HAPPENS. The
+--     2b-1 proof run itself creates two assignments in B1 and scores a session,
+--     so re-running this file DURING the proof reports FAILED on both and
+--     nothing is wrong. After 2b-2, every assignment Tom creates moves check 11
+--     and every graded submission moves check 10, permanently.
+--
+--     SO: run this file once, straight after the migration, and read its verdict
+--     then. If you are reading a FAILED on 10 or 11 at any later date, compare
+--     the number against what has happened since rather than treating it as a
+--     defect. This is written down for the same reason the check 16 note is: a
+--     later session that finds red here and does not know why will go looking
+--     for a bug that is not there. <==
 
 
 with
@@ -131,13 +153,15 @@ select * from (
   --     what changed is that the STUDENT results page no longer displays them,
   --     because their assignment no longer names a rubric. That is the accepted
   --     consequence, and the number below is the one it was accepted against. <==
-  select 10, 'CHECK 10  sessions still scored (nothing lost)', '32',
+  -- POINT IN TIME, NOT AN INVARIANT. See the note at the top of this file.
+  select 10, 'CHECK 10  sessions still scored (nothing lost, as at the migration)', '32',
          (select count(*)::text from public.sessions where status = 'scored'),
          case when (select count(*) from public.sessions where status = 'scored') = 32
               then 'PASSED' else 'FAILED  investigate before doing anything else' end
 
   union all
-  select 11, 'CHECK 11  assignments in total (nothing deleted)', '5',
+  -- POINT IN TIME, NOT AN INVARIANT. See the note at the top of this file.
+  select 11, 'CHECK 11  assignments in total (nothing deleted, as at the migration)', '5',
          (select count(*)::text from public.assignments),
          case when (select count(*) from public.assignments) = 5 then 'PASSED' else 'FAILED' end
 

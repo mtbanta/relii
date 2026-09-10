@@ -89,8 +89,60 @@ select * from (
          then 'PASSED' else 'FAILED  STOP HERE' end
 
   union all
+  -- ==> CHECK 3b. THE ONE THAT WOULD FAIL SILENTLY AND EMPTY A STUDENT'S HOME
+  --     PAGE, SO IT IS CHECKED BEFORE THE DEPLOY RATHER THAN AFTER.
+  --
+  --     NOTHING HAS EVER READ assignments.rubric_id THROUGH ROW LEVEL SECURITY.
+  --     Every existing reader of that column (the create route, the delete
+  --     route) uses the service-role key, which bypasses grants entirely. Phase
+  --     2b-1 makes the student home and the student results page read it with
+  --     the ordinary logged-in client, which is the first time.
+  --
+  --     WHY THAT IS NOT AUTOMATICALLY FINE. Gate 2 revoked WHOLE-TABLE select on
+  --     public.scenarios and granted it back column by column, and its own note
+  --     says "a column added after this runs is not granted to anybody". If
+  --     assignments or rubrics carried the same treatment, rubric_id (added
+  --     2026-09-09, after the last grant sweep) would be readable by nobody.
+  --
+  --     AND THE FAILURE IS INVISIBLE. app/student/page.tsx reads only `data` and
+  --     ignores the error, so a permission refusal renders the page with NO
+  --     ASSIGNMENTS AT ALL and nothing in the logs. That is the exact shape of
+  --     the ambiguous-foreign-key bug already written up in that file.
+  --
+  --     Expected: 0 ungranted columns on both tables. <==
   select
     5,
+    'CHECK 3b  columns on assignments/rubrics not readable by authenticated',
+    '0',
+    (select count(*)::text
+       from information_schema.columns c
+      where c.table_schema = 'public'
+        and c.table_name in ('assignments', 'rubrics')
+        and not exists (
+          select 1 from information_schema.column_privileges p
+           where p.table_schema   = c.table_schema
+             and p.table_name     = c.table_name
+             and p.column_name    = c.column_name
+             and p.grantee        = 'authenticated'
+             and p.privilege_type = 'SELECT'
+        )),
+    case when (select count(*)
+                 from information_schema.columns c
+                where c.table_schema = 'public'
+                  and c.table_name in ('assignments', 'rubrics')
+                  and not exists (
+                    select 1 from information_schema.column_privileges p
+                     where p.table_schema   = c.table_schema
+                       and p.table_name     = c.table_name
+                       and p.column_name    = c.column_name
+                       and p.grantee        = 'authenticated'
+                       and p.privilege_type = 'SELECT'
+                  )) = 0
+         then 'PASSED' else 'FAILED  DO NOT DEPLOY' end
+
+  union all
+  select
+    6,
     'CHECK 4  assignments.rubric_id exists (2a ran)',
     '1',
     (select count(*)::text from information_schema.columns
@@ -105,16 +157,16 @@ select * from (
   -- Not a check, but the numbers the tests file compares against afterwards. If
   -- any of these moves and the migration is the only thing that ran, something
   -- happened that this piece did not intend.
-  select 6, 'BASELINE  rubric rows in total',      'see actual',
+  select 7, 'BASELINE  rubric rows in total',      'see actual',
          (select all_rubrics::text from shapes), 'not a check'
   union all
-  select 7, 'BASELINE  assignments in total',      'see actual',
+  select 8, 'BASELINE  assignments in total',      'see actual',
          (select count(*)::text from public.assignments), 'not a check'
   union all
-  select 8, 'BASELINE  scenarios naming a rubric', 'see actual',
+  select 9, 'BASELINE  scenarios naming a rubric', 'see actual',
          (select count(*)::text from public.scenarios where rubric_id is not null), 'not a check'
   union all
-  select 9, 'BASELINE  sessions already scored',   'see actual',
+  select 10, 'BASELINE  sessions already scored',   'see actual',
          (select count(*)::text from public.sessions where status = 'scored'), 'not a check'
   union all
   -- ==> RECORDED BECAUSE THE 2b-1 KICKOFF SAID NO SUCH ROW EXISTS AND IT WAS
@@ -123,7 +175,7 @@ select * from (
   --     row can be one, but these are here and they are governed by the rule
   --     this piece writes down: a session with no assignment is
   --     conversation-only. They are not corruption. <==
-  select 10, 'BASELINE  sessions with no assignment_id', 'see actual',
+  select 11, 'BASELINE  sessions with no assignment_id', 'see actual',
          (select count(*)::text from public.sessions where assignment_id is null), 'not a check'
 ) as preflight
 order by sort_order, check_name;

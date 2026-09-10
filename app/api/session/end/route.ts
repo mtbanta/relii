@@ -219,7 +219,20 @@ export async function POST(request: Request) {
     score = await scoreTranscriptAgainstRubric(
       transcript,
       criteria,
-      rubric.max_total,
+      // ==> COERCED HERE, AT THE BOUNDARY, AND NOT LEFT TO THE SCORER'S GUARD.
+      //     max_total is a Postgres `numeric`, and a numeric does not always
+      //     cross a JSON boundary as a JavaScript number. The scorer refuses
+      //     anything that is not a finite number, and Number.isFinite does NOT
+      //     coerce: Number.isFinite("100") is false. So a string here would be
+      //     refused with "this rubric does not state a maximum", which is the
+      //     OPPOSITE of what is true, on the one value that gates all scoring.
+      //
+      //     Number() closes that off and costs nothing: null becomes 0 and
+      //     undefined becomes NaN, and the scorer already refuses both, with
+      //     the message that is actually correct for them. A type conversion
+      //     belongs where the database meets the typed code, not three
+      //     functions away. <==
+      Number(rubric.max_total),
       scenario.persona_name ?? "the customer",
     );
   } catch (err) {
