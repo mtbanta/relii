@@ -8,7 +8,7 @@
 --
 --
 -- ==> THE NOTE THAT USED TO BE HERE WAS WRONG, AND PHASE 2b-2 CORRECTED IT ON
---     2026-09-11. IT IS REWRITTEN RATHER THAN DELETED BECAUSE THE ERROR IS MORE
+--     2026-09-10. IT IS REWRITTEN RATHER THAN DELETED BECAUSE THE ERROR IS MORE
 --     USEFUL THAN THE CORRECTION.
 --
 --     IT SAID: check 16 of supabase/phase-2a-tests.sql ("every assignment's
@@ -20,7 +20,7 @@
 --     assignments whose SCENARIO carries a rubric and whose own rubric `is
 --     distinct from` it, and `null is distinct from <uuid>` is TRUE in SQL. This
 --     migration set every assignments.rubric_id to null, so it did not empty the
---     count, it FILLED it. Measured on 2026-09-11 by
+--     count, it FILLED it. Measured on 2026-09-10 by
 --     supabase/phase-2b2-preflight.sql: 2 rows, on a database in exactly the
 --     state 2b-1 intended.
 --
@@ -36,7 +36,7 @@
 --
 --
 -- ==> CHECKS 10 AND 11 WERE POINT-IN-TIME COUNTS AND PHASE 2b-2 TURNED THEM INTO
---     INFORMATION ROWS ON 2026-09-11. THEY NO LONGER CARRY A VERDICT.
+--     INFORMATION ROWS ON 2026-09-10. THEY NO LONGER CARRY A VERDICT.
 --
 --     They hardcoded 32 scored sessions and 5 assignments, the numbers measured
 --     immediately before this migration. Their job was to prove THIS MIGRATION

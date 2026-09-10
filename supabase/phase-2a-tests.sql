@@ -217,7 +217,7 @@ select * from (
   -- Every assignment whose scenario carries a rubric must now carry that SAME
   -- rubric. Expected: zero disagreements.
   --
-  -- ==> THIS CHECK EXPIRED, AND PHASE 2b-2 REPLACED IT ON 2026-09-11. THE
+  -- ==> THIS CHECK EXPIRED, AND PHASE 2b-2 REPLACED IT ON 2026-09-10. THE
   --     REPLACEMENT IS THE `exists` CLAUSE AT THE BOTTOM OF THE QUERY BELOW.
   --
   --     WHAT IT USED TO SAY, KEPT BECAUSE THE SEQUENCE IS THE LESSON. This note
@@ -231,7 +231,7 @@ select * from (
   --     rubric `is distinct from` it. 2b-1 set every assignments.rubric_id to
   --     NULL, and in SQL `null is distinct from <uuid>` is TRUE. So from the
   --     moment 2b-1 ran, every assignment sitting on a rubric-naming scenario
-  --     was counted. MEASURED ON 2026-09-11 BY supabase/phase-2b2-preflight.sql:
+  --     was counted. MEASURED ON 2026-09-10 BY supabase/phase-2b2-preflight.sql:
   --     it returned 2, on a database in exactly the state it was designed to be
   --     in. Both the 2b-1 handoff and the 2b-2 kickoff asserted in prose that it
   --     "passes vacuously at zero rows"; both were written from the sentence

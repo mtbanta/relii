@@ -143,7 +143,7 @@ Two accounts are available and the owner supplies the passwords in this session.
 
 Playwright MCP is available. It runs headed with a persistent profile, so a login survives between runs.
 
-**THE GRADED-SUBMISSION PATH NEEDS A CAMERA AND A MICROPHONE, AND IT IS THE ONE SETUP STEP MOST LIKELY TO COST TIME.** A submission is a student-converted voice and video practice, and the app requires and locks the camera for graded voice and video, so a browser with no media device is refused before the practice starts. Chrome's `--use-fake-device-for-media-capture` and `--use-fake-ui-for-media-stream` flags satisfy it, passed through a Playwright MCP config file.
+**THE GRADED-SUBMISSION PATH NEEDS A CAMERA AND A MICROPHONE, AND IT IS THE ONE SETUP STEP MOST LIKELY TO COST TIME.** A submission is a student-converted voice and video practice, and the app requires and locks the camera for graded voice and video, so a browser with no media device is refused before the practice starts. Chrome's `--use-fake-device-for-media-stream` and `--use-fake-ui-for-media-stream` flags satisfy it, passed through a Playwright MCP config file.
 
 **Do not assume that config file's schema. Read the current Playwright MCP documentation, wire it, and prove it with one run that actually reaches a recording state before relying on it.** If it is not working within a reasonable effort, **stop and say so.** The owner will perform that single submission himself on his own camera. Do not spend the session on browser plumbing.
 
