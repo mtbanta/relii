@@ -1,6 +1,6 @@
 // SUBMISSIONS: the instructor's default landing page, reached at /instructor.
 //
-// Pick an assignment from the Active Assignments dropdown and see its
+// Pick an assignment from the Published Assignments dropdown and see its
 // submissions in a table with three summary tiles, plus the reset / allow-retake
 // controls and that assignment's reset history.
 //
@@ -359,14 +359,16 @@ export default async function InstructorSubmissions({
             <div className="shrink-0">
               {/* The dropdown is how an instructor moves between the sessions
                   they are running, so it is labelled rather than left bare.
-                  NOTE: the list is every assignment. There is no active or
-                  inactive state in the data yet, so "Active Assignments" is the
-                  agreed label for the control, not a filter (a PD-1 decision). */}
+                  NOTE: the list is every assignment. PHASE 3b renamed the
+                  label to "Published Assignments", which is what these entries
+                  actually are: an assignment exists on this list once it has
+                  been created. The old name promised an active or inactive
+                  state that has never existed in the data. */}
               <label
                 htmlFor="assignment-selector"
                 className="block text-micro text-content-tertiary"
               >
-                Active Assignments
+                Published Assignments
               </label>
               <div className="mt-0.5">
                 <AssignmentSelector

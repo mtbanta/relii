@@ -84,7 +84,7 @@ export function BulkInviteForm({
           ? "Role must be student or instructor."
           : "Role must be student. Adding an instructor is an administrator action, so instructor rows are skipped."}{" "}
         Rows with a problem are skipped and listed below with a reason; the rest
-        are added. Everyone imported joins the class you are working in.
+        are added. Everyone imported joins the selected class.
       </p>
 
       <FileInput ref={fileRef} accept=".csv,text/csv" />

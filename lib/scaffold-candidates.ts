@@ -62,6 +62,38 @@ export type GenerationFields = {
   inputs?: ScaffoldInputs;
   // Present only on a chained decision maker (version 2 onwards). See above.
   chain?: ChainContext;
+  // PHASE 3b. When this persona was CHOSEN as the winner of its generation.
+  //
+  // It is a marker, not a date anybody reads, and it exists because "is this
+  // persona the chosen one" had no answer in the data once the persona was
+  // switched off. Before this, the list worked that out from the enabled flag
+  // alone, so a chosen persona that was turned off looked exactly like an
+  // undecided candidate.
+  //
+  // ==> IT IS SUFFICIENT AND NEVER REQUIRED, WHICH IS THE WHOLE POINT. Rows
+  //     chosen before Phase 3b do not have it, and an Alex and Jordan pair
+  //     imported later would have no generation_fields at all. So chosenRowOf()
+  //     below reads it as ONE of three ways to be chosen, never as the test.
+  //     Anything that made it required would hide every persona chosen before
+  //     today. <==
+  chosen_at?: string;
+  // PHASE 3b. The id of the GATEKEEPER this decision maker was generated from.
+  //
+  // ==> IT SITS HERE, BESIDE chain, AND DELIBERATELY NOT INSIDE IT. `chain` is
+  //     the ChainContext that lib/persona-assembly.ts reads to write the "you
+  //     already had a discovery meeting with X" narrative, and that template is
+  //     FROZEN: the edit route proves a candidate's saved text can be rebuilt
+  //     from its stored fields byte for byte before it allows an edit. Putting
+  //     an id inside `chain` would feed a new value to the template, change the
+  //     assembled text, and fail that round-trip check on every existing
+  //     chained persona. Outside it, the template never sees it and no stored
+  //     text moves. <==
+  //
+  // NEW GENERATIONS ONLY. Nothing backfills it and nothing matches on names, so
+  // a decision maker generated before Phase 3b simply records no pair and is
+  // shown unpaired. A dangling id (the gatekeeper was discarded) is read the
+  // same way: unpaired, never an error.
+  chain_from_scenario_id?: string;
 };
 
 export type CandidateRow = {
@@ -191,99 +223,399 @@ export async function findGenerationGroupOwnedClass(
   return (data?.class_id as string | undefined) ?? null;
 }
 
-export type GenerationRowSummary = {
+// ---------------------------------------------------------------------------
+// The AI Persona Framework list: chosen personas, and undecided candidate pairs
+// ---------------------------------------------------------------------------
+//
+// PHASE 3b SPLIT ONE LIST INTO TWO SECTIONS, and the reason is a bug rather
+// than a layout preference. The old list showed the 8 most recent generations
+// of every kind. A chosen persona older than that dropped off the page, and
+// once the page is also where you switch a persona on and off, dropping off the
+// page means it can never be switched on again.
+//
+//   CHOSEN PERSONAS: every one in the class, however old. Never capped.
+//   UNDECIDED PAIRS: the 8 most recent, because these are test litter and old
+//     ones are not worth scrolling past.
+//
+// The sections are NOT interleaved by date, deliberately. The cap sentence sits
+// under the second heading, and a mixed list would put that sentence above
+// entries it is not true of.
+export const UNDECIDED_LIMIT = 8;
+
+// Which half of a pair the OTHER persona is, for the pairing line.
+export type PairedWith = {
+  name: string;
+  role: "gatekeeper" | "decision_maker";
+};
+
+// One persona as the list renders it.
+//
+// ==> EVERY DISPLAY VALUE HERE COMES FROM A REAL COLUMN, NEVER FROM THE
+//     GENERATED JSON, AND THAT IS RULING 6 RATHER THAN TIDINESS. Tom may later
+//     want Alex and Jordan copied into his class as a linked pair, and those
+//     rows would carry generation_fields null. A list that read its names out
+//     of the JSON would render blanks for them. persona_name and title are
+//     columns on every scenario row that has ever existed, so they cannot be
+//     missing. <==
+export type PersonaListRow = {
   id: string;
   personaName: string;
   title: string;
   enabled: boolean;
   used: boolean;
+  chainRole: string | null;
+  // Null when this persona records no pair, which is every persona generated
+  // before Phase 3b and any whose partner has since been discarded.
+  pairedWith: PairedWith | null;
+  // Assignment titles IN THIS CLASS that point at this persona, for the two
+  // confirms. See loadAssignmentTitles below for why this one is class scoped
+  // when countScenarioUsage is not.
+  assignmentTitles: string[];
 };
 
-export type GenerationSummary = {
+export type ChosenPersona = {
+  groupId: string;
+  createdAt: string;
+  industry: string | null;
+  // The chosen persona itself. THE TOGGLE ACTS ON THIS ROW, not on the group:
+  // /disable already takes a scenario id, the new /enable takes one too, and a
+  // group is not a thing that can be switched on.
+  row: PersonaListRow;
+  // A losing candidate that survived the pick because something was using it
+  // (what the compare page calls a retained loser). It is never togglable. It
+  // is carried so the entry does not pretend the group has one row when it has
+  // two.
+  retained: PersonaListRow[];
+};
+
+export type UndecidedPair = {
   groupId: string;
   createdAt: string;
   chainRole: string | null;
   industry: string | null;
-  personaNames: string[];
-  // Each candidate's state, which is what decides the controls the list offers:
-  // a live (switched-on) generation gets Turn off, an untouched one gets
-  // Discard, and one that has been role-played gets neither.
-  rows: GenerationRowSummary[];
+  rows: PersonaListRow[];
 };
 
-// The most recent generations, newest first, for the list on the scaffold page.
+export type PersonaList = {
+  chosen: ChosenPersona[];
+  undecided: UndecidedPair[];
+  undecidedLimit: number;
+};
+
+// ---------------------------------------------------------------------------
+// WHICH ROW OF A GENERATION IS THE CHOSEN ONE
+// ---------------------------------------------------------------------------
 //
-// It reads recent candidate rows and groups them in code rather than asking the
-// database for distinct groups, because two rows per generation means a handful
-// of rows covers plenty of generations and the grouping is trivial here.
-export async function loadRecentGenerations(
+// Three tests, in order, and a row that passes any of them is the winner.
+//
+//   1. IT IS SWITCHED ON. Only choosing a winner switches a generated row on,
+//      and the enable route refuses to switch on a second row in a group, so at
+//      most one row in a group is ever on.
+//
+//   2. IT CARRIES chosen_at. Written by the choose route from Phase 3b onwards.
+//      This is the test that survives the persona being switched off, which is
+//      exactly the state the other two struggle with.
+//
+//   3. IT IS THE ONLY ROW LEFT IN ITS GROUP. This is what a persona chosen
+//      BEFORE Phase 3b and later switched off looks like, and it is sound by
+//      construction rather than by guess:
+//        generation writes TWO rows in one insert, so a pair is never half
+//          written;
+//        choosing a winner DELETES the losing row unless something is using it;
+//        discarding is all or nothing for the whole group.
+//      So a group can only come down to one row by having been decided. Proved
+//      against the rows that exist: group cdf87d4f in the historical class is a
+//      chosen persona, switched off, one row, and it is the only one of its
+//      shape in the database.
+//
+// ==> WHAT IS DELIBERATELY NOT A TEST: THE TITLE. Choosing a winner renames it
+//     from "Scaffold candidate 1 (gatekeeper): Riley, facilities director" to
+//     "Discovery-Close: Riley (facilities director)", so the title does in fact
+//     say whether a persona was chosen, and reading it would be the shortest
+//     code in this file.
+//
+//     IT IS STILL WRONG, AND PROJECT_STATE SAYS WHY IN THE RUBRIC CASE:
+//     DISPLAY NAMES ARE NOT LOAD BEARING. A title is text an instructor reads.
+//     The moment the app decides behaviour by parsing one, renaming a persona
+//     becomes a change of state, and the failure is silent: the persona quietly
+//     stops being togglable and nothing errors. The stored marker and the row
+//     count are structure, so they cannot be typed over. <==
+//
+// The one case none of the three decides: a group chosen before Phase 3b that
+// kept a used loser AND has since been switched off. No such group exists (see
+// the note above), and a group chosen from here on carries chosen_at, so one
+// cannot be created either. If somehow one arose, it reads as undecided and
+// falls back to exactly today's behaviour: the compare page decides it.
+//
+// The parameter is generic rather than CandidateRow so the enable route can
+// call it on a cheap three-column read of the group instead of loading every
+// persona's full text. The three fields below are all it actually looks at.
+export type ChosenTestRow = {
+  id: string;
+  enabled: boolean;
+  generation_fields: GenerationFields | null;
+};
+
+export function chosenRowOf<T extends ChosenTestRow>(group: T[]): T | null {
+  const on = group.find((row) => row.enabled);
+  if (on) return on;
+
+  // Newest marker first. Two marked rows in one group means a retained loser
+  // was later chosen in its own right, and the most recent decision is the one
+  // that counts.
+  const marked = group
+    .filter((row) => typeof row.generation_fields?.chosen_at === "string")
+    .sort((a, b) =>
+      (b.generation_fields?.chosen_at ?? "").localeCompare(
+        a.generation_fields?.chosen_at ?? "",
+      ),
+    );
+  if (marked.length > 0) return marked[0];
+
+  if (group.length === 1) return group[0];
+  return null;
+}
+
+// Sorting by time without trusting the shape of the string. Postgres hands back
+// "2026-09-03 23:36:15.667089+00" and a hand-written fixture is likelier to use
+// "2026-09-03T23:36:15Z"; both have to sort the same way, and an unparseable
+// value must not throw.
+function instantValue(created: string): number {
+  const parsed = Date.parse(created.replace(" ", "T"));
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+// Who is paired with whom, resolved BOTH WAYS from the one stored id.
+//
+// Only the decision maker records the link, because only the decision maker was
+// generated from something. The gatekeeper's own line is worked out here by
+// looking at who points at it, which costs nothing: the caller has already read
+// every generated row in the class.
+//
+// A gatekeeper can have more than one decision maker generated from it. It
+// names the FIRST one built from it, chosen by age so the line does not change
+// from one reload to the next.
+function resolvePairs(rows: CandidateRow[]): Map<string, PairedWith> {
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const pairs = new Map<string, PairedWith>();
+
+  const oldestFirst = [...rows].sort(
+    (a, b) => instantValue(a.created_at) - instantValue(b.created_at),
+  );
+
+  for (const row of oldestFirst) {
+    const gatekeeperId = row.generation_fields?.chain_from_scenario_id;
+    if (!gatekeeperId) continue;
+
+    // A DANGLING LINK IS NOT AN ERROR. The gatekeeper may have been discarded
+    // since, and a discarded row is simply gone. The decision maker is shown
+    // unpaired, which is the same thing every persona generated before Phase 3b
+    // shows. A gatekeeper that is merely SWITCHED OFF is still a row, so it is
+    // still found here and the pair is still shown.
+    const gatekeeper = byId.get(gatekeeperId);
+    if (!gatekeeper) continue;
+
+    pairs.set(row.id, {
+      name: gatekeeper.persona_name,
+      role: "gatekeeper",
+    });
+    if (!pairs.has(gatekeeper.id)) {
+      pairs.set(gatekeeper.id, {
+        name: row.persona_name,
+        role: "decision_maker",
+      });
+    }
+  }
+
+  return pairs;
+}
+
+// THE PURE HALF, kept separate from the database read on purpose: it is what
+// the ruling 6 check calls with a fixture persona whose generation_fields are
+// null, with no database anywhere near it.
+export function buildPersonaList(
+  rows: CandidateRow[],
+  usage: Map<string, ScenarioUsage>,
+  assignmentTitles: Map<string, string[]>,
+  undecidedLimit: number = UNDECIDED_LIMIT,
+): PersonaList {
+  const pairs = resolvePairs(rows);
+
+  const describe = (row: CandidateRow): PersonaListRow => ({
+    id: row.id,
+    personaName: row.persona_name,
+    title: row.title,
+    enabled: row.enabled,
+    used: isUsed(usage.get(row.id)),
+    chainRole: row.chain_role,
+    pairedWith: pairs.get(row.id) ?? null,
+    assignmentTitles: assignmentTitles.get(row.id) ?? [],
+  });
+
+  const groups = new Map<string, CandidateRow[]>();
+  for (const row of rows) {
+    const existing = groups.get(row.generation_group_id);
+    if (existing) existing.push(row);
+    else groups.set(row.generation_group_id, [row]);
+  }
+
+  const chosen: ChosenPersona[] = [];
+  const undecided: UndecidedPair[] = [];
+
+  for (const [groupId, group] of groups) {
+    // Ordering by the stored index rather than by date, for the reason
+    // loadGenerationGroup gives: both rows of a pair share one created_at.
+    const ordered = [...group].sort(
+      (a, b) => candidateIndex(a) - candidateIndex(b),
+    );
+    const createdAt = ordered
+      .map((row) => row.created_at)
+      .reduce((oldest, value) =>
+        instantValue(value) < instantValue(oldest) ? value : oldest,
+      );
+    const industry =
+      ordered.find((row) => row.generation_fields?.inputs?.industry)
+        ?.generation_fields?.inputs?.industry ?? null;
+
+    const winner = chosenRowOf(ordered);
+    if (winner) {
+      chosen.push({
+        groupId,
+        createdAt,
+        industry,
+        row: describe(winner),
+        retained: ordered
+          .filter((row) => row.id !== winner.id)
+          .map(describe),
+      });
+    } else {
+      undecided.push({
+        groupId,
+        createdAt,
+        chainRole: ordered[0].chain_role,
+        industry,
+        rows: ordered.map(describe),
+      });
+    }
+  }
+
+  const newestFirst = (a: { createdAt: string }, b: { createdAt: string }) =>
+    instantValue(b.createdAt) - instantValue(a.createdAt);
+  chosen.sort(newestFirst);
+  undecided.sort(newestFirst);
+
+  // ==> THE CAP IS APPLIED HERE AND TO THE UNDECIDED LIST ONLY. The chosen list
+  //     is returned whole, however long it is. <==
+  return {
+    chosen,
+    undecided: undecided.slice(0, undecidedLimit),
+    undecidedLimit,
+  };
+}
+
+// Assignment titles for a set of personas, for the Turn off and Turn on
+// confirms.
+//
+// ==> THIS ONE IS CLASS SCOPED AND countScenarioUsage IS NOT, AND THAT IS THE
+//     RULE IN lib/class-scope.ts RATHER THAN AN INCONSISTENCY: THE LISTING IS
+//     SCOPED, THE SAFETY CHECK IS NOT.
+//
+//     countScenarioUsage answers "will the database let this row be deleted",
+//     and the constraints it reads are global, so it must count another class's
+//     use of a scenario.
+//
+//     This answers "what shall I SHOW this instructor", and it puts assignment
+//     TITLES on their screen. Unscoped, the Turn off confirm would print
+//     another instructor's assignment title to somebody with no business
+//     reading it. Do not merge the two. <==
+export async function loadAssignmentTitles(
+  scenarioIds: string[],
   classId: string,
-  limit = 8,
-): Promise<GenerationSummary[]> {
+): Promise<Map<string, string[]>> {
+  const titles = new Map<string, string[]>();
+  if (scenarioIds.length === 0) return titles;
+
+  const admin = createAdminClient();
+
+  const { data, error } = await admin
+    .from("assignments")
+    .select("scenario_id, title")
+    .in("scenario_id", scenarioIds)
+    .eq("class_id", classId)
+    .order("title", { ascending: true });
+
+  // A failed read leaves every list empty, so the confirm says "No assignment
+  // uses it yet" rather than breaking the page. The confirm is information; the
+  // refusals that actually protect a student are in the three start routes.
+  if (error || !data) {
+    console.error("Reading assignment titles for the persona list failed:", error);
+    return titles;
+  }
+
+  for (const row of data) {
+    const scenarioId = row.scenario_id as string;
+    const list = titles.get(scenarioId);
+    if (list) list.push(row.title as string);
+    else titles.set(scenarioId, [row.title as string]);
+  }
+
+  return titles;
+}
+
+// The whole list for one class, read and assembled.
+//
+// ==> IT READS EVERY GENERATED ROW IN THE CLASS, WITH NO ROW LIMIT, AND THAT IS
+//     THE FIX. The old version asked for "limit * 2 + 10" rows, which was fine
+//     when the list was only ever a recent-activity list and is wrong now that
+//     a chosen persona has to stay reachable however old it is. The cap that
+//     remains is applied to UNDECIDED PAIRS after grouping, in the pure
+//     function above.
+//
+//     The read is class scoped and a class holds a handful of scenarios: the
+//     busiest class in the database today has seven. At the 270-user scale this
+//     project is built for, a class is still one instructor's own generated
+//     personas. <==
+export async function loadPersonaList(
+  classId: string,
+  undecidedLimit: number = UNDECIDED_LIMIT,
+): Promise<PersonaList> {
   const admin = createAdminClient();
 
   const { data, error } = await admin
     .from("scenarios")
     .select(CANDIDATE_COLUMNS)
     .not("generation_group_id", "is", null)
-    // GATE 3b: the Recent generations list shows this class's generations only.
-    // Invisible with one instructor and one class, real with two.
+    // GATE 3b: this class's generated personas only.
     .eq("class_id", classId)
-    .order("created_at", { ascending: false })
-    .limit(limit * 2 + 10);
+    .order("created_at", { ascending: false });
 
-  if (error || !data) return [];
-
-  const rows = data as unknown as (CandidateRow & {
-    generation_group_id: string;
-  })[];
-
-  const groups = new Map<string, GenerationSummary>();
-  const listed: (CandidateRow & { generation_group_id: string })[] = [];
-  for (const row of rows) {
-    const existing = groups.get(row.generation_group_id);
-    if (existing) {
-      existing.personaNames.push(row.persona_name);
-      listed.push(row);
-      continue;
-    }
-    if (groups.size >= limit) continue;
-    groups.set(row.generation_group_id, {
-      groupId: row.generation_group_id,
-      createdAt: row.created_at,
-      chainRole: row.chain_role,
-      industry: row.generation_fields?.inputs?.industry ?? null,
-      personaNames: [row.persona_name],
-      rows: [],
-    });
-    listed.push(row);
+  if (error || !data) {
+    if (error) console.error("Reading the persona list failed:", error);
+    return { chosen: [], undecided: [], undecidedLimit };
   }
 
-  // Whether each listed candidate has been used, so the list can offer the right
-  // control (and never offer Discard on something the delete would refuse).
-  // A failed count is treated as "used", which is the safe direction: it hides
-  // the Discard button rather than offering one that would fail.
+  const rows = data as unknown as CandidateRow[];
+
+  // Whether each persona has been used, so the list offers the right control
+  // and never offers a Discard the delete would refuse. A failed count is
+  // treated as "used", which is the safe direction: it hides Discard rather
+  // than offering one that would fail.
   let usage = new Map<string, ScenarioUsage>();
   try {
-    usage = await countScenarioUsage(listed.map((row) => row.id));
+    usage = await countScenarioUsage(rows.map((row) => row.id));
   } catch (error) {
-    console.error("Counting candidate usage for the list failed:", error);
-    for (const row of listed) {
+    console.error("Counting persona usage for the list failed:", error);
+    for (const row of rows) {
       usage.set(row.id, { sessions: 1, assignments: 0 });
     }
   }
 
-  for (const row of listed) {
-    groups.get(row.generation_group_id)?.rows.push({
-      id: row.id,
-      personaName: row.persona_name,
-      title: row.title,
-      enabled: row.enabled,
-      used: isUsed(usage.get(row.id)),
-    });
-  }
+  const assignmentTitles = await loadAssignmentTitles(
+    rows.map((row) => row.id),
+    classId,
+  );
 
-  return [...groups.values()];
+  return buildPersonaList(rows, usage, assignmentTitles, undecidedLimit);
 }
 
 // ---------------------------------------------------------------------------

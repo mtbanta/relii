@@ -16,7 +16,7 @@ export function AssignmentSelector({
 }) {
   const router = useRouter();
 
-  // The id ties this dropdown to the visible "Active Assignments" label on the
+  // The id ties this dropdown to the visible "Published Assignments" label on the
   // Submissions page, which is where its name now comes from (it used to carry
   // an aria-label instead, when it had no visible label).
   return (

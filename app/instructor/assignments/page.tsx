@@ -197,8 +197,8 @@ export default async function InstructorAssignments() {
       <p className="mb-3 max-w-reading text-body text-content-secondary">
         Create an assignment for a scenario and pick the mode the graded
         submission must use. Each student can submit an assignment once. This
-        page shows the class you are working in; switch class at the top of the
-        page to see another one.
+        page shows the selected class; switch class at the top of the page to
+        see another one.
       </p>
 
       {/* PHASE 2a: createdBy is no longer passed. The create route takes the

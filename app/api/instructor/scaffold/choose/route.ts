@@ -143,9 +143,30 @@ export async function POST(request: Request) {
       )
     : (winner.title as string);
 
+  // PHASE 3b. THE PICK IS NOW RECORDED IN THE ROW, not only implied by the
+  // enabled flag it sets.
+  //
+  // Until now, "this persona was chosen" and "this persona is switched on" were
+  // the same fact, so switching a chosen persona off erased the only evidence
+  // that it had ever been chosen. The AI Persona Framework list then showed it
+  // as an undecided candidate and offered to compare it with a candidate that
+  // no longer exists. chosen_at survives being switched off, which is what lets
+  // the list keep offering the On and Off toggle.
+  //
+  // It is written by SPREADING the stored fields, the same way the edit route
+  // writes them, so version, candidate_index, candidate, inputs and above all
+  // chain are carried through untouched. A row that somehow has no fields at
+  // all gets an object with just this marker in it, which is harmless: the two
+  // places that read this JSON (the edit route and the chain page) both check
+  // for candidate and inputs and refuse without them, exactly as they do today.
+  //
+  // It is a MOMENT, not a date-only value, and nothing displays it, so the two
+  // kinds of date in lib/app-time.ts do not come into it.
+  const chosenFields = { ...(fields ?? {}), chosen_at: new Date().toISOString() };
+
   const { error: enableError } = await admin
     .from("scenarios")
-    .update({ enabled: true, title: newTitle })
+    .update({ enabled: true, title: newTitle, generation_fields: chosenFields })
     .eq("id", winnerId)
     // Belt and braces: scoped to the group as well as the id.
     .eq("generation_group_id", groupId);

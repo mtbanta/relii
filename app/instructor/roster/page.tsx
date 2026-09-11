@@ -112,8 +112,8 @@ export default async function InstructorRoster() {
             class, so promising "everyone with access to Relii" would now be
             false. */}
         <p>
-          Everyone in the class you are working in, grouped by status. Switch
-          class at the top of the page to see another one.
+          Everyone in the selected class, grouped by status. Switch class at
+          the top of the page to see another one.
         </p>
         <p>
           Registered users have signed up; pending invites are on the invite list

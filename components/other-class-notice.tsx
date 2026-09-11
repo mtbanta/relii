@@ -69,8 +69,8 @@ export function OtherClassNotice({
           This {thing} is in another of your classes
         </h2>
         <p className="text-body text-content-secondary">
-          You are working in a different class at the moment, so this {thing} is
-          not on screen. It belongs to{" "}
+          A different class is selected at the moment, so this {thing} is not
+          on screen. It belongs to{" "}
           <span className="font-medium text-content-primary">{className}</span>.
         </p>
         <Button onClick={switchAndOpen} disabled={switching}>

@@ -91,7 +91,7 @@ export function ClassManager({
     // response), so refreshing lands the instructor inside it ready to set it
     // up, rather than leaving them in the old one.
     setCreateValue("");
-    setCreateMessage(`Created "${body.name}". You are now working in it.`);
+    setCreateMessage(`Created "${body.name}". It is now the selected class.`);
     router.refresh();
   }
 
@@ -100,8 +100,7 @@ export function ClassManager({
       {classes.length > 1 && (
         <p className="text-body text-content-secondary">
           You have {classes.length} classes. Everything on the instructor pages
-          shows the one you are working in, which you switch at the top of any
-          page.
+          shows the selected class, which you switch at the top of any page.
         </p>
       )}
 

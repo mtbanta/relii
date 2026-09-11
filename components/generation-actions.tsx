@@ -1,27 +1,27 @@
 "use client";
 
-// The per-generation controls on the "Recent generations" list.
+// The per-generation control on an UNDECIDED candidate pair.
 //
-// Which control an entry gets is decided by the state of its candidates, and
-// only ONE of the three ever applies, so the admin is never offered an action
-// that would be refused:
+// PHASE 3b NARROWED THIS COMPONENT. It used to serve the single "Recent
+// generations" list and carried three states, one of which was a chosen persona
+// that is switched on. The list is now two sections, and a chosen persona has
+// its own control (components/persona-toggle.tsx) because the toggle acts on a
+// persona while a discard acts on a whole generation. What is left here is the
+// undecided case only:
 //
-//   LIVE (a candidate is switched on): "Turn off". This is a chosen winner in
-//     service. It cannot be discarded while it is on, and turning it off is the
-//     step that makes it discardable, so that is the control offered.
+//   ROLE-PLAYED (a student has run one of the candidates, or an assignment
+//     points at one): no control, and a short line saying why. A used case can
+//     never be deleted, and both candidates are already switched off, so there
+//     is nothing left to do to it.
 //
-//   ROLE-PLAYED (switched off, but a student has run it or an assignment points
-//     at it): no control, and a short line saying why. A used case can never be
-//     deleted; it is already off, so there is nothing left to do to it.
-//
-//   UNTOUCHED (off and unused): "Discard", behind a simple confirm. This is the
-//     ordinary case and the one that clears test litter.
+//   UNTOUCHED: "Discard", behind a simple confirm. This is the ordinary case
+//     and the one that clears test litter.
 //
 // The server re-checks all of this for itself, so these controls decide what to
 // SHOW, never what is allowed.
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { GenerationRowSummary } from "@/lib/scaffold-candidates";
+import type { PersonaListRow } from "@/lib/scaffold-candidates";
 import { Button } from "@/components/ui/button";
 
 export function GenerationActions({
@@ -29,16 +29,13 @@ export function GenerationActions({
   rows,
 }: {
   groupId: string;
-  rows: GenerationRowSummary[];
+  rows: PersonaListRow[];
 }) {
   const router = useRouter();
-  const [confirming, setConfirming] = useState<"discard" | "disable" | null>(
-    null,
-  );
+  const [confirming, setConfirming] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const liveRow = rows.find((row) => row.enabled) ?? null;
   const usedRow = rows.find((row) => row.used) ?? null;
 
   async function post(url: string, body: Record<string, unknown>) {
@@ -57,68 +54,12 @@ export function GenerationActions({
         return;
       }
       router.refresh();
-      setConfirming(null);
+      setConfirming(false);
       setLoading(false);
     } catch {
       setError("Something went wrong. Please try again.");
       setLoading(false);
     }
-  }
-
-  // ---- LIVE: offer Turn off ------------------------------------------------
-  if (liveRow) {
-    if (confirming !== "disable") {
-      return (
-        <div className="shrink-0 text-right">
-          <span className="mb-1 block text-meta font-medium text-content-success">
-            Chosen and ON
-          </span>
-          <Button
-            variant="secondary"
-            size="xs"
-            onClick={() => setConfirming("disable")}
-          >
-            Turn off
-          </Button>
-          {error && <p className="mt-1 text-meta text-content-danger">{error}</p>}
-        </div>
-      );
-    }
-    return (
-      <div className="w-64 shrink-0 rounded-md border border-line-tertiary bg-surface-secondary p-2 text-meta">
-        <p className="mb-2 text-content-primary">
-          Turn <span className="font-medium">{liveRow.personaName}</span> off? It
-          leaves the create-assignment list and no new session can be started
-          with it. Existing sessions and their transcripts are untouched, and you
-          can turn it back on by choosing it again.
-        </p>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="xs"
-            onClick={() => {
-              setConfirming(null);
-              setError("");
-            }}
-            disabled={loading}
-          >
-            Cancel
-          </Button>
-          <Button
-            size="xs"
-            onClick={() =>
-              post("/api/instructor/scaffold/disable", {
-                scenarioId: liveRow.id,
-              })
-            }
-            disabled={loading}
-          >
-            {loading ? "Turning off..." : "Yes, turn off"}
-          </Button>
-        </div>
-        {error && <p className="mt-2 text-content-danger">{error}</p>}
-      </div>
-    );
   }
 
   // ---- ROLE-PLAYED: no delete is possible ---------------------------------
@@ -131,14 +72,10 @@ export function GenerationActions({
   }
 
   // ---- UNTOUCHED: offer Discard -------------------------------------------
-  if (confirming !== "discard") {
+  if (!confirming) {
     return (
       <div className="shrink-0 text-right">
-        <Button
-          variant="secondary"
-          size="xs"
-          onClick={() => setConfirming("discard")}
-        >
+        <Button variant="secondary" size="xs" onClick={() => setConfirming(true)}>
           Discard
         </Button>
         {error && <p className="mt-1 text-meta text-content-danger">{error}</p>}
@@ -160,7 +97,7 @@ export function GenerationActions({
           variant="secondary"
           size="xs"
           onClick={() => {
-            setConfirming(null);
+            setConfirming(false);
             setError("");
           }}
           disabled={loading}

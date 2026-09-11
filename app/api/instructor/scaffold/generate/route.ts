@@ -278,12 +278,32 @@ export async function POST(request: Request) {
       // this one row: nothing has to look the gatekeeper up again, which keeps
       // the two scenarios independent exactly as they are today. It is absent on
       // a gatekeeper because a gatekeeper has no earlier meeting.
+      //
+      // PHASE 3b ADDS chain_from_scenario_id, AND ITS PLACE IN THIS OBJECT IS
+      // THE WHOLE POINT. It is a SIBLING of chain, never a member of it.
+      // assembleScenario() just above is handed the candidate, the inputs and
+      // `chain`, and nothing else, so a key sitting beside chain is invisible to
+      // the frozen template and cannot move one byte of the assembled text. The
+      // edit route proves that for itself on every edit: it rebuilds the saved
+      // text from these same stored fields and refuses if the rebuild differs.
+      //
+      // THE VERSION IS NOT BUMPED. Version 2 means "an absent chain on a
+      // decision maker proves it never had one", which is the reading
+      // resolveChainForReassembly depends on. A new sibling key does not touch
+      // that reading, and bumping would refuse to edit every existing version 2
+      // candidate for no reason.
+      //
+      // NEW GENERATIONS ONLY. Decision makers that already exist stay unpaired:
+      // nothing backfills this and nothing matches on names.
       generation_fields: {
         version: GENERATION_FIELDS_VERSION,
         candidate_index: index + 1,
         candidate,
         inputs,
         ...(chain ? { chain } : {}),
+        ...(chainFromScenarioId
+          ? { chain_from_scenario_id: chainFromScenarioId }
+          : {}),
       },
       created_by: userId,
       // GATE 3a, write path 4 of 9. Both rows of the pair get the same class.

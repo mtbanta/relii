@@ -74,7 +74,7 @@ export function ClassPicker({
 
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 py-1.5">
-      <span className="text-meta text-content-tertiary">Working in</span>
+      <span className="text-meta text-content-tertiary">Class</span>
 
       {classes.length === 1 ? (
         <span className="text-card-title font-medium text-content-primary">
@@ -83,7 +83,7 @@ export function ClassPicker({
       ) : (
         <>
           <label className="sr-only" htmlFor="working-class">
-            Working class
+            Class
           </label>
           <select
             id="working-class"
