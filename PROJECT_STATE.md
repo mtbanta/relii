@@ -1033,7 +1033,7 @@ Written on 2026-09-11 at the end of Phase 3b, while the reasons are still in vie
 
 ## Phase 3 (the rest) handoff
 
-Written on 2026-09-11 at the end of Phase 4b, and **EXTENDED THE SAME DAY at the end of the timezone session (items 10 to 13 are new)**. The Phase 4b handoff below it is kept as history; its items 3, 5, 7 and 9 are the ones 4b acted on, and all four are now closed. **STILL OUTSTANDING IN PHASE 3**: the two renames, gatekeeper pairing, persona voice, and enable or disable any scenario. **ITEM 7'S PRE-LAUNCH DEPENDENCY IS NOW DISCHARGED**: the timezone session landed in `73185da`, so nothing stands between here and the rest of Phase 3.
+Written on 2026-09-11 at the end of Phase 4b, and **EXTENDED THE SAME DAY at the end of the timezone session (items 10 to 13 are new)**. The Phase 4b handoff below it is kept as history; its items 3, 5, 7 and 9 are the ones 4b acted on, and all four are now closed. **STILL OUTSTANDING IN PHASE 3** (TRUE WHEN WRITTEN, SUPERSEDED 2026-09-11 BY PHASE 3b: only persona voice is left, see the Phase 3c handoff): the two renames, gatekeeper pairing, persona voice, and enable or disable any scenario. **ITEM 7'S PRE-LAUNCH DEPENDENCY IS NOW DISCHARGED**: the timezone session landed in `73185da`, so nothing stands between here and the rest of Phase 3.
 
 ==> **1. THE ONE-LINE VERSION: PHASE 4 IS COMPLETE, AND A STORED SCORE IS NOW A DOCUMENT WITH TWO AUTHORS ON IT.** Every line of a reviewed score carries a level that may be the instructor's, a comment that is always the AI's, an optional note that is always the instructor's, and a marker saying which of the two chose the level. **PHASE 3's REMAINING WORK IS ALL ABOUT SCENARIOS, AND SCENARIOS SIT UPSTREAM OF ALL OF THAT.** The items below are the places where a scenario change reaches a grade somebody has already been given. <==
 
@@ -1101,7 +1101,7 @@ Written on 2026-09-11, at the end of Phase 4a, while the reasons are still in vi
 
 Written on 2026-09-10, at the end of Phase 3a, while the reasons are still in view. **The Phase 2c handoff below it is kept as history.**
 
-==> **1. PHASE 3a WAS THE FIRST HALF OF PHASE 3 AND THE REST OF PHASE 3 IS STILL WAITING.** The owner split it on 2026-09-10: these two fixes went first because each sits on a path a student or Tom can hit in week one. **STILL OUTSTANDING IN PHASE 3**: the two renames, gatekeeper pairing, persona voice, and enable or disable any scenario. Phase 4 comes BEFORE them by the owner's ordering. <==
+==> **1. PHASE 3a WAS THE FIRST HALF OF PHASE 3 AND THE REST OF PHASE 3 IS STILL WAITING.** The owner split it on 2026-09-10: these two fixes went first because each sits on a path a student or Tom can hit in week one. **STILL OUTSTANDING IN PHASE 3** (TRUE WHEN WRITTEN, SUPERSEDED 2026-09-11 BY PHASE 3b: only persona voice is left, see the Phase 3c handoff): the two renames, gatekeeper pairing, persona voice, and enable or disable any scenario. Phase 4 comes BEFORE them by the owner's ordering. <==
 
 **2. THE RETRY BUTTON RE-RUNS THE RETENTION CAP, AND SOMEBODY WILL EVENTUALLY ASK WHY A PRACTICE VANISHED.** A successful retry goes through `/api/session/end`, which runs `prunePractices` exactly as a first-time success does. A student at the cap of 3 can therefore see their oldest kept practice drop off after a retry. **THIS IS THE ORDINARY RULE ACTING ON A SESSION THAT HAS ONLY NOW BECOME FINISHED, NOT A BUG**, and it is written down here because it looks like one from the outside.
 
