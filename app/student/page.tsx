@@ -27,6 +27,7 @@ import { KEPT_PRACTICES } from "@/lib/practice";
 import { displayName, hasName } from "@/lib/name";
 import { hasConsented } from "@/lib/consent";
 import { isLockedUntil, formatAvailableDate } from "@/lib/available-date";
+import { formatInstantShortDay } from "@/lib/app-time";
 import { resolveMeetingMinutes } from "@/lib/meeting-length";
 import {
   RECORDING_LENGTH_LABEL,
@@ -54,12 +55,11 @@ function formatDueDate(value: string | null): string | null {
   });
 }
 
-// Short month + day for a practice's date (e.g. "Jun 9").
+// Short month + day for a practice's date (e.g. "Jun 9"), in US Central like
+// every other timestamp in the app. formatDueDate above is the OTHER kind of
+// date and stays UTC-pinned; see the header of lib/app-time.ts.
 function formatShortDate(value: string): string {
-  return new Date(value).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
+  return formatInstantShortDay(value);
 }
 
 type AssignmentRow = {

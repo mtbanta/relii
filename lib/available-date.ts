@@ -8,23 +8,37 @@
 //
 // Dates are stored as midnight UTC, exactly the way due_at already is: the date
 // picker sends a plain day like "2026-08-14" and the database reads it in UTC.
-// So an assignment unlocks at midnight UTC on the chosen day, and the date is
-// read back in UTC everywhere, so a date picked as "Aug 14" always reads
-// "Aug 14" on screen.
+// The date is read back in UTC for DISPLAY everywhere, so a date picked as
+// "Aug 14" always reads "Aug 14" on screen.
+//
+// ==> THE UNLOCK IS NOT MIDNIGHT UTC ANY MORE. Owner's ruling, 2026-09-11: an
+//     assignment unlocks at 12:00 AM CENTRAL on the picked day. Until then it
+//     unlocked at midnight UTC, which is 7pm Central the EVENING BEFORE, so an
+//     assignment dated "Sep 14" opened itself on the 13th while still telling
+//     the student it was not available until the 14th. The date shown and the
+//     lock now name the same day, which is the whole of the fix.
+//
+//     THE PICKED DAY IS STILL READ IN UTC, by startOfAppDay in lib/app-time.ts,
+//     which is the same read formatAvailableDate below does. That is deliberate
+//     and it is what keeps the two halves agreeing: the day comes from the
+//     stored value the same way for both, and only the MOMENT that day begins
+//     is new.
+import { startOfAppDay } from "@/lib/app-time";
 
-// Is this assignment still locked? True ONLY when a date is set AND that moment
-// is still in the future. A null date (available now) or a date already passed
-// is unlocked, and the assignment behaves exactly as it did before PD-3.
+// Is this assignment still locked? True ONLY when a date is set AND 12:00 AM
+// Central on that day is still in the future. A null date (available now) or a
+// day already begun is unlocked, and the assignment behaves as it did before.
 export function isLockedUntil(
   availableDate: string | null | undefined,
   now: number = Date.now(),
 ): boolean {
   if (!availableDate) return false;
-  const at = new Date(availableDate).getTime();
+  const unlocksAt = startOfAppDay(availableDate);
   // An unreadable value never locks a student out: the lock is a scheduling
   // convenience, so the safe failure is "open", not "nobody can work".
-  if (Number.isNaN(at)) return false;
-  return at > now;
+  // startOfAppDay returns null for both an empty and an unreadable value.
+  if (unlocksAt === null) return false;
+  return unlocksAt > now;
 }
 
 // Show a stored available date as a plain date (read in UTC so a date picked as

@@ -18,6 +18,7 @@ import { ClassDeletePanel } from "@/components/admin-class-delete-panel";
 import { requireSuperAdmin } from "@/lib/super-admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { displayName } from "@/lib/name";
+import { formatInstantDay } from "@/lib/app-time";
 
 export const dynamic = "force-dynamic";
 
@@ -193,7 +194,7 @@ export default async function AdminClassDetail({
       <p className="mb-5 max-w-reading text-body text-content-secondary">
         Owned by {owner ? displayName(owner as Person) : "an account that no longer exists"}
         {owner ? ` (${owner.email as string})` : ""}. Created{" "}
-        {new Date(cls.created_at as string).toLocaleDateString()}.
+        {formatInstantDay(cls.created_at as string)}.
       </p>
 
       <Card padding="md" className="mb-5">

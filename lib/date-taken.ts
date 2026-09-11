@@ -12,17 +12,12 @@
 // student started it, which is already the date the student home lists it under.
 // dateTaken picks whichever applies, so a caller does not have to care which
 // kind of session it is holding.
+import { formatInstant } from "@/lib/app-time";
 
 // A stored timestamp shown as a plain date and time (e.g. "Jul 30, 2026, 2:14 PM").
+// US Central, like every other timestamp in the app; see lib/app-time.ts.
 export function formatDateTaken(value: string | null): string | null {
-  if (!value) return null;
-  return new Date(value).toLocaleString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return formatInstant(value);
 }
 
 // The date to show for a session: when it was submitted if it ever was,

@@ -1,3 +1,5 @@
+import { formatInstant } from "@/lib/app-time";
+
 // The per-assignment reset history on the instructor dashboard. A small
 // "Resets: N" line that expands (native HTML <details>, so it needs no
 // JavaScript) into a short, newest-first list of the resets for the currently
@@ -38,19 +40,13 @@ export type ResetHistoryRow = {
   studentName?: string | null;
 };
 
-// A readable date and time. We read it in UTC (like the rest of the dashboard's
-// dates) so the value is stable and never shifts with the viewer's timezone.
+// A readable date and time, in US Central like every other timestamp in the
+// app (see lib/app-time.ts). THE " UTC" SUFFIX IS GONE, by the owner's ruling of
+// 2026-09-11: it was here to be honest about a zone nothing else on the page
+// declared, and now that every date in Relii reads the same zone, a label on
+// this one row would say that this row is the odd one out.
 function formatResetTime(value: string): string {
-  return (
-    new Date(value).toLocaleString("en-US", {
-      timeZone: "UTC",
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    }) + " UTC"
-  );
+  return formatInstant(value) ?? "";
 }
 
 export function ResetHistory({ resets }: { resets: ResetHistoryRow[] }) {

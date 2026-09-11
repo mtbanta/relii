@@ -34,6 +34,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveWorkingClassId } from "@/lib/instructor-auth";
 import { refuseOutsideClass } from "@/lib/class-scope";
+import { instantDayStamp } from "@/lib/app-time";
 import type {
   RubricCriterion,
   SessionScore,
@@ -272,13 +273,11 @@ function slugStudent(email: string): string {
   );
 }
 
-// A YYYY-MM-DD stamp (UTC) from the submitted date, or today if it is missing.
+// A YYYY-MM-DD stamp from the submitted date, or today if it is missing. The
+// CENTRAL day, so a submission handed in at 10pm Central is filed under the day
+// the student handed it in rather than the next one. See lib/app-time.ts.
 function fileDate(submittedAt: string | null): string {
-  const d = submittedAt ? new Date(submittedAt) : new Date();
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  return instantDayStamp(submittedAt ? new Date(submittedAt) : new Date());
 }
 
 // The shared start of every download filename for a submission, e.g.

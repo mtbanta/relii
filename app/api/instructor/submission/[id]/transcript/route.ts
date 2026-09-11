@@ -7,17 +7,13 @@ import {
   loadInstructorSubmission,
   submissionFileBase,
 } from "@/lib/instructor-submission";
+import { formatInstant } from "@/lib/app-time";
 
-// Same UTC date-and-time wording the detail view uses, for the file header.
+// Same date-and-time wording the detail view uses, for the file header. US
+// Central, like every other timestamp in the app; see lib/app-time.ts. (This
+// comment used to say UTC, and it was right until 2026-09-11.)
 function formatDateTime(value: string | null): string | null {
-  if (!value) return null;
-  return new Date(value).toLocaleString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return formatInstant(value);
 }
 
 export async function GET(

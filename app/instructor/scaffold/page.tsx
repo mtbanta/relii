@@ -18,6 +18,7 @@ import {
   loadRecentGenerations,
   chainRoleLabel,
 } from "@/lib/scaffold-candidates";
+import { formatInstant } from "@/lib/app-time";
 
 export default async function ScaffoldPage() {
   // The shared instructor layout already gated this page (signed in, an
@@ -98,7 +99,7 @@ export default async function ScaffoldPage() {
                   </span>
                   <span className="mt-0.5 block text-meta text-content-secondary">
                     {chainRoleLabel(generation.chainRole)}, generated{" "}
-                    {new Date(generation.createdAt).toLocaleString()}
+                    {formatInstant(generation.createdAt)}
                   </span>
                   <Link
                     href={`/instructor/scaffold/compare/${generation.groupId}`}

@@ -27,6 +27,7 @@
 import { createHash } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
+import { instantDayStamp } from "@/lib/app-time";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
@@ -547,9 +548,11 @@ export function snapshotToCsv(
 }
 
 // A filename that sorts by date and names the class, in the shape
-// submissionFileBase() uses in lib/instructor-submission.ts.
+// submissionFileBase() uses in lib/instructor-submission.ts. The date part is
+// the CENTRAL day (see lib/app-time.ts); the "Exported at" line INSIDE the file
+// stays a raw ISO UTC timestamp, because that is data for a machine rather than
+// text for a reader.
 export function classExportFilename(className: string, when: Date): string {
   const safe = className.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  const date = when.toISOString().slice(0, 10);
-  return `relii-class-export-${safe || "class"}-${date}.csv`;
+  return `relii-class-export-${safe || "class"}-${instantDayStamp(when)}.csv`;
 }
