@@ -61,6 +61,7 @@ import {
   submissionFileBase,
 } from "@/lib/instructor-submission";
 import { readAiOriginal } from "@/lib/submission-review";
+import { aiLevelFor } from "@/lib/submission-ai-level";
 import { formatDateTaken } from "@/lib/date-taken";
 import { formatPoints } from "@/lib/types";
 
@@ -118,10 +119,6 @@ export async function GET(
   //     the AI's own level is gone and nothing can reconstruct it.
   const reviewedWithNoOriginal =
     submission.reviewed_at !== null && !aiUnreadable && aiOriginal === null;
-
-  const aiItemById = new Map(
-    (aiOriginal?.score.items ?? []).map((i) => [i.id, i]),
-  );
 
   const rows: string[] = [];
 
@@ -228,31 +225,21 @@ export async function GET(
           // ScoreItem.level, and writing "None" or "n/a" into a grade column
           // would put a value there that nobody awarded.
           cell(item.level ?? ""),
-          // ==> WHAT THE AI CHOSE, AND IT IS ALWAYS EITHER THE TRUTH OR BLANK.
-          //
-          //       original on record  -> that line's level, whatever Level now
-          //                              says. This is the only source for it.
-          //       no original, not
-          //       reviewed            -> Level, because an unreviewed score IS
-          //                              the AI's. Not a fallback: the same
-          //                              value from the place it is stored.
-          //       no original, but
-          //       reviewed            -> BLANK, plus the Note line above.
-          //       unreadable          -> BLANK, plus its own Note line.
-          //
-          //     A no-rubric score leaves BOTH columns blank, because Level is
-          //     blank there too and equal-to-Level is still the honest answer.
-          //
-          //     THE ?? "" ON THE FIRST BRANCH IS NOT DECORATION. If a stored
-          //     original somehow has no line for this criterion, blank is the
-          //     only honest cell; falling through to Level would print the
-          //     instructor's own choice under the AI's name.
+          // ==> WHAT THE AI CHOSE, AND IT IS ALWAYS EITHER THE TRUTH OR
+          //     BLANK. The four branches live in lib/submission-ai-level.ts
+          //     because a rule inside a route handler can only be READ and
+          //     never RUN: Next.js allows only GET, POST and friends to be
+          //     exported from a route file. Over there it is executed against
+          //     all four states by scripts/check-csv-ai-level.mjs, including
+          //     the reviewed-with-no-original case, which cannot be produced on
+          //     the live site without destroying an audit record.
           cell(
-            aiOriginal
-              ? (aiItemById.get(item.id)?.level ?? "")
-              : submission.reviewed_at !== null || aiUnreadable
-                ? ""
-                : (item.level ?? ""),
+            aiLevelFor({
+              item,
+              original: aiOriginal?.score ?? null,
+              reviewedAt: submission.reviewed_at,
+              unreadable: aiUnreadable,
+            }),
           ),
           // ==> NOT RAW, AND NOT ROUNDED EITHER. formatPoints is the same helper
           //     the screen uses, so a half that reads 3.5 on the results page
