@@ -79,15 +79,24 @@ export type GenerationFields = {
   chosen_at?: string;
   // PHASE 3b. The id of the GATEKEEPER this decision maker was generated from.
   //
-  // ==> IT SITS HERE, BESIDE chain, AND DELIBERATELY NOT INSIDE IT. `chain` is
-  //     the ChainContext that lib/persona-assembly.ts reads to write the "you
-  //     already had a discovery meeting with X" narrative, and that template is
-  //     FROZEN: the edit route proves a candidate's saved text can be rebuilt
-  //     from its stored fields byte for byte before it allows an edit. Putting
-  //     an id inside `chain` would feed a new value to the template, change the
-  //     assembled text, and fail that round-trip check on every existing
-  //     chained persona. Outside it, the template never sees it and no stored
-  //     text moves. <==
+  // ==> IT SITS HERE, BESIDE chain, AND DELIBERATELY NOT INSIDE IT.
+  //
+  //     BE PRECISE ABOUT WHY, BECAUSE THE OBVIOUS REASON IS WRONG AND WAS
+  //     MEASURED TO BE WRONG. lib/persona-assembly.ts reads `chain` by NAMED
+  //     FIELD (chain.gatekeeperName, chain.gatekeeperRole), so an extra key
+  //     inside that object is simply ignored and the assembled text does NOT
+  //     move. That was checked against a real chained persona by rebuilding it
+  //     with the id injected into `chain`: byte identical. So "it would change
+  //     the text" is NOT the argument.
+  //
+  //     THE REAL ARGUMENT IS ABOUT MEANING. `chain` is the ChainContext handed
+  //     to a FROZEN template, and it is also the provenance signal
+  //     resolveChainForReassembly depends on: an absent chain on a version 2
+  //     decision maker proves it never had an earlier meeting. A pairing id is
+  //     neither of those things. Kept outside, ChainContext stays exactly the
+  //     five fields the template is given, so this key can never BECOME an
+  //     input to it, and "has a chain" keeps meaning "had an earlier meeting"
+  //     rather than "has an id attached". <==
   //
   // NEW GENERATIONS ONLY. Nothing backfills it and nothing matches on names, so
   // a decision maker generated before Phase 3b simply records no pair and is

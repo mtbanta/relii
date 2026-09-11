@@ -279,13 +279,22 @@ export async function POST(request: Request) {
       // the two scenarios independent exactly as they are today. It is absent on
       // a gatekeeper because a gatekeeper has no earlier meeting.
       //
-      // PHASE 3b ADDS chain_from_scenario_id, AND ITS PLACE IN THIS OBJECT IS
-      // THE WHOLE POINT. It is a SIBLING of chain, never a member of it.
-      // assembleScenario() just above is handed the candidate, the inputs and
-      // `chain`, and nothing else, so a key sitting beside chain is invisible to
-      // the frozen template and cannot move one byte of the assembled text. The
-      // edit route proves that for itself on every edit: it rebuilds the saved
-      // text from these same stored fields and refuses if the rebuild differs.
+      // PHASE 3b ADDS chain_from_scenario_id, as a SIBLING of chain and never a
+      // member of it. assembleScenario() just above is handed the candidate, the
+      // inputs and `chain`, and nothing else, so a key sitting beside chain is
+      // invisible to the frozen template.
+      //
+      // ==> WHAT THAT DOES AND DOES NOT BUY, stated accurately because the
+      //     overstated version was measured and found false. The template reads
+      //     `chain` by named field, so even putting this id INSIDE chain would
+      //     leave the assembled text byte for byte identical; that was checked
+      //     against a real chained persona. The placement is about MEANING, not
+      //     about bytes: ChainContext stays exactly the five fields the frozen
+      //     template is handed, and `chain`'s presence keeps meaning "this
+      //     persona had an earlier meeting" rather than "this persona has an id
+      //     attached", which is the reading resolveChainForReassembly depends
+      //     on. The full argument is at GenerationFields in
+      //     lib/scaffold-candidates.ts. <==
       //
       // THE VERSION IS NOT BUMPED. Version 2 means "an absent chain on a
       // decision maker proves it never had one", which is the reading

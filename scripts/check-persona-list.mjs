@@ -527,6 +527,13 @@ check(41, "a gatekeeper is still resolved as having no chain",
 check(42, "the stored version is NOT bumped, so existing candidates stay editable",
   GENERATION_FIELDS_VERSION === 2, "version is " + GENERATION_FIELDS_VERSION);
 
+// ==> A CORRECTION THIS CHECK RECORDS RATHER THAN HIDES. It is tempting to say
+//     the id is kept outside the chain because putting it inside would change
+//     the assembled text. THAT IS FALSE, and check 45 below measures it: the
+//     template reads the chain by NAMED FIELD, so an unknown extra key in that
+//     object is inert and the text is byte identical either way. The placement
+//     is about MEANING, and check 43's message says so. <==
+//
 // The structural half, read from the SHIPPED generate route. The checks above
 // prove the text does not move for THESE inputs; this one proves the key is not
 // somewhere the template could ever reach.
@@ -535,10 +542,22 @@ const chainLiteralStart = shippedGenerate.indexOf("    chain = {");
 const chainLiteral = shippedGenerate.slice(chainLiteralStart, shippedGenerate.indexOf("\n    };", chainLiteralStart));
 check(43, "the gatekeeper id is NOT inside the chain the template is handed",
   chainLiteralStart > 0 && !chainLiteral.includes("chain_from_scenario_id"),
-  "the id has moved inside ChainContext, which changes every assembled text");
+  "the id has moved inside ChainContext, so 'has a chain' no longer means 'had an earlier meeting'");
 check(44, "the template is still called with the candidate, the inputs and the chain only",
   shippedGenerate.includes("assembleScenario(candidate, inputs, chain)"),
   "the assembleScenario call has changed shape");
+
+// The measurement behind the correction above, kept as a check so the claim in
+// the comments cannot quietly drift back to the wrong one.
+const leaked = assembleScenario(
+  candidate,
+  inputs,
+  { ...chain, chain_from_scenario_id: "gate1" } as ChainContext,
+);
+check(45, "an extra key INSIDE chain is inert, so 'it would change the text' is not the reason",
+  leaked.scenario_context === saved.scenario_context &&
+  leaked.persona_system_prompt === saved.persona_system_prompt,
+  "the template now reads unknown chain keys, which would make the placement a bytes argument after all");
 
 console.log("");
 if (failures > 0) {
