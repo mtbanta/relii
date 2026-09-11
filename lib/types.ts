@@ -36,9 +36,50 @@ export type ScoreItem = {
   //     so the database keeps the fraction too. <==
   points_earned: number;
   points_max: number;
+  // The AI's own comment on this criterion. IT STAYS EVEN WHEN AN INSTRUCTOR
+  // CHANGES THE LEVEL, on the owner's ruling: the comment is the evidence the AI
+  // gave for its judgment, and deleting it would hide the disagreement rather
+  // than record it. Phase 4b labels it as the AI's where the level was changed.
   comment: string;
-  scored_by: "ai";
+  // ==> PHASE 4a. THE INSTRUCTOR'S OPTIONAL NOTE ON THIS CRITERION, IN THEIR OWN
+  //     WORDS, AND IT IS A DIFFERENT FIELD FROM comment ABOVE ON PURPOSE. Two
+  //     people are speaking on this line and the student has to be able to tell
+  //     which is which, so they get two fields rather than one that is appended
+  //     to. Absent when there is no note: an empty note is stored as nothing
+  //     at all, never as an empty string, so "is there a note" is one question
+  //     with one answer.
+  //
+  //     A STUDENT READS THIS IN 4b, so it is bounded (see
+  //     MAX_REVIEW_NOTE_CHARS below) and it is rendered as plain text. <==
+  instructor_note?: string;
+  // ==> PHASE 4a. WHO CHOSE THE LEVEL ON THIS LINE. "ai" until an instructor
+  //     picks a DIFFERENT level, and back to "ai" if they later put it back.
+  //
+  //     IT MARKS THE LEVEL AND NOT THE NOTE, and that is the whole of its
+  //     meaning. A note is always the instructor's by construction, so it needs
+  //     no marker; a level is the thing that can have come from either of them.
+  //     4b uses this to say "the AI said X" beside a comment whose level a human
+  //     has since overruled, which is the case where an unlabelled AI comment
+  //     under an instructor's grade would read as the instructor's own words.
+  //
+  //     THE COMPARISON IS ALWAYS AGAINST THE STORED ORIGINAL in
+  //     public.submission_ai_scores, never against whatever the score happened
+  //     to hold before this save. That is what makes it recomputable rather
+  //     than a running tally that drifts across re-edits. <==
+  scored_by: "ai" | "instructor";
 };
+
+// ==> PHASE 4a. HOW LONG AN INSTRUCTOR'S NOTE MAY BE. It lives here, beside the
+//     other two caps and in the file that imports nothing, so the textarea in
+//     the browser and the route on the server read ONE number and cannot
+//     disagree about it.
+//
+//     1000 characters is several paragraphs of feedback on one criterion, which
+//     is more than Tom will write and far less than a paste of a whole document.
+//     It is measured AFTER trimming, so trailing whitespace never costs anybody
+//     their last sentence. It counts JavaScript string length (UTF-16 units),
+//     which is what the textarea's own maxLength counts, so the two agree. <==
+export const MAX_REVIEW_NOTE_CHARS = 1000;
 
 // The full itemized score, saved to sessions.score.
 export type SessionScore = {

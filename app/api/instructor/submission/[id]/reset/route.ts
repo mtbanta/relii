@@ -19,6 +19,20 @@
 //     -> practice, submitted_at cleared), keeping the recording and the score so
 //     the student can submit again. Nothing is deleted.
 //
+//     ==> PHASE 4a: IT ALSO CLEARS THE REVIEW AND PUTS THE AI'S OWN SCORE BACK.
+//         A retake un-submits the attempt, so an instructor's review of it is a
+//         review of something that is no longer a submission. Leaving the
+//         overridden levels on the row would put a HUMAN's grade back into the
+//         student's practice pool wearing the AI's clothes, and the student
+//         would then re-submit a score a professor had already adjusted. So the
+//         AI's levels, points and total are restored from
+//         public.submission_ai_scores and reviewed_at goes back to null.
+//
+//         THE LOG ROWS SURVIVE, and so does the stored AI original. The review
+//         really happened and the record of it is not the instructor's to
+//         withdraw by pressing a different button; and keeping the original
+//         means a later review of the same row still cannot overwrite it. <==
+//
 // Anything else is refused: it can never touch a practice row, and never an
 // in_progress attempt that is still inside the live window (the student may
 // still be in it).
@@ -27,15 +41,19 @@
 // every query is scoped to the single target session id, so it can never affect
 // another student, another assignment, another submission, or any practice row.
 //
-// Order of operations: write the audit record FIRST (so the snapshot is captured
-// with the facts still true), then apply the effect for the requested path
+// Order of operations: check EVERY reason to stop first, including Phase 4a's
+// read of the AI's original score, because stopping is free until something has
+// been written; then write the audit record (so the snapshot is captured with
+// the facts still true); then apply the effect for the requested path
 // (interrupted: remove the recording then delete the row; retake: turn the row
-// back into a practice and re-run the retention cap keeping the returned one).
+// back into a practice, restore the AI's score, clear the review marker, and
+// re-run the retention cap keeping the returned one).
 import { NextResponse } from "next/server";
 import { requireInstructorRequest, refuseOutsideClass } from "@/lib/class-scope";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
 import { isSubmissionLocked } from "@/lib/submission";
 import { prunePractices } from "@/lib/practice";
+import { readAiOriginal } from "@/lib/submission-review";
 import type { SessionScore } from "@/lib/types";
 
 type ResetType = "interrupted" | "retake";
@@ -81,7 +99,10 @@ export async function POST(
     // GATE 3a: class_id joins this read so the audit record below can carry it.
     // GATE 3b: and so the check immediately below has something to compare.
     .select(
-      "id, kind, status, created_at, student_id, assignment_id, video_path, score, class_id",
+      // PHASE 4a: reviewed_at joins this read so the retake can tell "never
+      // reviewed, so the score on the row is already the AI's" from "reviewed,
+      // and the AI's score had better be on record".
+      "id, kind, status, created_at, student_id, assignment_id, video_path, score, reviewed_at, class_id",
     )
     .eq("id", id)
     .single();
@@ -146,6 +167,53 @@ export async function POST(
 
   const score = (session.score ?? null) as SessionScore | null;
 
+  // ==> 6b. PHASE 4a. READ THE AI'S ORIGINAL BEFORE THE AUDIT ROW IS WRITTEN,
+  //     AND REFUSE HERE RATHER THAN LATER. The order is the whole point of this
+  //     block sitting above step 7 instead of down in step 8 where it is used.
+  //
+  //     THE AUDIT ROW IS A RECORD THAT A RETAKE HAPPENED. Reading the original
+  //     after writing it would mean a failed read leaves a permanent audit entry
+  //     describing a retake that did not take place, in a log that exists
+  //     precisely so that what it says can be relied on. So every reason to stop
+  //     is checked while stopping is still free.
+  //
+  //     ==> AND THE SECOND CASE IS THE ONE THAT MATTERS. A submission that HAS
+  //         been reviewed and has no stored AI original is a state no route can
+  //         produce, because the review function refuses to move a grade without
+  //         one. If it somehow arises, the only two things this route could do
+  //         are refuse, or return the practice to the student's pool still
+  //         carrying THE INSTRUCTOR'S adjusted grade while telling everyone it
+  //         is the AI's. It refuses. A submission nobody ever reviewed is the
+  //         ordinary case and needs no original: the score on the row is already
+  //         the AI's own. <==
+  let aiRestore: { score: SessionScore; scoreTotal: number | null } | null = null;
+  if (type === "retake") {
+    const original = await readAiOriginal(admin, session.id);
+    if (!original.ok) {
+      return NextResponse.json(
+        {
+          error:
+            "The AI's original score could not be read, so nothing was changed. Please try again.",
+        },
+        { status: 500 },
+      );
+    }
+    if (session.reviewed_at && !original.original) {
+      console.error(
+        "Refused a retake: the submission is marked reviewed but no AI original is stored:",
+        session.id,
+      );
+      return NextResponse.json(
+        {
+          error:
+            "This submission has been reviewed but the AI's original score is not on record, so it cannot be returned to the practice pool. Nothing was changed.",
+        },
+        { status: 409 },
+      );
+    }
+    aiRestore = original.original;
+  }
+
   // 7. Write the audit record FIRST. If this fails we delete nothing, so a reset
   //    is never performed without a record of it.
   const { error: auditError } = await admin.from("submission_resets").insert({
@@ -160,6 +228,14 @@ export async function POST(
     prior_status: session.status,
     reset_type: type,
     // Only a graded retake carries a prior score; an interrupted attempt has none.
+    //
+    // ==> PHASE 4a LOOKED AT THESE TWO LINES AND DELIBERATELY LEFT THEM ALONE.
+    //     `score` was read before any of the writes below, so on a REVIEWED
+    //     submission this records the INSTRUCTOR'S total, which is the score
+    //     that was genuinely in force at the moment the retake was allowed.
+    //     That is what an audit of a retake should say. The AI's own total is
+    //     not lost by this: it is in public.submission_ai_scores, and the
+    //     restore below is about to put it back on the row. <==
     prior_score_total: type === "retake" ? (score?.total ?? null) : null,
     prior_score_max: type === "retake" ? (score?.max_total ?? null) : null,
     // GATE 3a, write path 9 of 9. The audit row belongs to the same class as the
@@ -214,13 +290,38 @@ export async function POST(
   } else {
     // type === "retake" (Piece 4): RETURN the submission to the practice pool
     // instead of deleting it. Reverse the conversion (kind submission ->
-    // practice) and clear submitted_at, keeping the score, status ('scored'),
+    // practice) and clear submitted_at, keeping the status ('scored'),
     // scored_at, and the recording. Nothing is deleted, so the student has a
     // re-selectable scored practice again and can submit once more. Once the row
     // is a practice, the one-submission unique index no longer blocks them.
+    //
+    // PHASE 4a: and it goes back to the pool carrying THE AI'S score, read and
+    // checked back in step 6b while refusing was still free.
+    //
+    // ==> ONE UPDATE, NOT TWO, AND THE THREE GRADE FIELDS MOVE TOGETHER WITH THE
+    //     KIND. A separate "restore the score" write would leave a window where
+    //     the row is a practice in the student's pool still carrying the
+    //     instructor's adjusted grade, and the student home reads score_total
+    //     while the dashboard reads score, so a half-applied restore is two
+    //     screens disagreeing about one number.
+    //
+    //     NO STORED ORIGINAL MEANS NOTHING TO RESTORE, and that is the ordinary
+    //     case rather than an error: a submission nobody ever reviewed still
+    //     carries the AI's own score, so only reviewed_at needs clearing (which
+    //     is a no-op when it is already null). Writing score back from `score`
+    //     here instead would be a second source for a number that is already
+    //     correct on the row. <==
+    const restore = aiRestore
+      ? {
+          score: aiRestore.score,
+          score_total: aiRestore.scoreTotal,
+          reviewed_at: null,
+        }
+      : { reviewed_at: null };
+
     const { error: returnError } = await admin
       .from("sessions")
-      .update({ kind: "practice", submitted_at: null })
+      .update({ kind: "practice", submitted_at: null, ...restore })
       .eq("id", session.id);
     if (returnError) {
       console.error(

@@ -1,10 +1,19 @@
-// Shared server-side loader for the instructor download routes (video,
-// transcript, CSV). Each route calls this to do the SAME gate and read in one
-// place: confirm the caller is a signed-in instructor who owns a class (checked
-// against the database, never trusted from the browser), then read ONE
-// submission (kind = submission, so a practice can never be reached) IN THAT
-// CLASS with the admin client, along with the student, assignment, scenario, and
-// rubric it needs. The service-role key stays server-side.
+// Shared server-side loader for the instructor routes that act on ONE
+// submission. Each route calls this to do the SAME gate and read in one place:
+// confirm the caller is a signed-in instructor who owns a class (checked against
+// the database, never trusted from the browser), then read ONE submission
+// (kind = submission, so a practice can never be reached) IN THAT CLASS with the
+// admin client, along with the student, assignment, scenario, and rubric it
+// needs. The service-role key stays server-side.
+//
+// ==> PHASE 4a: IT IS NO LONGER "THE DOWNLOAD LOADER", AND THE HEADING ABOVE
+//     STOPPED SAYING SO IN THE SAME CHANGE. Three read-only download routes
+//     (video, transcript, CSV) used it; the grade override route now uses it
+//     too, and that one WRITES. The guard did not need to change to carry a
+//     write, which is the point of it having been one guard rather than four
+//     copies. What did need to change is the WORDING: two of its refusals said
+//     "download", which is the wrong sentence to show somebody who was trying to
+//     save a review. See the wording block below. <==
 //
 // ==> GATE 3b: THIS IS THE HEADLINE FIX OF THE WHOLE ISOLATION GATE. <==
 //
@@ -31,8 +40,47 @@ import type {
   TranscriptTurn,
 } from "@/lib/types";
 
+// ==> THE TWO REFUSALS THAT NAME AN ACTION, AND WHY THEY ARE A PARAMETER WITH A
+//     DEFAULT RATHER THAN AN EDIT AT EVERY CALL SITE.
+//
+//     Before Phase 4a this function said "Only instructors can download
+//     submissions." and "...so submissions cannot be downloaded." Those are
+//     right for the three download routes and wrong for a review. The obvious
+//     move is to pass the wording in from each caller, and the obvious move
+//     would have meant editing three working routes to hand back the exact
+//     strings they already produced, where a single typo silently changes a
+//     message a real person reads.
+//
+//     SO THE DEFAULT IS THE OLD WORDING, BYTE FOR BYTE, AND THE THREE DOWNLOAD
+//     ROUTES ARE NOT TOUCHED AT ALL. Their diff for this phase is empty, which
+//     is a stronger guarantee that their messages are unchanged than any
+//     careful copying could be. Only a caller that needs different words passes
+//     any. <==
+export type SubmissionWording = {
+  // Completes "Only instructors can ...".
+  action: string;
+  // The whole sentence for an instructor who is in no class.
+  noClass: string;
+};
+
+export const DOWNLOAD_WORDING: SubmissionWording = {
+  action: "download submissions",
+  noClass:
+    "Your instructor account is not linked to a class, so submissions cannot be downloaded.",
+};
+
 export type LoadedSubmission = {
   admin: ReturnType<typeof createAdminClient>;
+  // PHASE 4a. WHO IS ASKING, AND WHICH CLASS THEY ARE WORKING IN. The three
+  // download routes ignore all three. The review route needs them for the audit
+  // row it writes, and taking them from here rather than calling
+  // requireInstructorRequest() as well is what keeps ONE guard on this path:
+  // two guards would be two places that could answer "may this caller act on
+  // this submission" differently. They cost no extra query, because the
+  // profiles read below was already happening.
+  callerId: string;
+  callerEmail: string | null;
+  callerClassId: string;
   submission: {
     id: string;
     mode: string;
@@ -42,8 +90,16 @@ export type LoadedSubmission = {
     scenario_id: string;
     transcript: TranscriptTurn[];
     score: SessionScore | null;
+    // PHASE 4a. The numeric column beside the jsonb. The two are written
+    // together and must agree; the review reads this one so that the snapshot
+    // it takes of the AI's grade records what was actually IN FORCE rather than
+    // what can be derived from the jsonb beside it.
+    score_total: number | null;
     video_path: string | null;
     submitted_at: string | null;
+    // PHASE 4a. When an instructor last saved a review, or null. It is a COLUMN
+    // and never a status: see supabase/phase-4a-review.sql section 1.
+    reviewed_at: string | null;
     // GATE 3b: read so the class check below has something to compare.
     class_id: string | null;
   };
@@ -65,7 +121,10 @@ export type LoadResult =
   | { ok: true; data: LoadedSubmission }
   | { ok: false; status: number; error: string };
 
-export async function loadInstructorSubmission(id: string): Promise<LoadResult> {
+export async function loadInstructorSubmission(
+  id: string,
+  wording: SubmissionWording = DOWNLOAD_WORDING,
+): Promise<LoadResult> {
   // 1. Must be signed in.
   const supabase = await createClient();
   const {
@@ -76,16 +135,20 @@ export async function loadInstructorSubmission(id: string): Promise<LoadResult> 
   const admin = createAdminClient();
 
   // 2. Must be an instructor, verified on the server against the database.
+  // PHASE 4a added `email` to this select and nothing else. The review route
+  // needs the caller's own address for its audit row, and this read was already
+  // happening, exactly as Gate 6 added is_super_admin to the sibling read in
+  // lib/class-scope.ts.
   const { data: caller } = await admin
     .from("profiles")
-    .select("role")
+    .select("role, email")
     .eq("id", user.id)
     .single();
   if (caller?.role !== "instructor") {
     return {
       ok: false,
       status: 403,
-      error: "Only instructors can download submissions.",
+      error: `Only instructors can ${wording.action}.`,
     };
   }
 
@@ -107,12 +170,7 @@ export async function loadInstructorSubmission(id: string): Promise<LoadResult> 
   //     one, and neither deserves a helpful answer.
   const callerClassId = await resolveWorkingClassId(user.id);
   if (!callerClassId) {
-    return {
-      ok: false,
-      status: 409,
-      error:
-        "Your instructor account is not linked to a class, so submissions cannot be downloaded.",
-    };
+    return { ok: false, status: 409, error: wording.noClass };
   }
 
   // 3. Read the submission. It MUST be kind = submission, so a practice session
@@ -120,7 +178,7 @@ export async function loadInstructorSubmission(id: string): Promise<LoadResult> 
   const { data: submission } = await admin
     .from("sessions")
     .select(
-      "id, mode, status, student_id, assignment_id, scenario_id, transcript, score, video_path, submitted_at, class_id",
+      "id, mode, status, student_id, assignment_id, scenario_id, transcript, score, score_total, video_path, submitted_at, reviewed_at, class_id",
     )
     .eq("id", id)
     .eq("kind", "submission")
@@ -183,6 +241,9 @@ export async function loadInstructorSubmission(id: string): Promise<LoadResult> 
     ok: true,
     data: {
       admin,
+      callerId: user.id,
+      callerEmail: caller.email ?? null,
+      callerClassId,
       submission: {
         ...submission,
         transcript: (submission.transcript ?? []) as TranscriptTurn[],

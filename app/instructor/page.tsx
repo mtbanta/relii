@@ -27,6 +27,7 @@ import { OtherClassNotice } from "@/components/other-class-notice";
 import { isSubmissionLocked } from "@/lib/submission";
 import { displayName } from "@/lib/name";
 import { recordingLengthText } from "@/lib/recording-length";
+import { formatPoints } from "@/lib/types";
 import type { SessionScore } from "@/lib/types";
 import { cardClasses } from "@/components/ui/card";
 import { ActionIcon, Icon, IconEye, IconInbox } from "@/components/ui/icon";
@@ -57,7 +58,8 @@ const SUBMISSION_COLUMNS = 9;
 // Piece 4 model where a submission IS a converted practice: what is true is that
 // only the practice a student selected for submission shows up in this table.
 const TABLE_INSTRUCTIONS = [
-  "Review opens the submission with its recording, transcript and rubric score.",
+  "Review opens the submission with its recording, transcript and rubric score, and is where you confirm or change the AI's performance levels.",
+  "Status reads To review until you save a review of that submission, and Reviewed afterwards.",
   "Download has three icons: the video, the transcript, and a CSV of scores. A greyed icon means that file does not exist for that submission.",
   "Allow retake, in the Manage column, returns a scored submission to the student's practice pool, keeping the score and recording so they can submit again.",
   "Reset, in the Manage column, permanently deletes an interrupted attempt and its recording.",
@@ -85,6 +87,10 @@ type SubmissionRow = {
   // PD-5: this ONE submission's recorded length, in seconds. Null on anything
   // finished before PD-5 shipped, which shows as a dash.
   recorded_seconds: number | null;
+  // PHASE 4a: when an instructor last saved a review of this submission, or
+  // null. It is a COLUMN and never a status, so nothing that keys on 'scored'
+  // had to change: a reviewed submission is still finished, scored work.
+  reviewed_at: string | null;
 };
 
 export default async function InstructorSubmissions({
@@ -239,7 +245,7 @@ export default async function InstructorSubmissions({
     const { data } = await admin
       .from("sessions")
       .select(
-        "id, student_id, mode, status, score, video_path, created_at, recorded_seconds",
+        "id, student_id, mode, status, score, video_path, created_at, recorded_seconds, reviewed_at",
       )
       .eq("assignment_id", selected.id)
       .eq("kind", "submission")
@@ -307,21 +313,37 @@ export default async function InstructorSubmissions({
   const submittedCount = new Set(submissions.map((s) => s.student_id)).size;
 
   // Average score: over the SCORED submissions only (a null score cannot be
-  // averaged). Shown against the real stored max (180 today, not 290).
+  // averaged). Shown against the real stored max.
   const scored = submissions.filter((s) => s.score != null);
+
+  // ==> PHASE 4a REMOVED A Math.round() FROM THIS LINE, AND IT WAS NOT A
+  //     ROUNDING PREFERENCE, IT WAS A BUG AGAINST TOM'S OWN RUBRIC.
+  //
+  //     His Discovery ladder awards 49.5, 38.5, 13.5, 4.5 and 0.5 on four of its
+  //     six criteria, so half totals are ordinary rather than exotic: a real
+  //     submission scored 68.5 and another 57.5. A single scored submission
+  //     therefore made this tile read 69 above a table row reading 68.5, which
+  //     is one screen printing two different numbers for one student.
+  //
+  //     IT NOW SHOWS ONE DECIMAL. An average is a derived number, so displaying
+  //     it to a fixed precision is honest; NO INDIVIDUAL SCORE IS ROUNDED
+  //     ANYWHERE, which is the rule lib/types.ts formatPoints() exists to hold
+  //     and which the Score column below now goes through too. <==
   const avgTotal =
     scored.length > 0
-      ? Math.round(
-          scored.reduce((sum, s) => sum + (s.score?.total ?? 0), 0) /
-            scored.length,
-        )
+      ? scored.reduce((sum, s) => sum + (s.score?.total ?? 0), 0) / scored.length
       : null;
   const maxTotal = scored[0]?.score?.max_total ?? null;
 
-  // Awaiting review: PLACEHOLDER. With no professor finalization yet, every
-  // scored submission is "awaiting review" by definition. The finalization piece
-  // (built after Stage 6) will make this a real reviewed/awaiting count.
-  const awaitingReview = scored.length;
+  // ==> PHASE 4a. "AWAITING REVIEW" IS A REAL NUMBER NOW. It was a placeholder
+  //     that counted every scored submission, on the reasoning that with no
+  //     finalization anywhere they were all awaiting one by definition. That was
+  //     true when it was written and stopped being true the moment an instructor
+  //     could press Mark reviewed, at which point a tile that never moved would
+  //     have been worse than no tile: it would have said there was work to do
+  //     after the work was done. <==
+  const reviewedCount = scored.filter((s) => s.reviewed_at != null).length;
+  const awaitingReview = scored.length - reviewedCount;
 
   return (
     <main className="mx-auto w-full max-w-page px-6 pb-10 pt-5">
@@ -386,19 +408,30 @@ export default async function InstructorSubmissions({
 
               <div className={cardClasses({ tone: "muted", bordered: false, padding: "none", className: "px-3 py-2.5" })}>
                 <p className="text-meta text-content-secondary">Average score</p>
+                {/* One decimal, never a whole number, because half points are
+                    real. See the note where avgTotal is computed. */}
                 <p className="mt-1 text-stat font-medium tabular-nums">
                   {avgTotal != null && maxTotal != null ? (
                     <>
-                      {avgTotal}{" "}
+                      {avgTotal.toFixed(1)}{" "}
                       <span className="text-meta font-normal text-content-tertiary">
-                        / {maxTotal}
+                        / {formatPoints(maxTotal)}
                       </span>
                     </>
                   ) : (
                     <span className="text-content-tertiary">-</span>
                   )}
                 </p>
-                <p className="mt-0.5 text-micro text-content-tertiary">graded so far</p>
+                {/* ==> PHASE 4a. HOW FAR THROUGH THE BATCH TOM IS, ON THE TILE
+                    THAT SHOWS THE NUMBER HE IS DECIDING WHETHER TO TRUST. An
+                    average over submissions a human has not looked at yet is an
+                    average of the AI's opinion, and this line is what says so
+                    without editorialising. */}
+                <p className="mt-0.5 text-micro text-content-tertiary">
+                  {scored.length > 0
+                    ? `${reviewedCount} of ${scored.length} reviewed`
+                    : "graded so far"}
+                </p>
               </div>
 
               <div className={cardClasses({ tone: "muted", bordered: false, padding: "none", className: "px-3 py-2.5" })}>
@@ -406,7 +439,11 @@ export default async function InstructorSubmissions({
                 <p className="mt-1 text-stat font-medium tabular-nums">
                   {awaitingReview}
                 </p>
-                <p className="mt-0.5 text-micro text-content-tertiary">need finalizing</p>
+                <p className="mt-0.5 text-micro text-content-tertiary">
+                  {awaitingReview === 0
+                    ? "all reviewed"
+                    : "scored, not yet reviewed"}
+                </p>
               </div>
             </div>
 
@@ -555,9 +592,17 @@ export default async function InstructorSubmissions({
                           <td className="px-2.5 py-2 tabular-nums whitespace-nowrap">
                             {recordingLengthText(r.recorded_seconds)}
                           </td>
+                          {/* PHASE 4a routed this through formatPoints(). It was
+                              the one place in the app where an individual score
+                              became text without it. Nothing was wrong with the
+                              output (template interpolation does not round), but
+                              "points become text in exactly one place" is the
+                              rule that keeps a Math.round() from ever landing
+                              near a grade again, and an exception to it is how
+                              the rule stops being one. */}
                           <td className="px-2.5 py-2 tabular-nums whitespace-nowrap">
                             {isScored
-                              ? `${r.score!.total} / ${r.score!.max_total}`
+                              ? `${formatPoints(r.score!.total)} / ${formatPoints(r.score!.max_total)}`
                               : "-"}
                           </td>
                           {/* STATUS, now text only. The control that changes it
@@ -573,14 +618,33 @@ export default async function InstructorSubmissions({
                               the pill was compensating for. The Badge primitive
                               stays in use everywhere else in the app.
 
-                              "To review" is a STATIC placeholder until professor
-                              finalization (built after Stage 6). The in_progress
-                              states, though, are REAL and recomputed on the
-                              server: "In progress" (inside the live window) vs
-                              "Interrupted" (past it, resettable). */}
+                              ==> PHASE 4a MADE "To review" REAL. It used to be a
+                              static placeholder printed under every scored
+                              submission, because nothing could review one. Now a
+                              scored submission is amber "To review" until an
+                              instructor saves a review of it and green
+                              "Reviewed" afterwards, read from sessions.reviewed_at.
+
+                              THAT IS A COLUMN AND NOT A NEW STATUS, and the
+                              distinction is load bearing rather than tidy:
+                              sessions_status_check permits exactly three
+                              statuses, seventeen sites in seven files key on
+                              'scored', and lib/assignment-sessions.ts is only
+                              total while those three are all there are. A
+                              reviewed submission is still finished, scored work.
+                              So r.status is untouched and this cell reads a
+                              second fact beside it. <==
+
+                              The in_progress states are REAL too and recomputed
+                              on the server: "In progress" (inside the live
+                              window) vs "Interrupted" (past it, resettable). */}
                           <td className="px-2.5 py-2">
                             {isScored ? (
-                              <span className="text-content-warning">To review</span>
+                              r.reviewed_at ? (
+                                <span className="text-content-success">Reviewed</span>
+                              ) : (
+                                <span className="text-content-warning">To review</span>
+                              )
                             ) : isInterrupted ? (
                               <span className="text-content-warning">Interrupted</span>
                             ) : isInProgress ? (

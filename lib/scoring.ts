@@ -214,7 +214,33 @@ type RawScore = { id: string; level: string; comment: string };
 // Find the level the model named, in THIS criterion's own ladder. Case and
 // surrounding whitespace are forgiven because "proficient" and "Proficient" are
 // the same rung of the same ladder; nothing else is.
-function findLevel(
+//
+// ==> PHASE 4a EXPORTED IT, AND MOVED NOTHING. THIS IS THE ONE LEVEL LOOKUP IN
+//     THE APPLICATION AND IT MUST STAY THE ONE.
+//
+//     The instructor's grade override has to turn a level NAME into a rung of
+//     the same ladder, which is the identical question this function already
+//     answers for the model. A second lookup written next door would be two
+//     pieces of code that decide what a grade is worth, and the day they
+//     disagree is the day a student's mark depends on which screen wrote it.
+//     So the override calls THIS, and it is exported rather than copied.
+//
+//     IT STAYS IN THIS FILE FOR A SECOND, MECHANICAL REASON. scripts/check-scorer.mjs
+//     proves the scorer's behaviour by copying lib/types.ts, lib/scoring.ts and
+//     lib/rubric-xlsx.ts into a scratch directory and rewriting only the "@/lib/"
+//     alias. Moving this function into a new module would put it outside what
+//     that script copies, and the 22 checks would stop compiling. Exporting a
+//     function changes nothing it measures.
+//
+//     ITS BEHAVIOUR IS UNCHANGED BY PHASE 4a. Not one character below this
+//     comment moved. An instructor picks from a list of that criterion's own
+//     level names, so the forgiving branches never fire for them; they are
+//     there for a model. What matters for the override is the half that is
+//     strict: EVERY candidate must match a real level name exactly, so a level
+//     that is not on this criterion's ladder returns null and the caller
+//     refuses. Nothing here invents a rung or picks a nearest one, for an
+//     instructor any more than for the AI. <==
+export function findLevel(
   criterion: RubricCriterion,
   named: unknown,
 ): RubricLevel | null {

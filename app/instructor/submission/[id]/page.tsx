@@ -17,9 +17,16 @@
 // is done in this file and the ORDER MATTERS: the refusal is above the
 // createSignedUrl call, so a foreign recording is never given a URL at all.
 //
-// It is read-only: there are no professor-finalization controls here (confirming
-// or adjusting the grade, the emotional-impact critique, a reviewed toggle).
-// Those are deliberately held until after Stage 6.
+// ==> PHASE 4a: IT IS NO LONGER READ-ONLY. The review editor at the bottom is
+//     where an instructor confirms the AI's score or overrules a level, and the
+//     comment that used to sit here saying those controls were held until after
+//     Stage 6 was deleted rather than amended, because a stale sentence saying a
+//     control does not exist is worse than no sentence at all.
+//
+//     WHAT IS STILL HELD FOR 4b: everything the STUDENT sees of a review. Until
+//     4b ships, a student whose submission is reviewed sees the changed level
+//     under an UNLABELLED AI comment, which reads as though the AI said it. That
+//     is why nobody reviews real student work between 4a and 4b. <==
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -38,9 +45,13 @@ import {
 import { formatPoints } from "@/lib/types";
 import type {
   RubricCriterion,
+  ScoreItem,
   SessionScore,
   TranscriptTurn,
 } from "@/lib/types";
+import { readAiOriginal } from "@/lib/submission-review";
+import { SubmissionReviewForm } from "@/components/submission-review-form";
+import type { ReviewLine } from "@/components/submission-review-form";
 import { buttonClasses } from "@/components/ui/button";
 import { cardClasses } from "@/components/ui/card";
 import { Icon, IconArrowLeft } from "@/components/ui/icon";
@@ -72,7 +83,7 @@ export default async function InstructorSubmissionPage({
   const { data: session } = await admin
     .from("sessions")
     .select(
-      "id, kind, mode, status, student_id, assignment_id, scenario_id, transcript, score, video_path, submitted_at, recorded_seconds, class_id",
+      "id, kind, mode, status, student_id, assignment_id, scenario_id, transcript, score, video_path, submitted_at, recorded_seconds, reviewed_at, class_id",
     )
     .eq("id", id)
     .eq("kind", "submission")
@@ -163,6 +174,82 @@ export default async function InstructorSubmissionPage({
 
   const criteria = (rubric?.items ?? []) as RubricCriterion[];
 
+  // ==> PHASE 4a. WHAT THE AI ORIGINALLY SAID, READ WITH THE ADMIN CLIENT AND
+  //     SHOWN ONLY HERE. It lives in public.submission_ai_scores rather than on
+  //     the session row precisely so that this page can show it and the
+  //     student's own page cannot: a student may read every column of their own
+  //     sessions row, so anything kept there is published to them.
+  //
+  //     IT IS NULL UNTIL THE FIRST REVIEW, and that is not a missing value: it
+  //     means nobody has overridden anything, so the score ON the row still IS
+  //     the AI's. The fallback below reads it from there for exactly that case,
+  //     which is why the "AI:" label is never blank on a first review. <==
+  const aiOriginal = score ? await readAiOriginal(admin, session.id) : null;
+
+  // ==> WHERE THE "AI:" LABEL IS ALLOWED TO COME FROM, AND THE ONE FALLBACK
+  //     THAT WOULD HAVE BEEN A QUIET LIE.
+  //
+  //     Before the first review there is no stored original, and that is not a
+  //     missing value: nothing has been overridden, so the score ON the row IS
+  //     the AI's and reading it from there is exactly right.
+  //
+  //     AFTER a review it is not. Falling back to the row's score once a human
+  //     has changed a level would print the INSTRUCTOR'S OWN CHOICE under the
+  //     words "AI:", which is the precise shape of mislabel this project keeps
+  //     paying for, and it would do it on the one screen whose whole job is
+  //     showing a professor what the machine said. So the two cases where the
+  //     original cannot be trusted (the read failed, or the row says reviewed
+  //     while no original is stored, which no route can produce) render NO
+  //     EDITOR and a message, rather than a form full of plausible wrong
+  //     labels. <==
+  const originalUnavailable =
+    score !== null &&
+    (aiOriginal === null ||
+      !aiOriginal.ok ||
+      (aiOriginal.original === null && session.reviewed_at !== null));
+
+  const aiItems: ScoreItem[] =
+    aiOriginal && aiOriginal.ok && aiOriginal.original
+      ? aiOriginal.original.score.items
+      : (score?.items ?? []);
+  const aiById = new Map(aiItems.map((i) => [i.id, i]));
+
+  // ==> THE EDITOR'S LINES ARE BUILT FROM THE STORED SCORE, NOT FROM THE RUBRIC,
+  //     the same direction components/rubric-score.tsx takes and for the same
+  //     reason: the score is the record of what was graded and the rubric is
+  //     looked up only to price a level. A criterion the rubric can no longer
+  //     explain has no ladder to choose from, so it produces no line, and the
+  //     check below turns that into "no editor" rather than a half a form. The
+  //     route refuses the same case, so the screen and the server agree. <==
+  const criterionById = new Map(criteria.map((c) => [c.id, c]));
+  const reviewLines: ReviewLine[] = (score?.items ?? []).flatMap((item) => {
+    const criterion = criterionById.get(item.id);
+    if (!criterion || !criterion.levels?.length) return [];
+    const ai = aiById.get(item.id);
+    return [
+      {
+        id: item.id,
+        name: criterion.name,
+        description: criterion.description,
+        levels: criterion.levels.map((l) => ({ name: l.name, points: l.points })),
+        pointsMax: criterion.levels[0].points,
+        aiLevel: ai?.level ?? null,
+        aiComment: ai?.comment ?? item.comment,
+        currentLevel: item.level ?? null,
+        currentNote: item.instructor_note ?? "",
+      },
+    ];
+  });
+  // Every stored line has to be editable or none is. A partial form would let an
+  // instructor save a grade that silently dropped whichever criterion the rubric
+  // could not explain.
+  const canReview =
+    score !== null &&
+    score.items.length > 0 &&
+    !originalUnavailable &&
+    reviewLines.length === score.items.length;
+  const reviewedAt = formatDateTaken(session.reviewed_at);
+
   // Signed video link, minted with the admin client after the instructor gate.
   // The link expires after an hour; reload the page to get a fresh one.
   let videoUrl: string | null = null;
@@ -237,6 +324,20 @@ export default async function InstructorSubmissionPage({
             ) : (
               <p className="text-body text-content-secondary">
                 Not scored (interrupted submission)
+              </p>
+            )}
+            {/* PHASE 4a. The same two words the dashboard's Status column uses,
+                in the same two colours, so a page and a table row cannot tell
+                an instructor different things about one submission. The total
+                above is the CURRENT one either way: after a review it is the
+                instructor's, which is the whole point of a review. */}
+            {score && (
+              <p
+                className={`mt-1 text-meta ${
+                  reviewedAt ? "text-content-success" : "text-content-warning"
+                }`}
+              >
+                {reviewedAt ? `Reviewed ${reviewedAt}` : "To review"}
               </p>
             )}
           </div>
@@ -400,6 +501,53 @@ export default async function InstructorSubmissionPage({
           </p>
         )}
       </section>
+
+      {/* ==> PHASE 4a. THE REVIEW. It sits BELOW the read-only rubric rather than
+          replacing it, on purpose: the section above is what the STUDENT sees,
+          and an instructor deciding whether to overrule a level should be
+          looking at the same screen the student will.
+
+          IT RENDERS ONLY WHERE EVERY STORED LINE CAN BE PRICED. Where the
+          assignment names no rubric there is no ladder, so there is nothing
+          honest to offer and this says so instead. The route refuses that same
+          case with its own message, which is what makes this a screen and not a
+          rule: a control hidden in front of a route that would have accepted the
+          request is a rule enforced by nothing. */}
+      {score && score.items.length > 0 && (
+        <section className="mt-6">
+          <h2 className="mb-2 text-section font-medium text-content-secondary">
+            Review
+          </h2>
+          {canReview ? (
+            <>
+              <p className="mb-2 max-w-reading text-meta text-content-secondary">
+                Choose the performance level you think each criterion earned. The
+                points come from the rubric, so there is nothing to type. Leaving
+                every level as it is and pressing the button records this
+                submission as reviewed without changing the grade.
+              </p>
+              <SubmissionReviewForm
+                sessionId={session.id}
+                lines={reviewLines}
+                maxTotal={score.max_total}
+                alreadyReviewed={session.reviewed_at !== null}
+              />
+            </>
+          ) : originalUnavailable ? (
+            <p className="max-w-reading text-body text-content-secondary">
+              The record of what the AI originally scored could not be read, so
+              this submission cannot be reviewed right now. Reload the page. The
+              total above is the score as it is currently stored.
+            </p>
+          ) : (
+            <p className="max-w-reading text-body text-content-secondary">
+              This score cannot be reviewed, because the assignment has no rubric
+              attached and there are therefore no performance levels to choose
+              from. The total above is the score as it was stored.
+            </p>
+          )}
+        </section>
+      )}
     </main>
   );
 }

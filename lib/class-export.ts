@@ -77,6 +77,23 @@ export type ClassSnapshot = {
   recordings: SnapshotRecording[];
   submission_resets: Row[];
   assignment_deletes: Row[];
+  // ==> PHASE 4a. TWO NEW TABLES, AND THEY ARE HERE BECAUSE OF WHAT THIS FILE
+  //     IS FOR RATHER THAN FOR COMPLETENESS' SAKE. Between them they hold what
+  //     the AI originally graded every reviewed submission, and who changed
+  //     which grade to what and when. A class export that omitted them would be
+  //     a record of the grades with no record of how they got that way, and the
+  //     fingerprint would be BLIND to a professor changing a mark: a review
+  //     could be saved between an export and a delete without invalidating the
+  //     export that authorised it.
+  //
+  //     NEITHER IS IN DELETE_ORDER in app/api/admin/class/[id]/delete/route.ts,
+  //     and that is deliberate and matches the two audit logs above: both carry
+  //     a plain class_id with no foreign key, so nothing forces the choice and
+  //     they SURVIVE a class delete. See supabase/phase-4a-review.sql section 2
+  //     for why the AI original follows the audit precedent even though it is a
+  //     value rather than a record of an action. <==
+  submission_ai_scores: Row[];
+  submission_reviews: Row[];
 };
 
 export type SnapshotCounts = {
@@ -90,6 +107,8 @@ export type SnapshotCounts = {
   recordings: number;
   submission_resets: number;
   assignment_deletes: number;
+  submission_ai_scores: number;
+  submission_reviews: number;
 };
 
 export type BuiltSnapshot = {
@@ -281,6 +300,10 @@ export async function buildClassSnapshot(
   const sessions = await readAll(admin, "sessions", classId, "id");
   const submissionResets = await readAll(admin, "submission_resets", classId, "id");
   const assignmentDeletes = await readAll(admin, "assignment_deletes", classId, "id");
+  // PHASE 4a. Read exactly like the two audit logs, by class_id, paged, with
+  // select("*") so a column added later cannot silently drop out of the file.
+  const aiScores = await readAll(admin, "submission_ai_scores", classId, "id");
+  const reviews = await readAll(admin, "submission_reviews", classId, "id");
 
   // 5. THE RECORDINGS, AND WHERE THEY ARE FOUND FROM MATTERS.
   //
@@ -383,6 +406,8 @@ export async function buildClassSnapshot(
     recordings,
     submission_resets: submissionResets,
     assignment_deletes: assignmentDeletes,
+    submission_ai_scores: aiScores,
+    submission_reviews: reviews,
   };
 
   const counts: SnapshotCounts = {
@@ -396,6 +421,8 @@ export async function buildClassSnapshot(
     recordings: recordings.length,
     submission_resets: submissionResets.length,
     assignment_deletes: assignmentDeletes.length,
+    submission_ai_scores: aiScores.length,
+    submission_reviews: reviews.length,
   };
 
   return { snapshot, counts, fingerprint: fingerprintSnapshot(snapshot) };
@@ -496,6 +523,17 @@ export function snapshotToCsv(
   rows.push(...section("RECORDINGS (files, not video)", snapshot.recordings as unknown as Row[]));
   rows.push(...section("AUDIT: SUBMISSION RESETS", snapshot.submission_resets));
   rows.push(...section("AUDIT: ASSIGNMENT DELETES", snapshot.assignment_deletes));
+  // PHASE 4a. The two halves of the review record. The first says what the AI
+  // graded before any human touched it, which is the one thing in this file
+  // that exists nowhere else at all once the class is gone; the second says who
+  // changed what, when, and from which total.
+  rows.push(
+    ...section(
+      "THE AI'S ORIGINAL SCORES (before any instructor review)",
+      snapshot.submission_ai_scores,
+    ),
+  );
+  rows.push(...section("AUDIT: INSTRUCTOR REVIEWS", snapshot.submission_reviews));
 
   // Said at the end as well as the top, because a long file is read from both
   // ends and this is the sentence nobody should miss.
