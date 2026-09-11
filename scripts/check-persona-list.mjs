@@ -432,22 +432,33 @@ check(34, "View Persona still points at its generation",
   onHtml.includes("/instructor/scaffold/compare/imported-pair"));
 
 // The same persona switched OFF: the toggle has to offer the other direction.
+//
+// ==> THESE TWO GUARD THEIR OWN INPUT RATHER THAN ASSERTING IT. A check that
+//     CRASHES is as bad as a check that cannot fail: the next person gets a
+//     stack trace and no summary line, and has to work out for themselves which
+//     checks ran. Both entries below are absent exactly when an earlier rule has
+//     been broken, so they report a failure and let the run finish. <==
 const importedOff = buildPersonaList(
   [{ ...imported, enabled: false }, importedMaker],
   NO_USAGE,
   NO_TITLES,
 ).chosen.find((c) => c.row.id === "import-alex");
-const offHtml = renderToStaticMarkup(<ChosenPersonaEntry persona={importedOff!} />);
+const offHtml = importedOff
+  ? renderToStaticMarkup(<ChosenPersonaEntry persona={importedOff} />)
+  : "";
 check(35, "switched off, the same entry offers Turn on",
-  offHtml.includes("Chosen and OFF") && offHtml.includes("Turn on"),
-  "a switched-off chosen persona could not be switched back on");
+  importedOff !== undefined && offHtml.includes("Chosen and OFF") && offHtml.includes("Turn on"),
+  importedOff === undefined
+    ? "it is no longer listed as chosen once it is switched off"
+    : "a switched-off chosen persona could not be switched back on");
+
+const lonelyEntry = buildPersonaList([lonelyMaker], NO_USAGE, NO_TITLES).chosen[0];
 check(36, "an unpaired persona renders NO pairing line at all",
-  !renderToStaticMarkup(
-    <ChosenPersonaEntry
-      persona={buildPersonaList([lonelyMaker], NO_USAGE, NO_TITLES).chosen[0]}
-    />,
-  ).includes("Paired with"),
-  "every existing persona would print a pairing line");
+  lonelyEntry !== undefined &&
+    !renderToStaticMarkup(<ChosenPersonaEntry persona={lonelyEntry} />).includes("Paired with"),
+  lonelyEntry === undefined
+    ? "the one-row rule is gone, so this persona is not listed as chosen at all"
+    : "every existing persona would print a pairing line");
 
 console.log("");
 console.log("E. THE NEW PAIRING KEY MOVES NO STORED TEXT");
