@@ -9,14 +9,29 @@
 --     to exactly that. COUNTS BEAT "expect zero rows" for the same reason: zero
 --     rows is also what a broken query returns.
 --
--- ==> B1's AUDIT BASELINE IS NOT ZERO AND MUST NOT BE "CLEANED UP". Phase 3a and
---     Phase 4a left rows behind ON PURPOSE, each one the record of something
---     that really happened, and they have no foreign key precisely so that a
---     later delete cannot blank them:
+-- ==> B1's AUDIT BASELINE IS NOT ZERO AND MUST NOT BE "CLEANED UP". Phases 3a,
+--     4a and 4b each left rows behind ON PURPOSE, every one the record of
+--     something that really happened, and they carry no foreign key precisely
+--     so that a later delete cannot blank them. THE PRACTICE THESE THREE 4b ROWS
+--     DESCRIBE HAS ITSELF BEEN DELETED, and they still point at its id: that is
+--     the audit precedent working exactly as Gate 1 designed it, not orphan data.
+--
+--     ==> THE NUMBERS BELOW ARE THE BASELINE FROM 2026-09-11 ONWARD, AFTER 4b.
+--         THE FIRST VERSION OF THIS FILE CARRIED THE PRE-4b NUMBERS AND WAS
+--         COMMITTED WITH THEM, WHICH WOULD HAVE HAD THE NEXT SESSION MEASURE
+--         AGAINST A COMMENT RATHER THAN AGAINST THE DATABASE. Same shape as
+--         check 16 of phase-2a-tests.sql, which was red for a whole phase
+--         because three documents quoted each other.
+--
 --       assignment_deletes    1   (Phase 3a, d1492d69)
---       submission_ai_scores  1   (Phase 4a, 0a9b783e)
---       submission_reviews    7   (Phase 4a)
---       submission_resets     4
+--       submission_ai_scores  2   (4a 0a9b783e; 4b 6d692810, total 20)
+--       submission_reviews    8   (4a's seven; 4b 4fb89844, 20 to 32)
+--       submission_resets     5   (4b fd185315, prior 32)
+--
+--     assignment_deletes IS STILL 1 AND NOT 2. 4b's throwaway assignment held no
+--     student work when it was deleted, and a clean delete of an empty
+--     assignment is not logged, by design.
+--
 --     A future session measuring B1 and reading these as litter will go looking
 --     for a cleanup that must not happen.
 
