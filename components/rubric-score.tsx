@@ -25,6 +25,13 @@
 //     grader chose, the points, and the comment.
 //   - The jump chips stay, one per criterion.
 //
+// PHASE 4b ADDED THE ATTRIBUTION, WHICH IS THE WHOLE OF ITS WORK HERE: every
+// comment is labelled "AI feedback", a level an instructor changed says so
+// beside the level, and the instructor's own note renders above the AI's
+// comment under its own label. Until 4b a reviewed submission showed the
+// student the instructor's level directly under the AI's unlabelled comment
+// about a DIFFERENT level, with the instructor's note rendering nowhere at all.
+//
 // WHY THIS IS A CLIENT COMPONENT RATHER THAN <details>. <details> would be
 // server-rendered, keyboard accessible and JavaScript-free, which is genuinely
 // better, and it was the first choice in PD-8d. Two requirements rule it out,
@@ -48,6 +55,35 @@ import { Icon, IconChevronDown, IconChevronUp } from "@/components/ui/icon";
 import { Badge } from "@/components/ui/badge";
 import { formatPoints } from "@/lib/types";
 import type { RubricCriterion, ScoreItem } from "@/lib/types";
+
+// ==> PHASE 4b. WHO IS READING THIS RENDER. It is REQUIRED and has no default,
+//     and that is the whole reason it is a prop rather than a constant.
+//
+//     This component draws on two pages: the student's own results page and the
+//     instructor's read-only view of the same submission. One label has to
+//     differ between them, because "Level set by your instructor" addresses a
+//     student and would be nonsense shown to the instructor who set it.
+//
+//     THE ALTERNATIVE WAS TO FORK THE COMPONENT IN TWO, AND THAT IS EXACTLY
+//     WHAT 2b-2 EXISTED TO UNDO. Two renderers of one score drift, and the two
+//     screens then tell different stories about one submission. A defaulted
+//     prop was the other tempting shape and it is worse than it looks: a third
+//     call site added later would silently inherit whichever wording the
+//     default happened to be, which is the quiet mislabel this project keeps
+//     paying for. Required means every caller, the render check included, has
+//     to say out loud who it is drawing for. <==
+export type ScoreAudience = "student" | "instructor";
+
+// ==> EXACTLY ONE STRING VARIES BY AUDIENCE, AND KEEPING IT TO ONE IS THE
+//     POINT. "AI feedback" and "Instructor note" NAME WHOSE WORDS FOLLOW; they
+//     address nobody, so they read correctly to either reader and are written
+//     once, below, as plain text. Only the flag on a changed LEVEL speaks to
+//     somebody, so only the flag is in this map. Every string added here is
+//     another pair of wordings that can drift apart. <==
+const CHANGED_LEVEL_FLAG: Record<ScoreAudience, string> = {
+  student: "Level set by your instructor",
+  instructor: "Level set in review",
+};
 
 // ==> THERE IS NO SHORT-LABEL MAP ANY MORE, AND ITS REMOVAL IS THE POINT RATHER
 //     THAN A TIDY-UP. PD-8d carried an explicit map turning the flat rubric's
@@ -103,12 +139,32 @@ function buildRows(items: ScoreItem[], criteria: RubricCriterion[]): Row[] {
   });
 }
 
+// ==> PHASE 4b. WHAT THIS COMPONENT IS NOT GIVEN, WHICH IS THE STRONGEST
+//     GUARANTEE IN THE PIECE AND IS WORTH FINDING HERE RATHER THAN IN A TEST.
+//
+//     THE AI'S ORIGINAL LEVEL IS NOT REACHABLE FROM THIS FILE AT ALL. It lives
+//     in public.submission_ai_scores, which no student may read (proved in 4a
+//     with the student's own browser key), and it is not a field on ScoreItem.
+//     So "never show a student the level the AI chose before their instructor
+//     overruled it" is not a rule this render remembers to follow; there is
+//     nothing here to show. A future change that adds the original to the props
+//     of this component is the change that breaks it, and that is the review
+//     this comment is asking for.
+//
+//     ScoreItem.scored_by MARKS THE LEVEL AND NOT THE NOTE. It reads
+//     "instructor" exactly when the chosen level differs from the AI's, and it
+//     goes back to "ai" if the instructor puts the level back. A note is always
+//     the instructor's by construction, so a note needs no marker and a
+//     criterion carrying a note while reading "ai" is correct rather than a
+//     bug. See the type in lib/types.ts and Phase 4b handoff item 3. <==
 export function RubricScore({
   items,
   criteria,
+  audience,
 }: {
   items: ScoreItem[];
   criteria: RubricCriterion[];
+  audience: ScoreAudience;
 }) {
   const rows = buildRows(items, criteria);
 
@@ -234,16 +290,82 @@ export function RubricScore({
                     {row.item.level && (
                       <Badge tone="neutral">{row.item.level}</Badge>
                     )}
+                    {/* ==> PHASE 4b. THE FLAG ON A LEVEL A HUMAN CHANGED, AND
+                            IT SITS BESIDE THE LEVEL BECAUSE THAT IS WHAT IT IS
+                            ABOUT. scored_by is "instructor" exactly when the
+                            chosen level differs from the AI's.
+                            An INFO pill rather than a second neutral one: at
+                            the same tone as the level beside it, the eye reads
+                            the pair as one pill that wrapped. <== */}
+                    {row.item.scored_by === "instructor" && (
+                      <Badge tone="info">{CHANGED_LEVEL_FLAG[audience]}</Badge>
+                    )}
                     <span className="ml-auto shrink-0 text-meta font-medium tabular-nums text-content-secondary">
                       {formatPoints(row.item.points_earned)} /{" "}
                       {formatPoints(row.item.points_max)}
                     </span>
                   </div>
 
+                  {/* ==> PHASE 4b. THE ORDER OF THESE TWO BLOCKS IS THE OWNER'S
+                          RULING OF 2026-09-11 AND IT NEVER VARIES: the
+                          INSTRUCTOR'S NOTE ALWAYS SITS ABOVE THE AI'S COMMENT
+                          WHENEVER A NOTE EXISTS, whether or not the level was
+                          changed.
+
+                          WHY THAT WAY ROUND. On a changed criterion the student
+                          is looking at a level their instructor chose, and the
+                          AI's comment underneath explains the DIFFERENT level
+                          the AI chose. Read in the other order, the first
+                          explanation under a human's grade is the machine's
+                          argument for a grade nobody is being given, which
+                          reads as one person contradicting themselves. Putting
+                          the note first means the instructor's reasoning
+                          arrives beside the instructor's level.
+
+                          AND A FIXED ORDER IS ITSELF THE FEATURE. An order that
+                          depended on scored_by would put the same two
+                          paragraphs in two different arrangements on one page,
+                          and a reader would have to work out which one they are
+                          looking at before they could read either. <== */}
+
+                  {/* THE INSTRUCTOR'S NOTE. Plain text: React escapes it, and
+                      nothing anywhere puts it into HTML by hand. It is bounded
+                      at MAX_REVIEW_NOTE_CHARS on the way IN, on a trimmed
+                      string, and stored as ABSENT rather than as an empty
+                      string, so there is nothing to re-validate on the way out
+                      and "is there a note" has one answer. whitespace-pre-wrap
+                      keeps the paragraphs Tom typed.
+                      NOT ITALIC, and in the primary text colour: these are a
+                      person's own words about this student's work, and the
+                      quieter italic treatment below belongs to the machine. */}
+                  {row.item.instructor_note && (
+                    <>
+                      <p className="mt-2 text-micro font-medium text-content-tertiary">
+                        Instructor note
+                      </p>
+                      <p className="mt-0.5 max-w-reading whitespace-pre-wrap text-micro text-content-primary">
+                        {row.item.instructor_note}
+                      </p>
+                    </>
+                  )}
+
+                  {/* THE AI'S COMMENT, LABELLED AS THE AI'S EVERY TIME IT IS
+                      DRAWN, on practices and submissions alike and whoever is
+                      reading. The label is not conditional on anything: an
+                      unlabelled comment sitting under a level a human chose is
+                      the exact sentence Phase 4b handoff item 1 was written to
+                      stop, and a label that appears only in the case somebody
+                      predicted is a label that will one day be missing from the
+                      case nobody did. */}
                   {row.item.comment && (
-                    <p className="mt-1 max-w-reading text-micro italic text-content-secondary">
-                      {row.item.comment}
-                    </p>
+                    <>
+                      <p className="mt-2 text-micro font-medium text-content-tertiary">
+                        AI feedback
+                      </p>
+                      <p className="mt-0.5 max-w-reading text-micro italic text-content-secondary">
+                        {row.item.comment}
+                      </p>
+                    </>
                   )}
                 </div>
               </div>

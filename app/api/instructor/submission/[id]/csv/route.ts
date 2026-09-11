@@ -1,8 +1,9 @@
 // GET /api/instructor/submission/<id>/csv
 // Downloads a .csv of the scores: a small header block identifying the student,
-// assignment, rubric and total out of max, then one row per scored criterion
-// (item, level, points earned, points max, comment). Built server-side from the
-// stored score and the rubric. Instructor-gated through the shared loader.
+// assignment, rubric, total out of max and review status, then one row per
+// scored criterion (item, level, AI level, points earned, points max, comment,
+// instructor note). Built server-side from the stored score, the rubric and the
+// AI's recorded original. Instructor-gated through the shared loader.
 //
 // ==> PHASE 2b-2 MADE TWO CHANGES HERE, AND BOTH ARE THE OWNER'S RULINGS.
 //
@@ -29,11 +30,38 @@
 //        IDS. A file that itemizes a score in identifiers while the screen says
 //        it cannot be itemized is two surfaces disagreeing, so the header block
 //        carries one line explaining exactly that. <==
+//
+// ==> PHASE 4b ADDED THE REVIEW TO THIS FILE: A Status LINE, AN "AI level"
+//     COLUMN AND AN "Instructor note" COLUMN.
+//
+//     THIS IS THE ONE PLACE IN 4b THAT READS public.submission_ai_scores, AND
+//     IT LOOKS LIKE IT CONTRADICTS PHASE 4b HANDOFF ITEM 5 UNTIL YOU READ ITEM
+//     5's OWN SCOPE. Item 5 says the AI original "is not a fallback for
+//     anything THE STUDENT SEES", and its rule is "any STUDENT-FACING render
+//     must come from sessions.score". This file is not a student-facing render:
+//     it is an instructor-gated download behind loadInstructorSubmission(),
+//     which checks the caller is an instructor AND that the submission is in
+//     their own class, and it is built with the service-role key server-side.
+//     The owner's 4b kickoff authorises this read by name. Nothing student
+//     facing in this phase touches that table, and the student's own browser
+//     key still cannot read a row of it, which 4a measured rather than assumed.
+//
+//     ==> AND THE COLUMN MUST NEVER LIE, WHICH IS WHY THERE ARE FOUR BRANCHES
+//         BELOW AND NOT ONE. "AI level equals Level when there is no stored
+//         original" is TRUE for an unreviewed score, because an unreviewed
+//         score IS the AI's. It is FALSE the moment somebody has reviewed it.
+//         So the reviewed-with-no-original case writes a BLANK and says why in
+//         the header, rather than copying the instructor's level into a column
+//         headed "AI level" and turning a missing record into a fabricated one.
+//         Nobody reading a grade export can tell a fabricated cell from a real
+//         one, which is exactly why it must not be written. <==
 import { NextResponse } from "next/server";
 import {
   loadInstructorSubmission,
   submissionFileBase,
 } from "@/lib/instructor-submission";
+import { readAiOriginal } from "@/lib/submission-review";
+import { formatDateTaken } from "@/lib/date-taken";
 import { formatPoints } from "@/lib/types";
 
 // Wrap one value as a safe CSV cell: always quoted, with inner quotes doubled.
@@ -54,6 +82,7 @@ export async function GET(
   }
 
   const {
+    admin,
     submission,
     studentEmail,
     assignmentTitle,
@@ -64,6 +93,35 @@ export async function GET(
   } = result.data;
   const score = submission.score;
   const criterionById = new Map(criteria.map((c) => [c.id, c]));
+
+  // ==> WHAT THE AI ORIGINALLY SAID, AND THE THREE STATES IT COMES BACK IN.
+  //     readAiOriginal is the SAME reader the review route and the retake use;
+  //     this file does not query that table itself, so there is one place that
+  //     knows how the AI's original is stored.
+  //
+  //       - a row            the submission has been reviewed at least once
+  //       - null             no review has ever been saved for it
+  //       - a refusal        the read itself failed
+  //
+  //     A FAILED READ IS NOT TREATED AS "no original". Those are different
+  //     facts and they produce different files: the first cannot say what the
+  //     AI chose, the second means the AI's choice is still sitting in
+  //     sessions.score. Collapsing them is how a column headed "AI level" ends
+  //     up holding a number nobody awarded.
+  const aiRead = await readAiOriginal(admin, submission.id);
+  const aiOriginal = aiRead.ok ? aiRead.original : null;
+  const aiUnreadable = !aiRead.ok;
+
+  // ==> THE STATE THIS FILE HAS TO BE HONEST ABOUT. A submission marked
+  //     reviewed with no original on record is the state 4a's editor and its
+  //     retake both REFUSE to create, so it should not exist; if it ever does,
+  //     the AI's own level is gone and nothing can reconstruct it.
+  const reviewedWithNoOriginal =
+    submission.reviewed_at !== null && !aiUnreadable && aiOriginal === null;
+
+  const aiItemById = new Map(
+    (aiOriginal?.score.items ?? []).map((i) => [i.id, i]),
+  );
 
   const rows: string[] = [];
 
@@ -83,8 +141,35 @@ export async function GET(
       ),
     ].join(","),
   );
+  // ==> PHASE 4b. THE SAME TWO ANSWERS THE DASHBOARD'S Status COLUMN AND THE
+  //     SUBMISSION PAGE ALREADY GIVE, IN THE SAME WORDS: "To review" until an
+  //     instructor saves a review, "Reviewed <date>" afterwards. Wording copied
+  //     deliberately rather than invented, so a file sitting in a folder and a
+  //     row on a screen cannot describe one submission two ways.
+  //
+  //     GATED ON THERE BEING A SCORE, exactly as the submission page gates its
+  //     own copy of this line. An interrupted submission has nothing to review,
+  //     and the Total line above it already says "Not scored".
+  //
+  //     formatDateTaken UNCHANGED, on the owner's 2026-09-11 ruling: the live
+  //     site renders UTC and the whole app moves to US Central in the session
+  //     straight after 4b. One date format in the app, moved once.
+  if (score) {
+    const reviewedOn = formatDateTaken(submission.reviewed_at);
+    rows.push(
+      [
+        cell("Status"),
+        cell(reviewedOn ? `Reviewed ${reviewedOn}` : "To review"),
+      ].join(","),
+    );
+  }
   // The one line that keeps this file and the submission page telling the same
   // story. See the note at the top.
+  //
+  // ==> THE NOTE LINES STACK RATHER THAN COMPETING, and that is on purpose. A
+  //     score can be missing its rubric AND missing its AI original at the same
+  //     time; they are separate facts about the file and picking a winner would
+  //     suppress one of them. Each is its own line under its own "Note" label.
   if (score && !rubricAttached) {
     rows.push(
       [
@@ -95,16 +180,41 @@ export async function GET(
       ].join(","),
     );
   }
+  if (score && reviewedWithNoOriginal) {
+    rows.push(
+      [
+        cell("Note"),
+        cell(
+          "This submission is marked reviewed but no record of the AI's original score exists, so the AI level column is blank. The levels below are the ones currently in force.",
+        ),
+      ].join(","),
+    );
+  }
+  if (score && aiUnreadable) {
+    rows.push(
+      [
+        cell("Note"),
+        cell(
+          "The record of what the AI originally scored could not be read, so the AI level column is blank. Try downloading this file again.",
+        ),
+      ].join(","),
+    );
+  }
   rows.push("");
 
-  // Column headers, then one row per scored criterion.
+  // Column headers, then one row per scored criterion. PHASE 4b added "AI
+  // level" beside Level, and "Instructor note" at the end beside Comment: two
+  // people can now be speaking on one row, so they get a column each rather
+  // than one column that is appended to.
   rows.push(
     [
       cell("Item"),
       cell("Level"),
+      cell("AI level"),
       cell("Points earned"),
       cell("Points max"),
       cell("Comment"),
+      cell("Instructor note"),
     ].join(","),
   );
 
@@ -118,6 +228,32 @@ export async function GET(
           // ScoreItem.level, and writing "None" or "n/a" into a grade column
           // would put a value there that nobody awarded.
           cell(item.level ?? ""),
+          // ==> WHAT THE AI CHOSE, AND IT IS ALWAYS EITHER THE TRUTH OR BLANK.
+          //
+          //       original on record  -> that line's level, whatever Level now
+          //                              says. This is the only source for it.
+          //       no original, not
+          //       reviewed            -> Level, because an unreviewed score IS
+          //                              the AI's. Not a fallback: the same
+          //                              value from the place it is stored.
+          //       no original, but
+          //       reviewed            -> BLANK, plus the Note line above.
+          //       unreadable          -> BLANK, plus its own Note line.
+          //
+          //     A no-rubric score leaves BOTH columns blank, because Level is
+          //     blank there too and equal-to-Level is still the honest answer.
+          //
+          //     THE ?? "" ON THE FIRST BRANCH IS NOT DECORATION. If a stored
+          //     original somehow has no line for this criterion, blank is the
+          //     only honest cell; falling through to Level would print the
+          //     instructor's own choice under the AI's name.
+          cell(
+            aiOriginal
+              ? (aiItemById.get(item.id)?.level ?? "")
+              : submission.reviewed_at !== null || aiUnreadable
+                ? ""
+                : (item.level ?? ""),
+          ),
           // ==> NOT RAW, AND NOT ROUNDED EITHER. formatPoints is the same helper
           //     the screen uses, so a half that reads 3.5 on the results page
           //     reads 3.5 in the export. A spreadsheet reading this file gets
@@ -126,6 +262,11 @@ export async function GET(
           cell(formatPoints(item.points_earned)),
           cell(formatPoints(item.points_max)),
           cell(item.comment),
+          // The instructor's note, in their own words. cell() quotes every
+          // value and doubles inner quotes, so a note carrying commas, quotes
+          // or line breaks cannot break the columns. Absent where there is
+          // none, never an empty string, so this is blank rather than "".
+          cell(item.instructor_note ?? ""),
         ].join(","),
       );
     }

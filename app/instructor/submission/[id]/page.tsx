@@ -487,7 +487,23 @@ export default async function InstructorSubmissionPage({
                 is simply not dressed up as if it could. <== */}
         {score && score.items.length > 0 ? (
           criteria.length > 0 ? (
-            <RubricScore items={score.items} criteria={criteria} />
+            /* ==> PHASE 4b. audience="instructor" CHANGES EXACTLY ONE
+                   STRING: a level the review changed reads "Level set in
+                   review" here and "Level set by your instructor" on the
+                   student's own page. Everything else, the "AI feedback" label
+                   and the instructor's note under its own heading, is
+                   byte-identical on both screens, because those two labels name
+                   whose words follow rather than addressing anybody.
+                   IT IS ONE COMPONENT AND MUST STAY ONE. Forking it into an
+                   instructor copy and a student copy is what 2b-2 existed to
+                   undo: two renderers of one score drift, and then the two
+                   screens tell an instructor and their student different
+                   stories about one submission. <== */
+            <RubricScore
+              items={score.items}
+              criteria={criteria}
+              audience="instructor"
+            />
           ) : (
             <p className="text-body text-content-secondary">
               This assignment has no rubric attached, so this score cannot be
@@ -506,6 +522,14 @@ export default async function InstructorSubmissionPage({
           replacing it, on purpose: the section above is what the STUDENT sees,
           and an instructor deciding whether to overrule a level should be
           looking at the same screen the student will.
+
+          PHASE 4b QUALIFIES THAT SENTENCE RATHER THAN LEAVING IT TO READ AS
+          MORE THAN IT IS. The section above is now what the student sees WITH
+          ONE WORDING DIFFERENCE: the flag on a changed level says "Level set in
+          review" here and "Level set by your instructor" there. Same component,
+          same order, same labels on the comment and the note. It is written
+          down because "this is what the student sees" is the kind of claim that
+          quietly stops being true.
 
           IT RENDERS ONLY WHERE EVERY STORED LINE CAN BE PRICED. Where the
           assignment names no rubric there is no ladder, so there is nothing

@@ -157,26 +157,100 @@ const FULL: ScoreItem[] = [
   item("4-trimming", "Kiln-ready", 15, 15, "No tool marks at all."),
 ];
 
-const html = renderToStaticMarkup(<RubricScore items={FULL} criteria={CRITERIA} />);
+const html = renderToStaticMarkup(<RubricScore items={FULL} criteria={CRITERIA} audience="student" />);
 
 // The same single criterion rendered WITH and WITHOUT a level. Every other
 // field is identical, so anything that differs between the two is the level and
 // nothing else.
 const withLevel = renderToStaticMarkup(
-  <RubricScore items={[item("2-pulling", "Sound", 15, 20, "Even to the rim.")]} criteria={CRITERIA} />,
+  <RubricScore items={[item("2-pulling", "Sound", 15, 20, "Even to the rim.")]} criteria={CRITERIA} audience="student" />,
 );
 const withoutLevel = renderToStaticMarkup(
-  <RubricScore items={[item("2-pulling", undefined, 15, 20, "Even to the rim.")]} criteria={CRITERIA} />,
+  <RubricScore items={[item("2-pulling", undefined, 15, 20, "Even to the rim.")]} criteria={CRITERIA} audience="student" />,
 );
 
 // A stored item whose criterion is not in the rubric at all: the shape of every
 // one of the 32 scores saved before Phase 2a existed.
 const orphan = renderToStaticMarkup(
-  <RubricScore items={[item("intro-3", undefined, 7, 10, "From a rubric nobody can resolve.")]} criteria={[]} />,
+  <RubricScore items={[item("intro-3", undefined, 7, 10, "From a rubric nobody can resolve.")]} criteria={[]} audience="student" />,
 );
 
+// ---------------------------------------------------------------------------
+// PHASE 4b. THE REVIEWED FIXTURE: TWO PEOPLE SPEAKING ON ONE SCORE.
+// ---------------------------------------------------------------------------
+// ==> IT CARRIES ALL THREE SHAPES A REVIEWED SCORE CAN HOLD, because two of
+//     them are the ones a careless renderer gets wrong:
+//
+//       1. level CHANGED, so scored_by is "instructor", carrying a note.
+//       2. level UNCHANGED but carrying a note. scored_by is "ai" AND THAT IS
+//          CORRECT: the marker tracks the LEVEL, never the note, so this line
+//          must show its note and must NOT show the flag. A renderer that reads
+//          scored_by as "this line was touched" passes every other check here
+//          and fails checks 30 and 31.
+//       3. unchanged, no note at all.
+//
+// THE NOTE ON LINE 1 IS FULL OF CHARACTERS THAT ARE MARKUP IF ANYTHING EVER
+// STOPS ESCAPING THEM. The instructor's note is student-facing text typed by a
+// human, and the one thing that must never happen to it is being interpreted.
+const NOTE_LITERAL = 'Watch the <b>bold</b> & "quotes" on the rim.';
+const NOTE_PLAIN = "Agreed with the AI on this one, for a different reason.";
+
+const reviewedItem = (
+  id: string,
+  level: string,
+  earned: number,
+  max: number,
+  comment: string,
+  scoredBy: "ai" | "instructor",
+  note?: string,
+): ScoreItem => ({
+  id,
+  level,
+  points_earned: earned,
+  points_max: max,
+  comment,
+  ...(note === undefined ? {} : { instructor_note: note }),
+  scored_by: scoredBy,
+});
+
+const REVIEWED: ScoreItem[] = [
+  reviewedItem("1-centring", "Kiln-ready", 30, 30, "True by the third pull.", "instructor", NOTE_LITERAL),
+  reviewedItem("2-pulling", "Rough", 10, 20, "Wall thins near the rim.", "ai", NOTE_PLAIN),
+  reviewedItem("3-trimming", "Cracked", 4.5, 15, "Foot ring cut through.", "ai"),
+];
+
+const studentHtml = renderToStaticMarkup(
+  <RubricScore items={REVIEWED} criteria={CRITERIA} audience="student" />,
+);
+const instructorHtml = renderToStaticMarkup(
+  <RubricScore items={REVIEWED} criteria={CRITERIA} audience="instructor" />,
+);
+
+const STUDENT_FLAG = "Level set by your instructor";
+const INSTRUCTOR_FLAG = "Level set in review";
+
+// One criterion's rendered section, sliced out of the markup, so an order check
+// measures the order WITHIN a criterion rather than across the whole page.
+// Section anchors are id="rubric-<criterion id>"; the panel inside each one adds
+// "-detail", so the slice runs to the next anchor that is not a panel.
+function section(markup: string, id: string): string {
+  const start = markup.indexOf('id="rubric-' + id + '"');
+  if (start < 0) return "";
+  const rest = markup.slice(start + 1);
+  const nextRelative = [...rest.matchAll(/id="(rubric-[a-z0-9-]+)"/g)]
+    .filter((m) => !m[1].endsWith("-detail"))
+    .map((m) => m.index ?? -1)
+    .filter((i) => i >= 0)[0];
+  return nextRelative === undefined ? markup.slice(start) : rest.slice(0, nextRelative);
+}
+
+const countOf = (markup: string, needle: string) =>
+  markup.split(needle).length - 1;
+
 let failures = 0;
+let ran = 0;
 function check(n: number, what: string, pass: boolean, detail = "") {
+  ran++;
   if (!pass) failures++;
   const verdict = pass ? "PASSED" : "FAILED";
   console.log(String(n).padStart(2) + "  " + verdict + "  " + what + (detail && !pass ? "\n      " + detail : ""));
@@ -275,12 +349,119 @@ check(23, "an item with no matching criterion still renders, under its id",
   orphan.includes("intro-3") && orphan.includes("From a rubric nobody can resolve."));
 check(24, "and its points are still shown", orphan.includes("7 / 10"));
 
+// --- PHASE 4b: ATTRIBUTION. WHO SAID WHAT, AND WHERE IT SITS. --------------
+//
+// ==> THE ONE THING 4b EXISTS TO STOP: a student reading a level their
+//     instructor chose, directly above an unlabelled comment explaining the
+//     DIFFERENT level the AI chose, with the instructor's note nowhere on the
+//     page. Every check below is one half of that sentence.
+
+// The label is on EVERY comment, not only reviewed ones. A label that appears
+// only in the case somebody predicted is a label that will one day be missing
+// from the case nobody did, so this is measured on the PRACTICE-shaped render
+// (FULL: no notes, nothing changed) as well as on the reviewed one.
+check(25, "every comment on an unreviewed score is labelled AI feedback",
+  countOf(html, "AI feedback") === FULL.length,
+  "found " + countOf(html, "AI feedback") + " labels for " + FULL.length + " comments");
+check(26, "every comment on a reviewed score is labelled AI feedback",
+  countOf(studentHtml, "AI feedback") === REVIEWED.length,
+  "found " + countOf(studentHtml, "AI feedback") + " labels for " + REVIEWED.length + " comments");
+
+// The flag marks the LEVEL, so it belongs on exactly the lines whose level a
+// human changed: one of the three, not the two carrying notes.
+check(27, "the changed level is flagged, exactly once",
+  countOf(studentHtml, STUDENT_FLAG) === 1,
+  "found " + countOf(studentHtml, STUDENT_FLAG));
+check(28, "the flag is inside the CHANGED criterion's own section",
+  section(studentHtml, "1-centring").includes(STUDENT_FLAG));
+check(29, "and nowhere near the unchanged ones",
+  !section(studentHtml, "2-pulling").includes(STUDENT_FLAG) &&
+  !section(studentHtml, "3-trimming").includes(STUDENT_FLAG));
+
+// scored_by MARKS THE LEVEL AND NOT THE NOTE. "2-pulling" carries a note while
+// reading "ai", which is correct by construction, and it must show the note
+// without the flag. This is the pair of checks a renderer that reads scored_by
+// as "this line was touched" fails.
+check(30, "a note on an UNCHANGED level still renders",
+  section(studentHtml, "2-pulling").includes(NOTE_PLAIN));
+check(31, "and that line is NOT flagged as the instructor's level",
+  !section(studentHtml, "2-pulling").includes(STUDENT_FLAG));
+check(32, "the note label appears once per note and no more",
+  countOf(studentHtml, "Instructor note") === 2,
+  "found " + countOf(studentHtml, "Instructor note"));
+check(33, "a criterion with no note shows no note label",
+  !section(studentHtml, "3-trimming").includes("Instructor note"));
+
+// ==> THE ORDER, WHICH IS THE OWNER'S RULING OF 2026-09-11 AND IS FIXED: the
+//     instructor's note ALWAYS sits above the AI's comment wherever a note
+//     exists, changed level or not. Measured inside each criterion's own
+//     section, because "before" across the whole page would also be satisfied
+//     by a note landing under the wrong criterion.
+const changedSection = section(studentHtml, "1-centring");
+const unchangedSection = section(studentHtml, "2-pulling");
+check(34, "on a CHANGED line the note comes before the AI's comment",
+  changedSection.indexOf("Instructor note") >= 0 &&
+  changedSection.indexOf("Instructor note") < changedSection.indexOf("AI feedback"));
+check(35, "on an UNCHANGED line the note comes before it too, so the order never varies",
+  unchangedSection.indexOf("Instructor note") >= 0 &&
+  unchangedSection.indexOf("Instructor note") < unchangedSection.indexOf("AI feedback"));
+check(36, "and the flag comes before both, beside the level it is about",
+  changedSection.indexOf(STUDENT_FLAG) < changedSection.indexOf("Instructor note"));
+
+// ==> THE NOTE IS TEXT AND MUST NEVER BE MARKUP. Checked in BOTH directions,
+//     because "the escaped form is present" alone would also pass on a page
+//     that rendered the note twice, once escaped and once live.
+check(37, "a note's angle brackets are escaped, so <b> is characters and not a tag",
+  studentHtml.includes("&lt;b&gt;bold&lt;/b&gt;"));
+check(38, "and no real <b> element was produced anywhere",
+  !studentHtml.includes("<b>"));
+check(39, "an ampersand in a note is escaped too",
+  studentHtml.includes("&amp;"));
+check(40, "the note's quotes survive as characters",
+  studentHtml.includes('"quotes"') || studentHtml.includes("&quot;quotes&quot;"));
+
+// --- PHASE 4b: THE TWO AUDIENCES, ONE COMPONENT. ---------------------------
+//
+// ==> ONE STRING VARIES AND THE CHECK IS THAT ONLY ONE DOES. This is the same
+//     shape as check 22: strip the one thing that is meant to differ and the
+//     two renders must be byte-identical. It is what stops the instructor's
+//     read-only view and the student's page drifting into two screens that
+//     tell different stories about one submission.
+check(41, "the instructor render never addresses the student",
+  !instructorHtml.includes(STUDENT_FLAG));
+check(42, "the instructor render uses its own neutral wording instead",
+  countOf(instructorHtml, INSTRUCTOR_FLAG) === 1,
+  "found " + countOf(instructorHtml, INSTRUCTOR_FLAG));
+check(43, "the student render never uses the instructor's wording",
+  !studentHtml.includes(INSTRUCTOR_FLAG));
+check(44, "the audience changes that ONE string and nothing else",
+  studentHtml.split(STUDENT_FLAG).join("<<FLAG>>") ===
+  instructorHtml.split(INSTRUCTOR_FLAG).join("<<FLAG>>"),
+  "something other than the flag wording differs between the two audiences");
+
+// ==> WHAT IS NOT ON THE PAGE, AND IT IS THE STRONGEST PROPERTY IN THE PIECE.
+//     The student must never see the level the AI chose before their instructor
+//     overruled it. That is not enforced by a rule this render follows; the
+//     AI's original is not a field on ScoreItem and is not reachable from the
+//     component at all. What this check measures is the observable consequence:
+//     of the four rungs on the changed criterion's ladder, exactly ONE appears
+//     in its section, and it is the one now in force. A future change that
+//     started printing "AI: Sound" beside the new level fails here.
+const CHANGED_LADDER = CRITERIA[0].levels.map((l) => l.name);
+const shown = CHANGED_LADDER.filter((n) => changedSection.includes(n));
+check(45, "only the level in force appears in the changed criterion's section",
+  shown.length === 1 && shown[0] === "Kiln-ready",
+  "found: " + shown.join(", "));
+
 console.log("");
 if (failures > 0) {
-  console.log(failures + " CHECK(S) FAILED");
+  console.log(failures + " of " + ran + " CHECK(S) FAILED");
   process.exit(1);
 }
-console.log("All 24 checks passed.");
+// COUNTED, NOT TYPED. The old line read "All 24 checks passed." as a literal,
+// which is a number that goes stale the first time somebody adds a check and
+// forgets it. It now reports what actually ran.
+console.log("All " + ran + " checks passed.");
 `;
 
 writeFileSync(join(work, "check.tsx"), CHECK);

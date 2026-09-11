@@ -32,6 +32,9 @@ import {
   RECORDING_LENGTH_LABEL,
   recordingLengthText,
 } from "@/lib/recording-length";
+// PHASE 4b: formatPoints is a VALUE import beside the type one. See the two
+// score lines further down, and Phase 4b handoff item 9.
+import { formatPoints } from "@/lib/types";
 import type { SessionScore } from "@/lib/types";
 
 // Friendly label for a stored mode value.
@@ -93,6 +96,13 @@ type SubmissionRow = {
   // PD-5: how long THIS ONE session ran, in seconds. Null on anything finished
   // before PD-5 shipped, which shows as a dash.
   recorded_seconds: number | null;
+  // ==> PHASE 4a WROTE IT, PHASE 4b READS IT. When an instructor saved a review
+  //     of this submission, or null. It is a COLUMN and never a status, so
+  //     `status` beside it is untouched and still reads 'scored': a reviewed
+  //     submission is still finished, scored work. There is NO matching field
+  //     on PracticeRow below, and that absence is the rule rather than an
+  //     oversight, because a practice is never reviewed.
+  reviewed_at: string | null;
 };
 
 type PracticeRow = {
@@ -217,7 +227,12 @@ export default async function StudentHome() {
   // a student read only their own sessions.
   const { data: submissions } = await supabase
     .from("sessions")
-    .select("id, assignment_id, status, score_total, score, recorded_seconds")
+    // PHASE 4b: reviewed_at joins this read, for the card's Pending Review /
+    // Reviewed pill. It lives on sessions, which a student may read their own
+    // rows of, so no grant or policy question arises.
+    .select(
+      "id, assignment_id, status, score_total, score, recorded_seconds, reviewed_at",
+    )
     .eq("student_id", user.id)
     .eq("kind", "submission")
     .returns<SubmissionRow[]>();
@@ -413,7 +428,34 @@ export default async function StudentHome() {
                         Locked
                       </Badge>
                     ) : submitted ? (
-                      <Badge tone="success">Submitted</Badge>
+                      /* ==> PHASE 4b REPLACED THE GREEN "Submitted" PILL WITH
+                             THE REVIEW STATE, AND THE WORD "Submitted" IS NOT
+                             LOST: it still opens the summary line below, so the
+                             card states it exactly once instead of twice.
+
+                             THE GUARD ON THERE BEING A SCORE MIRRORS THE
+                             INSTRUCTOR DASHBOARD EXACTLY, which shows To review
+                             / Reviewed on `r.score != null` and not on a
+                             status. A submission with NO score is one whose
+                             scoring failed; it is not waiting on a review and
+                             cannot be reviewed at all, because the instructor's
+                             editor needs stored items to put levels against. So
+                             it keeps today's green "Submitted" rather than
+                             being promised a review nobody can perform.
+
+                             MEASURED BEFORE IT WAS WRITTEN, 2026-09-11: zero
+                             submissions in the whole database have a null
+                             score, and zero sit at status 'completed'. The
+                             guard is therefore unreachable TODAY and is here
+                             because a scoring failure creates that state and it
+                             is a live entry in Open Issues. <== */
+                      submission?.score == null ? (
+                        <Badge tone="success">Submitted</Badge>
+                      ) : submission.reviewed_at ? (
+                        <Badge tone="success">Reviewed</Badge>
+                      ) : (
+                        <Badge tone="warning">Pending Review</Badge>
+                      )
                     ) : interrupted ? (
                       <Badge tone="danger">Interrupted</Badge>
                     ) : (
@@ -481,9 +523,19 @@ export default async function StudentHome() {
                           length, never a total across attempts. */}
                       <span className="text-body text-content-success">
                         Submitted
+                        {/* ==> PHASE 4b, HANDOFF ITEM 9. These used to
+                                interpolate the raw numbers. NOTHING WAS WRONG
+                                ON SCREEN: they are JavaScript numbers, so 62.5
+                                printed as "62.5" exactly as formatPoints would.
+                                It is routed through the helper because 4a's
+                                commit asserts that points become text in ONE
+                                place, and these were the last two call sites
+                                that were not. They now carry REVIEWED totals as
+                                well as AI ones. Not a bug fix; the rule
+                                catching up with its last exceptions. <== */}
                         {submission?.score_total != null &&
                         submission.score?.max_total != null
-                          ? ` · ${submission.score_total} / ${submission.score.max_total}`
+                          ? ` · ${formatPoints(submission.score_total)} / ${formatPoints(submission.score.max_total)}`
                           : ""}
                         {` · ${RECORDING_LENGTH_LABEL} ${recordingLengthText(
                           submission?.recorded_seconds,
@@ -575,7 +627,7 @@ export default async function StudentHome() {
                               ? "no score"
                               : p.score_total != null &&
                                   p.score?.max_total != null
-                                ? `${p.score_total} / ${p.score.max_total}`
+                                ? `${formatPoints(p.score_total)} / ${formatPoints(p.score.max_total)}`
                                 : "-"}
                           </Badge>
                           {/* PD-5: how long THIS practice ran. For a voice +

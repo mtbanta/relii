@@ -4,6 +4,13 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ## Current Stage
 
+==> **PHASE 4b IS IN FLIGHT (2026-09-11). THE OWNER'S RULINGS, RECORDED AS THEY WERE GIVEN, BEFORE THE CODE THAT OBEYS THEM EXISTS.**
+
+  1. **DATES DO NOT MOVE IN 4b.** The live site renders UTC, measured rather than assumed: B1 session `0ae456b3` is stored at `2026-09-03 23:47:11 UTC` (18:47:11 US Central) and relii.vercel.app renders it "Sep 3, 2026, 11:47 PM". The hour is the UTC hour. **The new "Reviewed by your instructor on" sentence therefore uses `formatDateTaken` UNCHANGED**, so it agrees with every other date in the app. **THE OWNER HAS ALREADY RULED ON THE UNDERLYING PROBLEM: a separate small session RIGHT AFTER 4b moves timestamps to US Central across the whole app, before students register the week of 2026-09-14.** See Open Issues.
+  2. **THE FOOTNOTE CHANGES TWO WAYS, NOT THREE, AND THE "MAY ADJUST" PROMISE IS MADE EXACTLY ONCE**, by the amber status line. A practice and a pending submission keep today's footnote word for word; only a reviewed submission's changes.
+  3. **"EVERY CRITERION IS GRADED FROM THE TRANSCRIPT" IS FALSE AFTER A REVIEW**, because the instructor may have judged from the recording or from their own assessment of the student. The reviewed footnote says **"The AI graded every criterion from the transcript"**, which attributes the claim to the party it is true of.
+  4. **THE ORDER INSIDE A CRITERION IS FIXED AND NEVER VARIES:** level badge, then "Level set by your instructor" where it applies, then "Instructor note" and the note, then "AI feedback" and the comment. **THE NOTE SITS ABOVE THE AI'S COMMENT WHENEVER A NOTE EXISTS, changed level or not**, so the student reads the instructor's reasoning beside the instructor's level before they read the AI's. The render check asserts the order. <==
+
 ==> **PHASE 4a (THE INSTRUCTOR REVIEW AND GRADE OVERRIDE) IS DONE AND VERIFIED (2026-09-11).** Commit `7a85dec`, pushed and live, proved end to end against relii.vercel.app inside B1 only. **THERE IS A MIGRATION AND IT WAS APPLIED BEFORE THE CODE WAS PUSHED**: `supabase/phase-4a-review.sql`, recorded in Supabase as `phase_4a_review`. The artifacts are `supabase/phase-4a-baseline.sql`, `phase-4a-review.sql`, `phase-4a-review-revert.sql`, `phase-4a-tests.sql` and `phase-4a-no-rubric-probe.sql`. <==
 
 ==> **TOM CAN NOW OVERRULE THE AI, AND THE AI'S ORIGINAL SURVIVES HIM DOING IT.** He picks a LEVEL, never a number; the points are looked up on the server from his own rubric. Confirming a score he agrees with is one click. **THE OVERRIDE IS THE SAFETY NET UNDER EVERY GRADE, NOT A CONVENIENCE**, and it is the mechanism the bimodal-scale entry in Open Issues has been waiting for. <==

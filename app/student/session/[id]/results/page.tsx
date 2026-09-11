@@ -8,7 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { SESSION_VIDEOS_BUCKET } from "@/lib/storage";
 import { ResultsActions } from "@/components/results-actions";
 import { displayName, hasName } from "@/lib/name";
-import { dateTaken } from "@/lib/date-taken";
+import { dateTaken, formatDateTaken } from "@/lib/date-taken";
 import {
   RECORDING_LENGTH_LABEL,
   recordingLengthText,
@@ -55,7 +55,11 @@ export default async function ResultsPage({
     .select(
       // PHASE 2b-1: assignment_id joins this read because the rubric is now
       // reached through the assignment rather than through the scenario.
-      "id, kind, status, mode, scenario_id, assignment_id, transcript, score, score_total, video_path, recorded_seconds, submitted_at, created_at",
+      // PHASE 4b: reviewed_at joins this read. It is the only field the
+      // student's Pending Review / Reviewed state is built from, it lives on
+      // sessions (which a student may read their own row of), and it is null
+      // on every practice because only a submission can be reviewed.
+      "id, kind, status, mode, scenario_id, assignment_id, transcript, score, score_total, video_path, recorded_seconds, submitted_at, created_at, reviewed_at",
     )
     .eq("id", id)
     .single();
@@ -152,6 +156,27 @@ export default async function ResultsPage({
   // instructor view shows), a practice the moment it was started.
   const takenOn = dateTaken(session);
 
+  // ==> PHASE 4b. WHEN AN INSTRUCTOR REVIEWED THIS, FORMATTED, OR NULL. ONE
+  //     VALUE DECIDES BOTH THE STATUS SENTENCE AND THE FOOTNOTE, so the two
+  //     cannot end up describing different states of one page.
+  //
+  //     IT ALSO ANSWERS "IS THIS A PRACTICE" FOR FREE AND THAT IS NOT A TRICK.
+  //     Only a submission can be reviewed: the review route reads
+  //     kind = 'submission' through lib/instructor-submission.ts and a retake
+  //     clears reviewed_at on its way back to being a practice. So this is null
+  //     on every practice, and a practice keeps today's footnote word for word
+  //     without any test of kind. The status SENTENCE is gated on kind anyway,
+  //     below, because "Pending Review" on a practice would be a promise
+  //     nothing in the app can keep.
+  //
+  //     formatDateTaken IS USED UNCHANGED, ON THE OWNER'S RULING OF
+  //     2026-09-11. The live site renders UTC (measured: a 23:47:11 UTC stamp
+  //     renders "11:47 PM"), so this date can read a day late for a review
+  //     saved late in the US evening. A timezone on this one new string would
+  //     make it disagree with the Date Taken directly above it. THE WHOLE APP
+  //     MOVES TO US CENTRAL IN THE SESSION IMMEDIATELY AFTER 4b. <==
+  const reviewedOn = formatDateTaken(session.reviewed_at);
+
   return (
     <main className="mx-auto w-full max-w-page px-6 pb-10 pt-5">
       {/* A small accent link, not a bordered button: leaving is not one of this
@@ -227,6 +252,34 @@ export default async function ResultsPage({
           </div>
         )}
       </header>
+
+      {/* ==> PHASE 4b. THE REVIEW STATE, AND IT IS THE FIRST THING UNDER THE
+              SCORE ON PURPOSE. A submission is always an already-scored
+              practice the student chose to hand in, so they have already seen
+              this number: the question this line answers is whether the number
+              is final. Amber before, green after, the same two colours and the
+              same idea as the instructor's dashboard, so a student and their
+              instructor are never looking at two different accounts of one
+              submission.
+
+              IT IS NOT print:hidden. Both sentences belong on the saved PDF:
+              a printed sheet that does not say a grade was provisional is a
+              document that will be waved at somebody later.
+
+              GATED ON kind = 'submission' AS WELL AS ON THERE BEING A SCORE.
+              A practice is never reviewed, so neither sentence is true of one,
+              and a score with no rubric behind it is not waiting on anybody. */}
+      {session.kind === "submission" && score && !conversationOnly && (
+        <p
+          className={`mb-4 text-body font-medium ${
+            reviewedOn ? "text-content-success" : "text-content-warning"
+          }`}
+        >
+          {reviewedOn
+            ? `Reviewed by your instructor on ${reviewedOn}.`
+            : "Pending Review. Your instructor may adjust this score."}
+        </p>
+      )}
 
       {conversationOnly || !score ? (
         // A conversation-only case has no rubric behind it, so there is nothing
@@ -366,7 +419,11 @@ export default async function ResultsPage({
       {score && !conversationOnly && (
         <section>
           <h2 className="mb-2 text-section font-medium text-content-secondary">Rubric score</h2>
-          <RubricScore items={score.items} criteria={criteria} />
+          <RubricScore
+            items={score.items}
+            criteria={criteria}
+            audience="student"
+          />
           {/* Kept from the old score box, restyled: it explains why the total is
               out of what it is, which is the first thing a student wonders.
 
@@ -380,12 +437,44 @@ export default async function ResultsPage({
                   one thing a student seeing this screen for the first time will
                   not otherwise understand. It deliberately does NOT mention an
                   instructor adjusting the grade: that is Phase 4 and it is not
-                  true yet. <== */}
-          <p className="mt-2 max-w-reading text-micro text-content-tertiary">
-            Scored by AI against this assignment&apos;s rubric. Every criterion
-            is graded from the transcript, and its points come from the level
-            chosen.
-          </p>
+                  true yet. <==
+
+              ==> PHASE 4b MADE THAT LAST SENTENCE FALSE, AND THE OWNER RULED ON
+                  EXACTLY TWO VARIANTS RATHER THAN THREE (2026-09-11).
+
+                  A PRACTICE AND A PENDING SUBMISSION KEEP TODAY'S WORDING, WORD
+                  FOR WORD. The "your instructor may adjust this score" promise
+                  is made ONCE, by the amber status line near the top of this
+                  page, and is deliberately not repeated here: said twice on one
+                  screen it starts to read as two different claims. On a practice
+                  it would simply be untrue, since nobody reviews a practice.
+
+                  ONLY A REVIEWED SUBMISSION'S FOOTNOTE CHANGES, AND THE CHANGE
+                  IS NOT COSMETIC. "Every criterion is graded from the
+                  transcript" stops being true the moment an instructor sets a
+                  level: they may have judged from the recording, or from their
+                  own assessment of the student, and the app has no idea which.
+                  So the reviewed wording attributes that claim to the party it
+                  IS true of ("The AI graded every criterion from the
+                  transcript") and then points at the per-criterion flag.
+
+                  reviewedOn IS THE SWITCH, and it is the same value the status
+                  sentence above uses, so the two halves of this page cannot
+                  describe different states. It is null on every practice. <== */}
+          {reviewedOn ? (
+            <p className="mt-2 max-w-reading text-micro text-content-tertiary">
+              Scored by AI against this assignment&apos;s rubric, then reviewed
+              by your instructor. The AI graded every criterion from the
+              transcript, and its points come from the level chosen. Where your
+              instructor set a different level, that criterion says so.
+            </p>
+          ) : (
+            <p className="mt-2 max-w-reading text-micro text-content-tertiary">
+              Scored by AI against this assignment&apos;s rubric. Every criterion
+              is graded from the transcript, and its points come from the level
+              chosen.
+            </p>
+          )}
         </section>
       )}
     </main>
