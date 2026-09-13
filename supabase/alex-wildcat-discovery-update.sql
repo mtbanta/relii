@@ -56,9 +56,22 @@
 --   old persona_system_prompt  5737 chars  md5 18c4d8f12f78f82eaa238807cea9220d
 --   B1 scenario_context         525 chars  md5 4ce111508079641f4e6b0fb5f32bb4d5
 --   B1 persona_system_prompt   3112 chars  md5 861fd9e7d06e27d4242dea0eacb775a4
--- The two "old" blocks came from docs/persona-alex-procurement.md, which was
--- md5-checked against the live column values and matched both, so the revert in
--- section 6 carries real text rather than a promise.
+-- The two "old" blocks came from docs/persona-alex-procurement.md. They were
+-- md5-checked and match the HISTORICAL ORIGINAL a21ce861 exactly, which is the
+-- row 6a copies from and which section 5b re-proves is untouched. They also
+-- matched Tom's row 901058cf at the moment this file was written, BEFORE section
+-- 4 ran; they no longer do, and that is the whole point of the change.
+--
+-- ==> SO 6a AND 6b ARE EQUIVALENT TODAY, AND NOBODY SHOULD HUNT FOR A DIFFERENCE.
+--     Both put back the same bytes. 6a is preferred only because it moves no text
+--     through this file and so cannot carry a typo. 6b exists for the single case
+--     6a cannot cover: the historical original having been deleted.
+--
+--     THE PERSONA DOC IS DELIBERATELY LEFT STALE, by owner ruling of 2026-09-13,
+--     and so is its twin at OS_Resources/Relii/persona-alex-procurement.md. Both
+--     still describe Jordan, fifteen minutes, three pallets and a generic
+--     company. They are the record of the OLD persona, which is exactly what a
+--     revert needs. Do not "fix" either one to match the database. <==
 --
 -- ---------------------------------------------------------------------------
 -- RUN AND COMPLETED ON 2026-09-13. ALL THREE WRITES LANDED BYTE-EXACT FIRST TIME.
