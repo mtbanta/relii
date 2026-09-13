@@ -56,22 +56,33 @@
 --   old persona_system_prompt  5737 chars  md5 18c4d8f12f78f82eaa238807cea9220d
 --   B1 scenario_context         525 chars  md5 4ce111508079641f4e6b0fb5f32bb4d5
 --   B1 persona_system_prompt   3112 chars  md5 861fd9e7d06e27d4242dea0eacb775a4
--- The two "old" blocks came from docs/persona-alex-procurement.md. They were
--- md5-checked and match the HISTORICAL ORIGINAL a21ce861 exactly, which is the
--- row 6a copies from and which section 5b re-proves is untouched. They also
--- matched Tom's row 901058cf at the moment this file was written, BEFORE section
--- 4 ran; they no longer do, and that is the whole point of the change.
+-- WHERE THE TWO "old" BLOCKS CAME FROM, AND WHERE TO GET THEM NOW. They were
+-- lifted from docs/persona-alex-procurement.md while that file still held the
+-- OLD text, and md5-checked then. THAT FILE IS NO LONGER A VALID SOURCE FOR
+-- THEM: see the warning below. What they still match exactly is the HISTORICAL
+-- ORIGINAL a21ce861-ebbd-4a29-b915-052e55668fec, which section 5b re-proves is
+-- untouched and which 6a copies from.
 --
 -- ==> SO 6a AND 6b ARE EQUIVALENT TODAY, AND NOBODY SHOULD HUNT FOR A DIFFERENCE.
 --     Both put back the same bytes. 6a is preferred only because it moves no text
 --     through this file and so cannot carry a typo. 6b exists for the single case
 --     6a cannot cover: the historical original having been deleted.
 --
---     THE PERSONA DOC IS DELIBERATELY LEFT STALE, by owner ruling of 2026-09-13,
---     and so is its twin at OS_Resources/Relii/persona-alex-procurement.md. Both
---     still describe Jordan, fifteen minutes, three pallets and a generic
---     company. They are the record of the OLD persona, which is exactly what a
---     revert needs. Do not "fix" either one to match the database. <==
+-- ==> BOTH PERSONA DOCS NOW CARRY THE LIVE WILDCAT TEXT, AND ARE NOT WHERE THE
+--     OLD TEXT LIVES. docs/persona-alex-procurement.md and its twin at
+--     OS_Resources/Relii/persona-alex-procurement.md were updated in commit
+--     0ab49b7 and are kept BYTE-IDENTICAL to each other. Both now hold
+--     scenario_context 2725 / 6c8a50a8691f5df3a0db8c85b087a3e9 and
+--     persona_system_prompt 7299 / ae1688fd278242cc330a108861e4cd33, which are
+--     the LIVE values on row 901058cf. Do not look in either one for the old
+--     Alex-to-Jordan text, and do not "correct" 6b to match them.
+--
+--     THE ORDER WAS DELIBERATE AND IS THE RULE: THE SOURCE DOC IS NEVER AHEAD OF
+--     THE DATABASE. The instruction for THIS session was to leave both docs
+--     untouched while it ran, because the owner's other session updates them
+--     once the read-back has confirmed the after-md5s. That is exactly what
+--     happened. A doc updated first would describe a row that does not exist
+--     yet, and the next person to revert from it reverts to fiction. <==
 --
 -- ---------------------------------------------------------------------------
 -- RUN AND COMPLETED ON 2026-09-13. ALL THREE WRITES LANDED BYTE-EXACT FIRST TIME.
@@ -594,10 +605,24 @@ order by class_id;
 --      as the target's, so it refuses to run if the original ever moved.
 --
 --   6b carries the old text VERBATIM, for the one case 6a cannot cover: the
---      historical original having been deleted. Same text as
---      docs/persona-alex-procurement.md, md5-checked against the live column
---      values before this file was written. It carries the same TEXT-GUARD as
---      every other write here.
+--      historical original having been deleted. It carries the same TEXT-GUARD
+--      as every other write here, so it cannot write anything but the old bytes.
+--
+--      ==> DO NOT CHECK 6b AGAINST docs/persona-alex-procurement.md. That file
+--          held the old text when 6b was written and was md5-checked against it
+--          then, but commit 0ab49b7 rewrote it to the LIVE Wildcat text, as it
+--          rewrote the OS_Resources twin. Anyone comparing 6b to either doc today
+--          finds a mismatch, "fixes" 6b to agree with the doc, AND TURNS THE
+--          REVERT INTO A NO-OP THAT RE-APPLIES THE WILDCAT TEXT. That is the one
+--          way this file can still do harm.
+--
+--          TWO SOURCES STILL HOLD THE OLD BYTES, AND EITHER SETTLES IT:
+--            1. Row a21ce861-ebbd-4a29-b915-052e55668fec, untouched, which 6a
+--               already copies from. scenario_context 920 chars md5
+--               70d3c9c96bbc97a5c4c0ca4b2bba0918; persona_system_prompt 5737
+--               chars md5 18c4d8f12f78f82eaa238807cea9220d.
+--            2. git, before the doc was rewritten:
+--                 git show 1bcd985:docs/persona-alex-procurement.md <==
 --
 -- BOTH are guarded on the target still holding the NEW text, so neither can
 -- fire on a row already reverted or never updated.
