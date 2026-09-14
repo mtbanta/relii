@@ -207,6 +207,67 @@ Built in the scratchpad, **never committed, no shipping path touched.** Node 24 
 
 **`origin/main` EQUALS `main`.** The code change is `ba3e8db`; this record is the commit after it, so the two branches match at whatever this entry's own commit is rather than at `ba3e8db`, and that is the normal shape rather than a drift. `git log --oneline origin/main..main` reads empty. **THE TWO WAITING COWORK COMMITS WERE PUSHED, AND THE KICKOFF EXPECTED TWO AND THERE WERE TWO** (`c8cf6bc`, `d352b9f`), pushed before the code change and independent of it, since that instruction was unconditional. **No `HEAD.lock`, no `objects/maintenance.lock`, no `tmp_obj_*`, and the tree is clean.**
 
+## D2, ALEX GAINS GEOGRAPHY AND RAPPORT (IN PROGRESS, 2026-09-14)
+
+==> **STATUS: THE PROBE IS UP ON B1 AND TOM'S ROW IS UNTOUCHED.** Section 2 landed byte-exact first time. Sections 4 and 5 have NOT run. **This section is being written as the checks complete, not afterwards**, because B1's practice cap is 3 and eight conversations are planned, so the saved-practice list cannot be the record. <==
+
+**THE FILE.** `supabase/alex-rapport-update.sql`, 751 lines, owner-read and approved before any MCP call. **Generated rather than typed**: every text block was read from an md5-verified source and the generator refuses to run if any hash is off. Zero em dashes, zero en dashes, zero non-ASCII characters in the whole file.
+
+**WRITE 1 OF 3, THE B1 PROBE, LANDED BYTE-EXACT FIRST TIME** on row `68bc4303-e5ae-4fdb-bcc4-0372631dc729`: `scenario_context` **2725 / `6c8a50a8691f5df3a0db8c85b087a3e9`** and `persona_system_prompt` **10988 / `093025a77a1f39eb868141d6ac029b6f`**, both `is_the_intended_text` true. **THE TEXT-GUARD PASSING IS ALSO THE PROOF THAT THE TRANSCRIPTION INTO THE MCP CALL WAS BYTE-PERFECT**, since the guard hashes the payload rather than the row.
+
+### CHECK 7, THE ADDITIVE PROPERTY, DONE BEFORE ANY WRITE
+
+**19 INSERTED, 0 DELETED, 0 MODIFIED**, on **two independent tools**, against the live 7299-character text:
+
+| Tool | Inserted | Deleted | Modified |
+| :-- | --: | --: | --: |
+| Python `difflib.SequenceMatcher`, line level, `autojunk=False` | **19** | **0** | **0** |
+| BSD `diff` (macOS), counting `<` and `>` lines | **19** | **0** | **0** |
+
+**All 48 original lines survive unchanged.** The two insertion points are exactly where the kickoff said: 17 lines before `WHAT YOU CARE ABOUT`, 2 lines before the "Keep your replies conversational and concise" rule. **This matches the kickoff's independently measured 19/0/0.**
+
+### CHECK 1, THE CONTROL, WHICH IS WHAT CERTIFIES THE SESSION. IT PASSES.
+
+==> **BOTH HALVES RUN, BUSINESS ONLY, NOT ONE WORD OF SMALL TALK IN EITHER.** Text practices in B1 as `2studentb1@gmail.com`. Price-led close **REFUSED** (`818108ff-921e-45a9-89bd-b4c6729f9444`), total-cost reframe **GRANTED** (`7cb99a18-446e-49a4-9341-8f9bf4cb2874`). **ALEX DID NOT GET CHATTIER, WHICH IS THE REGRESSION THIS CHECK EXISTS TO CATCH.** <==
+
+**ALEX OPENED BOTH CONVERSATIONS ON BUSINESS, WITH NO SMALL TALK AND NO TANGENT OF HIS OWN**, which is the new text's first rule working:
+
+- `818108ff`: "Hello, thanks for joining today. I appreciate you taking the time to meet. **What would you like to cover?**"
+- `7cb99a18`: "Hello, thanks for joining. I appreciate you taking the time to meet with me today. **What would you like to cover?**"
+
+**CONTROL HALF 1, PRICE-LED, SECOND MEETING REFUSED (`818108ff`).** Alex's words in full:
+
+| # | Who | Turn |
+| :-- | :-- | :-- |
+| 1 | Alex | `Hello, thanks for joining today. I appreciate you taking the time to meet. What would you like to cover?` |
+| 2 | You | `Thanks. I'll get right to it: we can beat your current film pricing. Our Clarity film comes in under what most processors your size are paying, and I'd like to talk about moving your rollstock business over to us.` |
+| 3 | **Alex** | `I appreciate the offer, but we already covered pricing in our previous call. What else are you bringing to the table besides cost? I'm particularly interested in aspects like supply continuity and support.` |
+| 4 | You | `Honestly, cost is where we win. We're a national supplier with great service and a strong reputation, and our pricing is very competitive. Most customers find that's enough of a reason to switch.` |
+| 5 | **Alex** | `While competitive pricing is important, for us the decision is about much more than that. We need confidence in supply continuity, quality consistency, and the support we receive from our suppliers. Could you tell me more about how your company ensures reliable deliveries and handles technical support?` |
+| 6 | You | `We deliver on time and we have a support team. Look, the bottom line is we'll save you money per roll. Can we get a second meeting on the calendar next week so I can walk you through our pricing tiers?` |
+| 7 | **Alex** | `I appreciate the offer, but I'm looking for more than just price savings. We need to ensure any new supplier can meet our operational needs reliably and provide solid support. If you have more information on how Bunzl can address those areas, I'd be open to considering it. Otherwise, I'm not ready to schedule a follow-up meeting.` |
+
+**THE OBJECTION FIRED VERBATIM FROM THE SCRIPT.** Turn 3 is the documented objection "We have already covered pricing, so what else are you bringing to the table?", and Alex used it exactly as the text says to, to push a price-led seller toward the non-price issues. **THE REFUSAL IS TURN 7, with the door kept slightly open**, which is what the HOW THE MEETING CAN END section prescribes.
+
+**CONTROL HALF 2, TOTAL-COST REFRAME, SECOND MEETING GRANTED (`7cb99a18`).** Alex's words in full:
+
+| # | Who | Turn |
+| :-- | :-- | :-- |
+| 1 | Alex | `Hello, thanks for joining. I appreciate you taking the time to meet with me today. What would you like to cover?` |
+| 2 | You | `Thanks for the time. Rather than talk price, I'd like to understand your operation. When a film delivery slips or a roll runs short, what actually happens on your packaging line that day?` |
+| 3 | **Alex** | `If a film delivery is late or we run out, it can halt our production line, which is a significant issue. It disrupts our schedule, causes downtime, and ultimately affects our ability to meet customer demands. I take continuity of supply very seriously to avoid those situations.` |
+| 4 | You | `That makes sense. Has that actually come close to happening recently? I'm curious whether it's a theoretical risk for you or something your team has had to scramble on in the last year.` |
+| 5 | **Alex** | `We did have a late delivery last quarter that nearly stopped a line. It was a close call and a reminder of the importance of reliable supply. It's something we're very cautious about.` |
+| 6 | You | `That's the thing I'd want to put a number on. A near miss like that has a cost even when the line doesn't stop: the expediting, the schedule you rebuilt, the overtime. And it sits alongside the quieter costs, freight on every delivery, film you scrapped to a bad seal, cash tied up in a minimum order you didn't want. Per roll we're probably a wash. My argument is that the per roll number isn't what this actually costs you.` |
+| 7 | **Alex** | `I agree that total cost of ownership includes more than just the per roll price. We consider factors such as freight, waste, rework, and downtime as part of the overall cost, and minimizing those is important to us. Can you elaborate on how your approach addresses those aspects?` |
+| 8 | You | `I'd rather not answer that from a brochure today, because the honest answer depends on things I don't know yet: your seal failure rate, what your minimum order actually forces you to carry, and what your plant manager would say is the real cost of a bad week. Let me take what you've told me and come back with a picture of your total cost, built on your numbers rather than mine. Could I have another block of your time to walk you through that?` |
+| 9 | **Alex** | `I appreciate your approach. If you can demonstrate how your solution could genuinely reduce our total cost of ownership and address the concerns we've discussed, I'd be open to scheduling a follow-up meeting. Let me know what you need from me to prepare for that.` |
+
+==> **THE STRONGEST SINGLE OBSERVATION IN THE CONTROL IS THAT THE HIDDEN CONCERN STAYED HIDDEN IN ONE RUN AND CAME OUT IN THE OTHER, AND THE DIFFERENCE WAS THE QUALITY OF THE QUESTION.** The late delivery that nearly stopped a line is in WHAT YOU KNOW BUT WILL NOT VOLUNTEER. **In `818108ff` Alex never mentioned it**, through three price-led turns. **In `7cb99a18` he gave it up at turn 5**, to a specific question asking whether the risk was theoretical or something his team had scrambled on. **That is the persona's core discipline intact, and a chattier Alex is exactly the thing that would have leaked it.** <==
+
+**CONCISENESS HELD.** Every one of Alex's eight substantive replies across the two runs is **two to four sentences**, which is the "usually one to three sentences" rule holding at its upper edge rather than drifting. **No reply mentioned Garden City, the weather, the zoo, travel or anything else from the new geography block**, because nothing in either conversation raised it, and the block is fenced "ONLY IF THE SELLER RAISES IT".
+
+
 ## Completed
 
 - ==> **THE DISPLAY-FIX BUNDLE (D1), 2026-09-13, commit `a1159b7`. THE FULL RECORD IS KEPT VERBATIM BELOW**, moved down here unchanged when D3 took over Current Stage. <==
