@@ -256,6 +256,43 @@ Session `b0bcbdbe-935a-4446-b340-d9edaacb9be2`. Small talk was pushed deliberate
 
 **WHY THIS IS REPORTED AS A PARTIAL AND NOT AS A FAILURE, AND WHY IT DOES NOT BLOCK THE SHIP.** The rule's PURPOSE is to stop small talk eating the ten minutes, and that purpose is met: four exchanges in, the meeting had still not been given away, and Alex was pulling harder each turn. **What is absent is one specific sentence, not the protection it exists to provide.** A plausible cause worth testing if it ever matters: the RULES FOR YOU section separately says "you MAY gently note your time", and a permissive rule sitting beside a mandatory one is the kind of thing that softens into the weaker of the two. **THAT IS A HYPOTHESIS AND IT WAS NOT TESTED HERE.** It is for the owner to decide whether to tighten the wording later; **nothing about it is a regression, because no such sentence existed before this change either.**
 
+### CHECK 4, THE MATCHED PAIR, AND IT IS THE ONE THAT CAME OUT MEASURABLE
+
+==> **BOTH HALVES RUN, BOTH QUOTED, AND THE DIFFERENCE IS 2.74 TIMES THE LENGTH.** This is the check a single run cannot show, so it was run as a pair with nothing else varying: same account, same assignment, same probe text, consecutive sessions. <== 
+
+| Half | Session | Opener | Alex's reply | **Chars** |
+| :-- | :-- | :-- | :-- | --: |
+| **Generic** | `837a9b29-ed3a-41d8-aa98-41be9de02f19` | `Hi Alex, thanks for taking the time. How's your week going so far?` | `It's been a busy week, as usual. I appreciate you asking. What would you like to cover in our meeting today?` | **108** |
+| **Homework** | `34fe7d42-837b-4279-82bd-626e581523b2` | `I did a bit of reading before today. I hadn't appreciated that Garden City sits right in the middle of the Beef Empire, feedlots and grain elevators the whole way in, and that the packing plant is the biggest employer in the county. I grew up around agriculture so I found that genuinely interesting. Have you been out there long?` | `Thanks for looking into our area. Yes, Garden City is definitely in the heart of cattle and packing country. I've been here for a while now, and it's a unique place to work. There's a lot of history and activity tied to the industry here. But let's get into it, what would you like to cover today?` | **296** |
+
+**THE DIFFERENCE IS NOT ONLY LENGTH, AND THE OTHER TWO HALVES MATTER MORE.** The homework reply is **WARMER AND IT NAMES THE EFFORT**: "Thanks for looking into our area." And it **VOLUNTEERS SOMETHING PERSONAL** that the generic reply withholds entirely: "I've been here for a while now, and it's a unique place to work." **The generic reply volunteers nothing about him at all**, which is exactly "A generic opener gets a polite, short one."
+
+**BOTH HALVES STILL HAND THE CONVERSATION BACK**, so the reward for homework is a better answer rather than a longer meeting.
+
+==> **ONE TRANSCRIPTION NOTE, BECAUSE IT IS A DEPARTURE FROM VERBATIM AND MUST NOT PASS SILENTLY.** Alex's homework reply as generated reads `But let's get into it` followed by an EM DASH and then `what would you like to cover today?`. **The em dash is rendered as a comma in the table above.** The AI's own output routinely contains em dashes, as the 98bfad83 codepoint dump already established. This one is paraphrased rather than reproduced because it is a single punctuation mark in an incidental clause; **the 42-turn forensic table in Open Issues reproduces them exactly, because there the bytes were the evidence.** <==
+
+### CHECK 5, THE ANTI-INVENTION RULE. IT PASSES UNDER DIRECT PRESSURE.
+
+Session `1e36c178-828c-4b30-946a-6548ce04efcb`. The ask was deliberately hard to refuse: a named favourite, framed as trusting a local over a review site.
+
+| Who | Turn |
+| :-- | :-- |
+| You | `Quick one before business, I'm actually flying out to see you in a few weeks. Where should I eat while I'm in Garden City? Give me your favourite spot, I'll take a local's recommendation over a review site any day.` |
+| **Alex** | `Garden City has a good variety of places to eat thanks to our diverse community, and you'll find a lot of flavors to explore. I don't have a specific recommendation off the top of my head, but I'm sure you'll find something great. What would you like to cover today?` |
+
+==> **NOT ONE BUSINESS NAMED.** He spoke about food in general terms, which is what the block permits, grounded the answer in the town's diversity, which IS in the block, and then declined in almost the prescribed words: "I don't have a specific recommendation off the top of my head." **This is decision 4 holding against the exact pressure it was written for, and it is the failure a Kansas student would have caught instantly.** <==
+
+### CHECK 6, THE GEOGRAPHY BLOCK IS REACHABLE. IT PASSES.
+
+Session `8f56c518-c28e-48ad-baf9-3c96ccc8502c`.
+
+| Who | Turn |
+| :-- | :-- |
+| You | `I've been living out of a suitcase lately, three cities in four days. Do you travel much for the job? I imagine getting in and out of where you are isn't the simplest thing.` |
+| **Alex** | `Good morning. Yes, travel can be a bit of a challenge from here. I do travel some for supplier visits and industry shows, but I try to avoid connecting through Dallas twice in one week if I can help it. What would you like to discuss today?` |
+
+**THE DALLAS DETAIL CAME BACK ALMOST VERBATIM** from the block's "you would rather not connect through Dallas twice in one week", together with "supplier visits and the occasional industry show". **NO ITINERARY WAS INVENTED**, no airline, no flight, no dates. Short, and hands back.
+
 ### CHECK 1, THE CONTROL, WHICH IS WHAT CERTIFIES THE SESSION. IT PASSES.
 
 ==> **BOTH HALVES RUN, BUSINESS ONLY, NOT ONE WORD OF SMALL TALK IN EITHER.** Text practices in B1 as `2studentb1@gmail.com`. Price-led close **REFUSED** (`818108ff-921e-45a9-89bd-b4c6729f9444`), total-cost reframe **GRANTED** (`7cb99a18-446e-49a4-9341-8f9bf4cb2874`). **ALEX DID NOT GET CHATTIER, WHICH IS THE REGRESSION THIS CHECK EXISTS TO CATCH.** <==
