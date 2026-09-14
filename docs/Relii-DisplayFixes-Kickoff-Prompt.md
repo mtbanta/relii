@@ -195,6 +195,26 @@ That route already imports `formatInstant` from `lib/app-time` (line 10) and wra
 - **No route, status or `required_mode` change.** Change one is copy only.
 - **No change to `lib/scoring.ts` or the scoring prompt.**
 
+## The build gate, and the order everything runs in
+
+**NOTHING ON SCREEN PROVES ANYTHING UNTIL THE NEW BUILD IS LIVE.** Checks 2 and 4 are meaningless against the old build, and check 2 is what certifies this session. Run in this order and do not reorder it.
+
+**1. THE BUILD GATE, BEFORE ANY COMMIT.** `rm -rf .next`, then `tsc`, then `eslint`, then `npm run build`. **Report each exit code and the timestamp.** All three exit 0, or stop and say what failed.
+
+==> **THIS IS THE ONLY STEP THAT CATCHES A BROKEN BUILD, AND THAT IS NOT OBVIOUS.** The five check scripts read SOURCE, not a build, so all five can pass green over code that does not compile. Change three adds a new export to `lib/app-time.ts` and three new call sites across a route and two pages, which is exactly the shape that produces a type error or an unused-import lint failure. <==
+
+**2. THE FIVE CHECK SCRIPTS, PLUS THE PURE-FUNCTION CHECK.** `check-app-time`, `check-csv-ai-level`, `check-rubric-render`, `check-scorer`, `check-persona-list`, counts read from the runs. Check 1 of the proof table runs here too: it needs no browser. **Do this before the commit, so a red script never reaches main.**
+
+**3. COMMIT AND PUSH**, behind their ask rules. Then clear any lock files git leaves behind and prove the tree is clean.
+
+**4. CONFIRM THE DEPLOY BY A REAL REQUEST, NOT BY ELAPSED TIME.** Request a prerendered page and watch the **etag change and `age` reset to 0**. This is the 2b-1 rule already in PROJECT_STATE, and it exists because a deploy confirmed by waiting is not confirmed. **If the build is red, stop and say so; do not run the on-screen checks against the old build.**
+
+**5. ONLY THEN, CHECKS 2 THROUGH 7 ON THE LIVE SITE**, through Playwright MCP, headed, on relii.vercel.app, **in B1 only**, signed in as the B1 student and the B1 instructor as each check requires. This includes the `.txt` download, both transcript surfaces, and the printed results page.
+
+**6. CHECK 8 AND ANY OTHER SQL, THROUGH THE SUPABASE MCP, READ ONLY.** The rubric read is a read and nothing else. **Nothing in Tom's class, read or write.** If no SQL turns out to be needed beyond check 8, say so rather than inventing a query.
+
+**7. IF ANYTHING NEEDS FIXING AFTER STEP 5 OR 6**, fix it, then **re-run the build gate and re-confirm the deploy** before re-running the affected checks. A check that passed against a build you have since replaced is not evidence.
+
 ## How testing runs
 
 The click-through runs through Playwright MCP, headed, against the live site, **in B1 only**. Any SQL is a read through the Supabase MCP. **Verify git state with read-only commands only** (`git --no-optional-locks status`, `git log`, `git rev-parse`); a plain `git status` leaves a lock file that blocks the next commit. git commit and push stay behind their ask rules.
