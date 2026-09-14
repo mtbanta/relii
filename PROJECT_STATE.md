@@ -4,6 +4,185 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ## Current Stage
 
+==> **D3, ENGLISH-ONLY TRANSCRIPTION, IS DONE, DEPLOYED AND PROVED (2026-09-14). Commit `ba3e8db`, pushed and live.** One field added to one object in one file, `lib/realtime.ts`. **NO MIGRATION, NO SCHEMA CHANGE, NO NEW DEPENDENCY, NO DATABASE WRITE OF ANY KIND, AND NO SQL RUN AT ALL.** Tom's class was not read and not written. <==
+
+==> **OUTCOME B OCCURRED FIRST, AND IT WAS THE HARD BRANCH: AN EXPLICIT HTTP 400, NOT A SILENT IGNORE.** The change exactly as the kickoff specified it, `languages: ["en"]`, is REFUSED by `gpt-4o-transcribe`: `"The 'languages' parameter is not supported for this model."`, `param` `session.audio.input.transcription.languages`, `code` `invalid_parameter`. **THE SESSION THEN RESOLVED IT INTO A SHIPPABLE OUTCOME A** by measuring which field this model actually has. What shipped is the SINGULAR, `language: "en"`. <==
+
+### WHY OUTCOME B MATTERED, AND IT IS NOT A NEAR MISS
+
+**HAD THE KICKOFF'S ORDER BEEN FOLLOWED, THIS WOULD HAVE TAKEN VOICE DOWN FOR EVERY STUDENT IN PRACTICE WEEK.** `mintRealtimeClientSecret` throws on a non-ok response, and `app/api/voice/token/route.ts` line 94 catches it and returns **502 "Could not start the voice session. Please try again."** That is not a degraded transcript. **It is no voice at all, for everyone, on every attempt**, and the five check scripts would all still have been green because they read source rather than a running API.
+
+==> **THE KICKOFF'S STEP ORDER WAS THE DEFECT, AND THE OWNER RULED IT A CORRECTION RATHER THAN A DEPARTURE (2026-09-14).** The kickoff put checks 1 and 2 at step 5, AFTER the commit, the push and the deploy, while its own fence said "do not push a change that the API rejects." **THOSE TWO INSTRUCTIONS CANNOT BOTH BE OBEYED.** A change is discriminated A from B by calling the API, so that call has to happen BEFORE the push or the fence is decorative. **THE OWNER'S RULING: "You are right and I was wrong. Do the local pre-flight first."** Any future kickoff of this shape inherits that order: **anything that can be refused by an external service is measured before it is committed, not after it is deployed.** <==
+
+**CHECK 1 CANNOT BE DONE ON THE LIVE SITE AT ALL, WHICH IS THE SECOND HALF OF THE SAME POINT.** It asks for the outbound request body read server-side. There is no way to read a deployed route's outbound body without adding logging, and the kickoff separately (and correctly) said no logging was needed. **Check 1 was always a harness check.** It ran as one: the shipped `lib/realtime.ts` compiled with the project's own `tsc`, `fetch` replaced by a PASS-THROUGH spy that records the body and then makes the real call with the real key. Same mechanism as `scripts/check-scorer.mjs`, minus the alias rewrite, because `lib/realtime.ts` has no imports.
+
+### THE PROBE MATRIX, AND THE CONTROL IS THE ROW THAT PROVES IT
+
+All ten posted straight to `https://api.openai.com/v1/realtime/client_secrets`, every field outside `session.audio.input.transcription` byte-identical to what ships. **No shipping code was changed to run any of them and no model was switched in the app.**
+
+| Body variant | Result |
+| :-- | :-- |
+| **CONTROL: shipped config, nothing added** | **200**, echo `{"model":"gpt-4o-transcribe","language":null,"prompt":null}` |
+| `gpt-4o-transcribe` + `languages: ["en"]` | **400** not supported for this model |
+| **`gpt-4o-transcribe` + `language: "en"`** | **200**, echo `{"model":"gpt-4o-transcribe","language":"en","prompt":null}` |
+| `gpt-4o-transcribe` + `prompt` | **200**, echoed back |
+| `gpt-4o-transcribe` + `keywords` | **400** not supported for this model |
+| `gpt-4o-transcribe` + `delay: "low"` | **400** not supported for this model |
+| `gpt-transcribe` + `languages: ["en"]` | 200, echo carries `language` AND `languages` as separate keys |
+| `gpt-live-transcribe` + `languages: ["en"]` | 200, same two separate keys |
+| `gpt-4o-transcribe` + BOTH fields | **400** on `languages` |
+| `gpt-transcribe` + BOTH fields | **400** "The 'language' and 'languages' parameters cannot be used together." |
+
+==> **THE CONTROL IS WHAT MAKES THIS A MEASUREMENT RATHER THAN AN ANECDOTE.** The shipped config returns 200 in the same run, from the same key, against the same model. **So `languages` and nothing else caused the 400.** Without that row the 400 could have been a bad key, a dead model or a transient fault. <==
+
+**THE SECOND STRONGEST ROW IS ALSO THE CONTROL'S ECHO.** It advertises this model's own schema as **`language` and `prompt`, singular, with no plural key present at all.** The singular is a first-class field on `gpt-4o-transcribe`, not a tolerated unknown.
+
+==> **THE KICKOFF WAS RIGHT ABOUT THE FIELD NAME AND RIGHT ABOUT "DON'T SEND BOTH", AND THE LAST ROW PROVES THE API ENFORCES THE SECOND ONE. SAY THE DEFECT AT ITS REAL SIZE.** Plural `languages` IS the field, and "don't send both" IS the rule, **for the CURRENT transcription models**, which is exactly the scope the kickoff said it had checked. **The defect is narrower: current-model documentation was carried onto a legacy model.** The kickoff even flagged the gap itself, as "the uncertainty", and asked for it to be settled by measurement. It was, and it went the other way. **This is not a documentation error and it must not be recorded as one.** <==
+
+### WHAT SHIPPED
+
+`lib/realtime.ts`, inside `session.audio.input`, with a comment block that says why it is the singular and what happens if someone "corrects" it:
+
+```
+transcription: { model: INPUT_TRANSCRIPTION_MODEL, language: "en" },
+```
+
+**THE REQUEST BODY AS SENT**, read off the pass-through spy against the shipped function after the change, HTTP **200**, token minted:
+
+```json
+"transcription": { "model": "gpt-4o-transcribe", "language": "en" },
+"turn_detection": { "type": "server_vad", "threshold": 0.5, "prefix_padding_ms": 300,
+                    "silence_duration_ms": 1600, "create_response": true, "interrupt_response": true },
+"output": { "voice": "cedar" }
+```
+
+**`turn_detection` is untouched, `silence_duration_ms` is still 1600, and `REALTIME_VOICE` is still `cedar`.** No handler was added for a failed transcription event.
+
+### THE PAIRED TEST, WHICH IS THE EVIDENCE THE SHIP DECISION ACTUALLY RESTS ON
+
+==> **THE OWNER GATED THE SHIP ON IT AND THAT GATE WAS RIGHT (ruling, 2026-09-14): "Do not ship the singular on the strength of the echo alone. An echo proves acceptance, not effect. We are one HTTP 400 into learning that documentation-shaped confidence is worth nothing on this surface."** <==
+
+Built in the scratchpad, **never committed, no shipping path touched.** Node 24 has a native WebSocket, so the Realtime API was driven directly: same 42.3 second wav, 9 utterances, 8 of them short ambiguous English fragments of the shape that failed for Tom. **8 sessions each way, INTERLEAVED** (on, off, on, off) so server-side drift over the run could not land on one branch. One deliberate deviation from the shipped config, `create_response: false` so Alex stays silent, which cannot affect how the STUDENT's audio is transcribed and keeps the two branches differing in exactly one field.
+
+==> **THE "OFF" BRANCH IS NOT A NEUTRAL CONTROL, AND THAT IS WHAT GIVES THE RESULT ITS FORCE.** It is byte-for-byte the configuration that was in production, the one that produced Tom's five failures on September 11. **This is a comparison against the real defect, not against an idealised baseline.** <==
+
+| Branch | Runs | Turns | Clean English | Wrong-language | Empty | Truncated | `transcription.failed` |
+| :-- | :-- | :-- | :-- | :-- | :-- | :-- | :-- |
+| **ON**, `language: "en"` | 8 | 72 | **72** | **0** | 0 | 0 | 0 |
+| **OFF**, production as it was | 8 | 72 | 64 | **6** | 0 | 0 | 0 |
+
+**THE SIX FAILURES ARE ALL THE SAME TURN.** The short utterance `"Yeah."` came back as German **`"Ja."`** on 6 of 8 OFF runs and on **0 of 8** ON runs, where it was correct every time. Sixteen trials of that one utterance, every mis-detection in one branch: **Fisher exact p = 0.0035.**
+
+**THE OTHER TWO OFF FLAGS WERE THE CLASSIFIER BEING STRICT, NOT DEFECTS**, and they are recorded so the 8 is not misread: `"Right."` to `"Wright"` (an English homophone) and `"Mm-hmm."` to `"Mm, hm."` (punctuation). Neither is a language error. **Spelling variance inside English is noise for a grader; a token in another language is the defect.**
+
+### THE BUILD GATE AND THE FIVE SCRIPTS
+
+**All three exit 0**, on 2026-09-14, after `rm -rf .next`:
+
+| Step | Time (CDT) | Exit |
+| :-- | :-- | :-- |
+| `tsc --noEmit` | 13:29:51 | **0** |
+| `eslint` | 13:29:56 | **0** |
+| `npm run build` | 13:30:22 to 13:30:31 | **0** |
+
+**THE ONE BUILD WARNING IS PRE-EXISTING AND WAS PROVED SO RATHER THAN ASSUMED.** Turbopack reports "Encountered unexpected file in NFT list" against `next.config.ts`. The change was stashed, the baseline rebuilt, and the same warning appears there. It is not from this commit.
+
+**THE FIVE SCRIPTS, COUNTS READ FROM THE RUNS, AND NOT ONE COUNT MOVED:**
+
+| Script | This run | Last recorded |
+| :-- | :-- | :-- |
+| `check-app-time` | **54 passed**, exit 0 | 54 |
+| `check-csv-ai-level` | **10 passed**, exit 0 | 10 |
+| `check-rubric-render` | **53 passed**, exit 0 | 53 |
+| `check-scorer` | **23 PASS lines, ALL CHECKS PASSED**, exit 0 | all passed |
+| `check-persona-list` | **45 passed**, exit 0 | 45 |
+
+==> **WHILE THE TREE CARRIED NO CODE CHANGE, THE GATE AND THE SCRIPTS WERE A BRANCH THAT DID NOT APPLY RATHER THAN A STEP SKIPPED.** During the outcome-B phase the working tree was reverted to `d352b9f` and there was nothing to gate. They ran, in full, once the singular was applied. <==
+
+**THE DEPLOY WAS CONFIRMED BY A REAL REQUEST, NOT BY ELAPSED TIME.** `https://relii.vercel.app/privacy`, a prerendered page: etag **`"aefd725d304001204360698debf4931f"`** before, **`"5a5b66c1078ffc94b0c3ba35dbfc7445"`** after, with `age: 0`, at **13:35:40 CDT**.
+
+### THE LIVE PRACTICE IN B1, ON THE DEPLOYED BUILD
+
+**Session `98bfad83-b357-46f7-b854-895234d5f03d`**, Barry Bedford (`2studentb1@gmail.com`), `Presentation-Close: Alex (regional manager)`, voice and video, **Sep 14, 2026, 1:38 PM, recording length 02:13**, conversation-only so no score. **B1's saved practices went 2 of 3 to 3 of 3**, which is the FIFO cap doing its job and is expected, not litter.
+
+**THE RIG, LABELS READ BEFORE THE APP WAS TOUCHED, EVERY LAUNCH AND NOT ONCE:** `audio: Fake Default Audio Input`, `video: fake_device_0`. Flags `--use-fake-device-for-media-stream`, `--use-fake-ui-for-media-stream`, `--use-file-for-fake-audio-capture`. Standalone Playwright script in the scratchpad against system Chrome by `executablePath`, module out of the npx cache. **`.mcp.json` was NOT edited.** `page.on("dialog", d => d.accept())` registered before any click.
+
+**ONE NEW RIG DETAIL WORTH KEEPING.** On the login form, filling the password **cleared the email field**, silently. The first run failed with a 30 second navigation timeout that looks exactly like a wrong password. **The fix is to measure both field lengths after filling and re-fill until both match**, which is the same "measure, do not assume" lesson already recorded for the redacted-password case, now with a second cause.
+
+**ALL 21 STUDENT TURNS, IN ORDER, AS RENDERED.** The 60 second wav loops, so the run covers one partial pass, one complete pass and the start of a third.
+
+| # | Stamp | Turn |
+| :-- | :-- | :-- |
+| 1 | 00:00 | `Thanks for making time today. I know your calendar is tight.` |
+| 2 | 00:02 | `Wow!` |
+| 3 | 00:10 | `I wanted to understand how your packaging line is running right now, and where the biggest headaches are for you.` |
+| 4 | 00:21 | `in multiple forms, and the one that hurts us most is unplanned downtime on the line.` |
+| 5 | 00:24 | `Why?` |
+| 6 | 00:31 | `How much does an hour of unplanned downtime actually cost Wildcat Packers, roughly?` |
+| 7 | 00:35 | `Hmm.` |
+| 8 | 00:38 | `Okay.` |
+| 9 | 00:46 | `So if we could take a meaningful bite out of that downtime, what would that be worth to you over a quarter?` |
+| 10 | 01:00 | `Hi Alex, thanks for making time today. I know your calendar is tight.` |
+| 11 | 01:02 | `Well.` |
+| 12 | 01:10 | `I wanted to understand how your packaging line is running right now, and where the biggest headaches are for you.` |
+| 13 | 01:13 | `Right` |
+| 14 | 01:21 | `So disruptions come in multiple forms, and the one that hurts us most is unplanned downtime on the line.` |
+| 15 | 01:24 | `Yeah.` |
+| 16 | 01:31 | `How much does an hour of unplanned downtime actually cost Wildcat Packers, roughly?` |
+| 17 | 01:35 | `Mm-hmm.` |
+| 18 | 01:38 | `OK` |
+| 19 | 01:46 | `So if we could take a meaningful bite out of that downtime, what would that be worth to you over a quarter?` |
+| 20 | 02:00 | `Hi Alex, thanks for making time today. I know your calendar is tight.` |
+| 21 | 02:03 | `Well` |
+
+**THE SHORT-TURN COUNT, AGAINST THE 5-OF-19 BASELINE.** Short means 25 characters or fewer, which is the one and two word shape all five of Tom's failures had.
+
+| | Tom, Sep 11 | This run, Sep 14 |
+| :-- | :-- | :-- |
+| Student turns | 19 | **21** |
+| Short turns | 5 | **10** |
+| **Empty** | **2** | **0** |
+| **Truncated** | **1** | **2, both in the first pass** |
+| **Wrong language** | **2** | **0** |
+
+==> **TURN 15 IS THE ONE THAT CERTIFIES THE CHANGE ON THE REAL PATH.** `Yeah.` rendered as **`Yeah.`** The paired test had that exact utterance coming back as German `Ja.` on 6 of 8 runs under the old configuration. **This is the fix working through our own route, our own token mint and our own browser, not just through a probe.** <==
+
+==> **THE FIRST PASS WAS MESSY AND THE SECOND WAS PERFECT, AND BOTH HALVES ARE REPORTED.** Turns 10 to 19 are one complete, uninterrupted pass through the audio and they are **10 for 10 correct, including all five short turns.** Turns 1 to 9 are the partial first pass, during which the call was still connecting: turn 1 and turn 4 lost their opening words, `Well,` came back as `Wow!` and `Right.` as `Why?`, and one utterance produced no turn at all. **THE TRUNCATIONS ARE CONSISTENT WITH AUDIO THAT WAS GENUINELY CLIPPED BY THE CALL STARTING MID-FILE, NOT WITH A TRANSCRIPTION DEFECT, BUT THAT IS AN INFERENCE AND IT IS LABELLED AS ONE.** The clean second pass is the evidence for it. **`Wow!` and `Why?` are mis-hearings and they are real, and they are ENGLISH mis-hearings, which is a different failure from the one this change addresses.** <==
+
+### WHAT THIS DOES NOT FIX, WHICH IS MOST OF THE BASELINE
+
+==> **`language` ADDRESSES MIS-DETECTION ONLY, SO IT CAN TOUCH AT MOST 2 OF TOM'S 5 FAILURES. THREE STAY UNADDRESSED, AND A CLEAN RUN IS NOT EVIDENCE THAT THEY ARE FIXED.** The baseline breaks out as **2 empty, 1 truncated, 2 wrong-language.** Only the last pair is in scope. **DO NOT READ THIS ENTRY AS "THE SHORT-TURN FAMILY IS SOLVED."** <==
+
+**AND THE THREE ARE NOT MERELY UNFIXED, THEY ARE UNMEASURED.** Across **144 turns of the paired test and 21 of the live practice, not one empty turn occurred in either branch.** The rig never reproduced the failure shape, so:
+
+- **The empty-turn mechanism was never observed.** `components/voice-conversation.tsx` line 485 creates the student turn on `input_audio_buffer.committed` and the text arrives later at 490 and 494, so an empty turn is a buffer that committed and never received text. **That remains a reading of the code, not an observation.**
+- **`conversation.item.input_audio_transcription.failed` never fired**, in any of the 165 turns. The switch still has no case for it, so a failed transcription would fall through and leave the turn holding nothing. **Untested, unchanged, and still a separate decision.**
+- **`turn_detection` was not touched.** `silence_duration_ms` is still the tuned 1600.
+
+### THE HONEST LIMITS, STATED AT THEIR REAL STRENGTH
+
+1. ==> **THE REAL VERDICT COMES FROM TOM'S COHORT THIS WEEK, NOT FROM THIS SESSION.** The paired test is 16 sessions of SYNTHESISED speech from macOS `say`. Tom's failures came from a real human on a real microphone, and synthesised speech is cleanly articulated in a way that may under-represent the problem. **The 6 of 8 German renders show the rig can reproduce mis-detection, which is the thing that makes the comparison meaningful, but it is still not a student.** <==
+2. **The live practice is one sample.** It shows the config did not break anything and that the specific failure shape was not reproducible on the new build. It does not show mis-detection is gone.
+3. **The paired test used `session.update` over a WebSocket**, while the app bakes the config into the token mint. **Both paths were confirmed to accept the field**, the mint by the probe matrix and the harness, so this is a noted difference rather than a gap.
+
+### WHAT A FUTURE SESSION INHERITS ABOUT THE OTHER THREE FIELDS
+
+==> **TWO OF THE THREE DEFERRED FIELDS ARE NOT AVAILABLE ON THIS MODEL AT ALL, WHICH COLLAPSES THE OPTION SPACE THE KICKOFF DESCRIBED.** `keywords` and `delay` both return **400 not supported for this model** on `gpt-4o-transcribe`. They cannot be measured, let alone shipped, without a model change. **`prompt` IS accepted and echoed back, so it is the only one of the three reachable today**, and it is therefore the one remaining candidate if the singular turns out not to be enough for the wrong-language subset. **It is still not in scope and still needs its own measurement**: it changes what the grader is fed. <==
+
+**THE MODEL SWITCH REMAINS AN OWNER RULING AND WAS NOT TAKEN.** `gpt-transcribe` and `gpt-live-transcribe` both accept the plural and both were confirmed reachable, but moving to either changes what every future transcript looks like, mid-semester, with real student work already flowing.
+
+### GIT STATE
+
+**`origin/main` EQUALS `main`, BOTH AT `ba3e8db`.** `git log --oneline origin/main..main` reads empty. **THE TWO WAITING COWORK COMMITS WERE PUSHED, AND THE KICKOFF EXPECTED TWO AND THERE WERE TWO** (`c8cf6bc`, `d352b9f`), pushed before the code change and independent of it, since that instruction was unconditional. **No `HEAD.lock`, no `objects/maintenance.lock`, no `tmp_obj_*`, and the tree is clean.**
+
+## Completed
+
+- ==> **THE DISPLAY-FIX BUNDLE (D1), 2026-09-13, commit `a1159b7`. THE FULL RECORD IS KEPT VERBATIM BELOW**, moved down here unchanged when D3 took over Current Stage. <==
+
+<details>
+<summary>The display-fix record, as it stood in Current Stage</summary>
+
+
 ==> **THE DISPLAY-FIX BUNDLE IS DONE, DEPLOYED AND PROVED (2026-09-13). Commit `a1159b7`, pushed and live.** Three render-layer changes in one pass: the student submit control reads "Submit for review", `formatPoints()` rounds to one decimal, and every transcript turn carries an elapsed stamp on all three surfaces. **NO MIGRATION, NO SCHEMA CHANGE, NO NEW DEPENDENCY, AND NOT ONE STORED VALUE CHANGED.** Twelve files, 325 insertions. **ZERO DATABASE WRITES IN THE ENTIRE SESSION.** <==
 
 **THE OWNER'S RULINGS, 2026-09-13, recorded as they were given.**
@@ -324,7 +503,8 @@ B3_STUDENT_PASSWORD=...
 
 **ONE THING DELIBERATELY LEFT ALONE, so it is not read as a miss.** The compare page still offers "Customise" and "Choose this one" on a chosen persona that has been switched off, because its `decided` test is still "is a row switched on" (`app/instructor/scaffold/compare/[groupId]/page.tsx` line 414). That was true before this session and is unchanged by it, and it is now harmless: pressing Choose again simply re-stamps `chosen_at`, and the list no longer depends on the title, so a Customise that rewrites the title back to a candidate shape cannot hide the persona. Moving that page onto `chosenRowOf` is a two-line change and was NOT in the approved plan.
 
-## Completed
+
+</details>
 
 - ==> **PHASE 4b (WHAT THE STUDENT SEES, AND THE CSV), 2026-09-11, commits `30d44d6` and `c1d8dc7`. THE FULL 4b RECORD IS KEPT VERBATIM BELOW**, moved down here unchanged when the timezone session took over Current Stage. **THE ONE THING IN IT THAT LATER SESSIONS CHANGED: 4b's ruling 5 said dates do not move in 4b and the whole app goes to US Central immediately after, and that is now done (`73185da`), so the CSV Status line and the "Reviewed by your instructor on" sentence both read Central rather than UTC. Every other word of it still stands.** <==
 
@@ -1510,17 +1690,16 @@ Written on 2026-09-09, at the end of 2a, while the reasons are still in view.
 
 **THE ORDER, BY OWNER RULING (2026-09-14):**
 
-1. **D3, English-only transcription.** 1 to 1.5 h, no migration. **NEXT**, moved ahead of D2 on the owner's recommendation. It matters because the transcript is the only input to scoring, and Tom's September 11 practice carries two turns transcribed into other languages and two empty ones.
-2. **D2, Alex geography plus rapport.** 1.5 to 2 h. Persona SQL, no migration.
-3. **T1, Phase 3c: persona voice plus two wording fixes.** 6 to 9 h, one column. **Read the Phase 3c handoff below first, and read the roadmap beside it: the roadmap corrects that handoff on the voice constant and its single consumer, which makes T1 smaller than the handoff implies.**
-4. **N1 plus T2, which ride together.** 7 to 12 h. N1 normalises rubric points at parse time (a code change, future uploads only, touches no data); T2 is the class-wide gradebook export.
-5. **V1, measure that the scorer is deterministic.** 1 to 2 h, folds into any session.
+1. **D2, Alex geography plus rapport.** 1.5 to 2 h. Persona SQL, no migration. **NEXT**, now that D3 has closed.
+2. **T1, Phase 3c: persona voice plus two wording fixes.** 6 to 9 h, one column. **Read the Phase 3c handoff below first, and read the roadmap beside it: the roadmap corrects that handoff on the voice constant and its single consumer, which makes T1 smaller than the handoff implies.**
+3. **N1 plus T2, which ride together.** 7 to 12 h. N1 normalises rubric points at parse time (a code change, future uploads only, touches no data); T2 is the class-wide gradebook export.
+4. **V1, measure that the scorer is deterministic.** 1 to 2 h, folds into any session.
 
 **Then the tail, all freely reorderable: T3, T4, D4, T5, V4.** **PHASE 6 (T6) IS LAST BY OWNER RULING and is deliberately not estimated.** T7, the PD-8h visual polish, is droppable.
 
 ==> **THE ONLY REAL ORDERING CONSTRAINT IS A DEPENDENCY RATHER THAN A PREFERENCE. T3 (a student in up to two classes) REWRITES `public.handle_new_user()`, the function every one of Tom's roughly 64 students runs EXACTLY ONCE during registration, in the same transaction that writes their consent row. IT IS HARD-BLOCKED UNTIL REGISTRATION HAS VISIBLY SETTLED, roughly 2026-09-21.** Nothing else in the list touches the signup path, so nothing else is constrained by the date, and T4 and T5 can swap with T3 at no cost. <==
 
-==> **WHAT CLOSED, SO THIS SECTION STOPS LISTING IT AS OPEN.** **Phase 3b closed THE TWO RENAMES AND GATEKEEPER PAIRING on 2026-09-11** (commits `489efef`, `9a69ea3`, `863d878`, `cc43fa5`). **This section went on listing both as open until 2026-09-14 and was simply wrong to.** What actually remains of Phase 3 is **persona voice (now T1)** and **enable or disable ANY scenario (now T5)**, both in the order above under their roadmap names. Also closed: **T0**, Alex becoming the Wildcat Packers discovery persona, 2026-09-13; **D1**, the display bundle, 2026-09-14 at `cad67fa`; **Phase 4**, 2026-09-11 (`30d44d6`, `c1d8dc7`), which retired the rule that nobody reviews real student work; **the timezone session**, 2026-09-11 (`73185da`); and verification items **V2** and **V3**. Full records are in Current Stage and Completed. <==
+==> **WHAT CLOSED, SO THIS SECTION STOPS LISTING IT AS OPEN.** **Phase 3b closed THE TWO RENAMES AND GATEKEEPER PAIRING on 2026-09-11** (commits `489efef`, `9a69ea3`, `863d878`, `cc43fa5`). **This section went on listing both as open until 2026-09-14 and was simply wrong to.** What actually remains of Phase 3 is **persona voice (now T1)** and **enable or disable ANY scenario (now T5)**, both in the order above under their roadmap names. Also closed: **D3**, English-only transcription, 2026-09-14 at `ba3e8db`, which shipped the SINGULAR `language: "en"` after the plural `languages` the kickoff specified came back HTTP 400 on this model; **T0**, Alex becoming the Wildcat Packers discovery persona, 2026-09-13; **D1**, the display bundle, 2026-09-14 at `cad67fa`; **Phase 4**, 2026-09-11 (`30d44d6`, `c1d8dc7`), which retired the rule that nobody reviews real student work; **the timezone session**, 2026-09-11 (`73185da`); and verification items **V2** and **V3**. Full records are in Current Stage and Completed. <==
 
 **T2 NOW CARRIES THE DUST DECISION, WHICH IS A REAL DEPENDENCY IT DID NOT HAVE BEFORE.** The float dust in Tom's Discovery rubric is tolerated by owner ruling of 2026-09-13 **because it is INERT, not because it is hidden**: every consumer of a total is one we control and one that rounds on the way out. **A gradebook export is the trigger that ends that tolerance.** See Open Issues, and **do not build T2 and leave that entry standing.**
 
