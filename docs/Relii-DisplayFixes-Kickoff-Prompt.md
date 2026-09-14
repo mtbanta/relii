@@ -13,6 +13,8 @@ Three changes, one session, **all of them render-layer**. **No migration, no sch
 
 **LINE NUMBERS IN THIS FILE WERE RE-VERIFIED AGAINST `9532bda` ON 2026-09-14, EVERY ONE OF THEM, AND ALL WERE EXACT.** They still drift with every commit. **Re-verify before you edit, and report any that moved.**
 
+==> **THERE ARE UNPUSHED COMMITS WAITING FOR YOU, AND THEY ARE THIS FILE. YOU PUSH THEM.** This kickoff was written in a Cowork session that **cannot push**: github.com is not on that session's egress allowlist, so it commits and stops. **The owner does not push. You do, for every commit in this repo, including the ones you did not make.** Confirm with `git log --oneline origin/main..main` before you start and name what you find; expect the two commits that created and amended this kickoff. Push them with your own work at step 3 of the order below, or earlier if you prefer. <==
+
 **STATE YOUR PLAN AND WAIT FOR APPROVAL.**
 
 ---
@@ -205,7 +207,7 @@ That route already imports `formatInstant` from `lib/app-time` (line 10) and wra
 
 **2. THE FIVE CHECK SCRIPTS, PLUS THE PURE-FUNCTION CHECK.** `check-app-time`, `check-csv-ai-level`, `check-rubric-render`, `check-scorer`, `check-persona-list`, counts read from the runs. Check 1 of the proof table runs here too: it needs no browser. **Do this before the commit, so a red script never reaches main.**
 
-**3. COMMIT AND PUSH**, behind their ask rules. Then clear any lock files git leaves behind and prove the tree is clean.
+**3. COMMIT AND PUSH**, behind their ask rules. **Push carries the Cowork session's kickoff commits too**, since that session cannot push and the owner does not; `git log --oneline origin/main..main` must read empty afterwards. Then clear any lock files git leaves behind and prove the tree is clean.
 
 **4. CONFIRM THE DEPLOY BY A REAL REQUEST, NOT BY ELAPSED TIME.** Request a prerendered page and watch the **etag change and `age` reset to 0**. This is the 2b-1 rule already in PROJECT_STATE, and it exists because a deploy confirmed by waiting is not confirmed. **If the build is red, stop and say so; do not run the on-screen checks against the old build.**
 
@@ -233,3 +235,4 @@ No em dashes and no en dashes outside chat. Record each owner ruling in PROJECT_
 - **the five script counts, read from their runs**;
 - **the two leaks named and closed**, including the `reset-history.tsx` one the change brief did not have;
 - **the corrected `app/instructor/page.tsx` comment**, and why the old wording stopped being true.
+- **confirmation that `origin/main` equals `main`**, with the kickoff commits pushed rather than left behind.
