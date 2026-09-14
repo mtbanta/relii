@@ -12,6 +12,8 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ==> **ONE CHECK IS A PARTIAL AND IS RECORDED AS ONE RATHER THAN ROUNDED UP: CHECK 3.** Alex never says he has a hard stop, through four escalating small-talk exchanges. **The protection still works** (he redirected every time, harder each time) but **one prescribed sentence did not appear.** Details below. <==
 
+==> **AND THE OWNER RULED ON IT THE SAME DAY: LEAVE THE WORDING AS SHIPPED. THE PARTIAL IS ACCEPTED, NOT OUTSTANDING.** Changing it would mean another probe cycle on a live row in registration week to add a sentence whose job is already being done. **The mechanism hypothesis is filed with a trigger: test it only if Tom's cohort shows a meeting actually being eaten by small talk.** <==
+
 **SEVEN OF THE NINE CHECKS PASS CLEANLY, ONE IS THE PARTIAL ABOVE, AND ALL NINE WERE RUN.**
 
 | # | Check | Result |
@@ -71,6 +73,10 @@ Session `b0bcbdbe-935a-4446-b340-d9edaacb9be2`. Small talk was pushed deliberate
 ==> **WHAT HOLDS, AND IT IS THE PART THAT PROTECTS THE MEETING: ALEX NEVER LET SMALL TALK TAKE OVER.** Every single reply, all four, answered briefly and then redirected to business, and **the redirects got firmer each time**: "What did you want to cover today?", then "Now, what would you like to cover", then "Let's dive into", then "Now, let's focus on the purpose of our meeting." **He also started no tangent of his own and invented nothing**, including about Colorado and Dodge City. <==
 
 ==> **WHAT DOES NOT HAPPEN, STATED PLAINLY RATHER THAN GRADED AS A PASS: ALEX NEVER SAYS HE HAS A HARD STOP.** The text says that at a third exchange he should "say plainly that you have a hard stop and ask them to get into it." **He reliably does the second half and never once does the first**, through FOUR escalating exchanges, which is one more than the rule's trigger. **So this is not a slow trigger, it is a behaviour that did not appear at all in this run.** <==
+
+==> **OWNER RULING, 2026-09-14: LEAVE THE WORDING EXACTLY AS SHIPPED. THIS IS DECIDED, NOT DEFERRED.** The protection works and only the prescribed sentence is missing. **Tightening it would cost another probe cycle on a LIVE row during registration week, to add a sentence whose function is already being served.** That trade is not worth taking. <==
+
+==> **AND THE HYPOTHESIS BELOW IS FILED WITH A TRIGGER RATHER THAN LEFT OPEN-ENDED. TEST IT ONLY IF TOM'S COHORT SHOWS A MEETING ACTUALLY BEING EATEN BY SMALL TALK. NOT BEFORE.** A future session must not pick this up as tidy-up work: **an observation in real student practices is the precondition**, and without one there is nothing to fix. <==
 
 **WHY THIS IS REPORTED AS A PARTIAL AND NOT AS A FAILURE, AND WHY IT DOES NOT BLOCK THE SHIP.** The rule's PURPOSE is to stop small talk eating the ten minutes, and that purpose is met: four exchanges in, the meeting had still not been given away, and Alex was pulling harder each turn. **What is absent is one specific sentence, not the protection it exists to provide.** A plausible cause worth testing if it ever matters: the RULES FOR YOU section separately says "you MAY gently note your time", and a permissive rule sitting beside a mandatory one is the kind of thing that softens into the weaker of the two. **THAT IS A HYPOTHESIS AND IT WAS NOT TESTED HERE.** It is for the owner to decide whether to tighten the wording later; **nothing about it is a regression, because no such sentence existed before this change either.**
 
@@ -204,7 +210,13 @@ Session `8f56c518-c28e-48ad-baf9-3c96ccc8502c`.
 
 ==> **OWNER RULING, 2026-09-14, AND IT IS PERMANENT RATHER THAN A THIS-SESSION DEFERRAL: NO CLAUDE CODE SESSION EDITS EITHER COPY OF `persona-alex-procurement.md`.** Not the `OS_Resources` one, and **NOT the repo twin either.** <==
 
-**WHY IT IS A DIVISION OF LABOUR AND NOT A WORKAROUND.** The doc's own rule is "Change both or neither". **Only the owner's Cowork session can see both copies**, so it is the only actor that can keep them byte-identical, which makes it the **SOLE WRITER of both.** Both copies went stale the moment write 3 landed, and the Cowork session brings them back into line now that the read-back has confirmed `093025a7`. **A future session that "helpfully" updates the repo copy alone breaks the byte-identity the rule exists to protect.**
+**WHY IT IS A DIVISION OF LABOUR AND NOT A WORKAROUND.** The doc's own rule is "Change both or neither". **Only the owner's Cowork session can see both copies**, so it is the only actor that can keep them byte-identical, which makes it the **SOLE WRITER of both.** **A future session that "helpfully" updates the repo copy alone breaks the byte-identity the rule exists to protect.**
+
+==> **AND THE CYCLE COMPLETED THE SAME DAY, IN THE RIGHT ORDER, SO THE DOCS ARE NO LONGER STALE. Commit `95e0aea`, from the Cowork session, pushed by this one.** Both copies now sit at md5 **`c48e4fd4e69089fe72772db723ef33c8`**. **THEY WERE UPDATED ONLY AFTER THE READ-BACK CONFIRMED `093025a7`**, which is the standing rule that the source doc is never ahead of the database: a doc that runs ahead describes a row that does not exist, and the next person reverts to fiction. <==
+
+**VERIFIED RATHER THAN ACCEPTED, BEFORE THE PUSH.** `docs/persona-alex-procurement.md` reads md5 `c48e4fd4e69089fe72772db723ef33c8`, exactly as the owner stated, and its two embedded blocks hash to **2725 / `6c8a50a8691f5df3a0db8c85b087a3e9`** and **10988 / `093025a77a1f39eb868141d6ac029b6f`**, which are the live row's values. **THE `OS_Resources` COPY COULD NOT BE CHECKED FROM HERE and its byte-identity is the owner's statement, recorded as his rather than measured as mine.**
+
+**THE KICKOFF'S TWO BAD CITATIONS ARE ALSO CORRECTED IN THAT COMMIT.** Lines 15 and 167 now point at the repo twin. The two surviving mentions of `OS_Resources` in that file are not citations: one explains the arrangement and states the rule, the other exists only to forbid using either doc as the revert source.
 
 ==> **AND A SECOND STANDING RULE, FROM THE SAME RULING: A KICKOFF MUST NEVER CITE AN `OS_Resources` PATH AS A SOURCE FOR A CLAUDE CODE SESSION.** That directory is the owner's alignment space with his other session and is deliberately not visible here; `md5` on it returns `Operation not permitted`. **This kickoff cited it twice, at lines 15 and 167, and the owner ruled both a defect in the kickoff rather than a blocker.** Every source a session is pointed at must live **in the repo or in a git object.** The substitutions used here were `docs/persona-alex-procurement.md` (20084 bytes, md5 `096519840b2eda6409f31afbee96f5fc`) and the git object `370a003`. <==
 
@@ -216,7 +228,7 @@ Session `8f56c518-c28e-48ad-baf9-3c96ccc8502c`.
 
 ### GIT STATE
 
-**`origin/main` EQUALS `main`.** The one waiting Cowork commit was `53c76d8`, the kickoff itself, and **it was pushed before any other work began**, since that instruction was unconditional. **The kickoff expected commits waiting and there was exactly one.** No `HEAD.lock`, no `objects/maintenance.lock`, no `tmp_obj_*`, and the tree is clean.
+**`origin/main` EQUALS `main`, at `95e0aea`.** **TWO Cowork commits were pushed by this session, not one.** The first was `53c76d8`, the kickoff itself, **pushed before any other work began** since that instruction was unconditional. The second was `95e0aea`, the persona doc brought up to the live text, **handed over after the read-back confirmed and pushed at the end**. **Its two embedded blocks were md5-checked against the live row before it was pushed**, rather than taken on trust. No `HEAD.lock`, no `objects/maintenance.lock`, no `tmp_obj_*`, and the tree is clean.
 
 ## Completed
 
