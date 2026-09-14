@@ -173,7 +173,7 @@ Built in the scratchpad, **never committed, no shipping path touched.** Node 24 
 
 ### GIT STATE
 
-**`origin/main` EQUALS `main`, BOTH AT `ba3e8db`.** `git log --oneline origin/main..main` reads empty. **THE TWO WAITING COWORK COMMITS WERE PUSHED, AND THE KICKOFF EXPECTED TWO AND THERE WERE TWO** (`c8cf6bc`, `d352b9f`), pushed before the code change and independent of it, since that instruction was unconditional. **No `HEAD.lock`, no `objects/maintenance.lock`, no `tmp_obj_*`, and the tree is clean.**
+**`origin/main` EQUALS `main`.** The code change is `ba3e8db`; this record is the commit after it, so the two branches match at whatever this entry's own commit is rather than at `ba3e8db`, and that is the normal shape rather than a drift. `git log --oneline origin/main..main` reads empty. **THE TWO WAITING COWORK COMMITS WERE PUSHED, AND THE KICKOFF EXPECTED TWO AND THERE WERE TWO** (`c8cf6bc`, `d352b9f`), pushed before the code change and independent of it, since that instruction was unconditional. **No `HEAD.lock`, no `objects/maintenance.lock`, no `tmp_obj_*`, and the tree is clean.**
 
 ## Completed
 
