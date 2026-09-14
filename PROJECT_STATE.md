@@ -141,21 +141,33 @@ Built in the scratchpad, **never committed, no shipping path touched.** Node 24 
 | :-- | :-- | :-- |
 | Student turns | 19 | **21** |
 | Short turns | 5 | **10** |
-| **Empty** | **2** | **0** |
-| **Truncated** | **1** | **2, both in the first pass** |
+| **Empty** | **2** | **0 rendered, but see below: line 456 makes an empty turn unrenderable, and one turn is missing outright** |
+| **Truncated** | **1** | **2, both in the first pass, one of them unexplained** |
 | **Wrong language** | **2** | **0** |
 
 ==> **TURN 15 IS THE ONE THAT CERTIFIES THE CHANGE ON THE REAL PATH.** `Yeah.` rendered as **`Yeah.`** The paired test had that exact utterance coming back as German `Ja.` on 6 of 8 runs under the old configuration. **This is the fix working through our own route, our own token mint and our own browser, not just through a probe.** <==
 
-==> **THE FIRST PASS WAS MESSY AND THE SECOND WAS PERFECT, AND BOTH HALVES ARE REPORTED.** Turns 10 to 19 are one complete, uninterrupted pass through the audio and they are **10 for 10 correct, including all five short turns.** Turns 1 to 9 are the partial first pass, during which the call was still connecting: turn 1 and turn 4 lost their opening words, `Well,` came back as `Wow!` and `Right.` as `Why?`, and one utterance produced no turn at all. **THE TRUNCATIONS ARE CONSISTENT WITH AUDIO THAT WAS GENUINELY CLIPPED BY THE CALL STARTING MID-FILE, NOT WITH A TRANSCRIPTION DEFECT, BUT THAT IS AN INFERENCE AND IT IS LABELLED AS ONE.** The clean second pass is the evidence for it. **`Wow!` and `Why?` are mis-hearings and they are real, and they are ENGLISH mis-hearings, which is a different failure from the one this change addresses.** <==
+==> **THE FIRST PASS WAS MESSY AND THE SECOND WAS PERFECT, AND BOTH HALVES ARE REPORTED.** Turns 10 to 19 are one complete, uninterrupted pass through the audio and they are **10 for 10 correct, including all five short turns.** `Well,` and `Right.` came back as `Wow!` and `Why?` in the first pass, and those are real mis-hearings, but they are **ENGLISH** mis-hearings, which is a different failure from the one this change addresses. <==
+
+==> **AND THE FIRST PASS IS MISSING A TURN ENTIRELY, WHICH IS THE MOST IMPORTANT OBSERVATION IN THIS SECTION AND IS NOT WHAT AN EARLIER DRAFT OF THIS ENTRY SAID.** The draft explained the first pass away as audio clipped by the call starting mid-file. **THAT COVERS TURN 1 AND IT DOES NOT COVER THE REST, SO IT WAS WRONG.** Aligned against the second pass, which is complete, the audio's ten utterances land at a fixed offset. **`Right.` should have produced a student turn at about 00:13 and there is NO TURN THERE AT ALL**, and the long answer that follows it at 00:21 rendered as `in multiple forms, ...` with its opening `So disruptions come` gone. **That is twenty-one seconds into a running call, not at connection.** <==
 
 ### WHAT THIS DOES NOT FIX, WHICH IS MOST OF THE BASELINE
 
 ==> **`language` ADDRESSES MIS-DETECTION ONLY, SO IT CAN TOUCH AT MOST 2 OF TOM'S 5 FAILURES. THREE STAY UNADDRESSED, AND A CLEAN RUN IS NOT EVIDENCE THAT THEY ARE FIXED.** The baseline breaks out as **2 empty, 1 truncated, 2 wrong-language.** Only the last pair is in scope. **DO NOT READ THIS ENTRY AS "THE SHORT-TURN FAMILY IS SOLVED."** <==
 
-**AND THE THREE ARE NOT MERELY UNFIXED, THEY ARE UNMEASURED.** Across **144 turns of the paired test and 21 of the live practice, not one empty turn occurred in either branch.** The rig never reproduced the failure shape, so:
+**AND THE THREE ARE NOT MERELY UNFIXED, THEY ARE MOSTLY UNMEASURED.** In the paired test, which read the raw API events rather than a saved transcript, **not one empty transcription came back in 144 turns, in either branch.** That is a real negative and it holds at the API level.
 
-- **The empty-turn mechanism was never observed.** `components/voice-conversation.tsx` line 485 creates the student turn on `input_audio_buffer.committed` and the text arrives later at 490 and 494, so an empty turn is a buffer that committed and never received text. **That remains a reading of the code, not an observation.**
+==> **BUT THE LIVE PRACTICE COULD NOT HAVE SHOWN AN EMPTY TURN EVEN IF ONE HAPPENED, AND THAT IS A CODE FACT FOUND THIS SESSION.** `components/voice-conversation.tsx` line **456**, inside `saveTranscript()`, is:
+
+```
+.filter((t) => t.done && t.text.trim())
+```
+
+**A STUDENT TURN WITH NO TEXT IS DROPPED FROM THE SAVED TRANSCRIPT ENTIRELY RATHER THAN SAVED AS AN EMPTY TURN.** Both halves of the filter do it: a buffer that committed and never received a `completed` event never becomes `done`, and one that completes with an empty string keeps `text` at `""` because `finalizeTurn` only assigns when the final text is non-empty. **So "no empty turn appeared in the live transcript" is close to a tautology and must not be read as "no empty turn occurred."** <==
+
+==> **AND THE MISSING TURN AT 00:13 IS EXACTLY WHAT THAT FILTER DOES TO ONE.** A committed-but-untranscribed `Right.` would leave no trace in the saved transcript, which is precisely what was observed. **THE MECHANISM IS STILL NOT ESTABLISHED AND IS NOT BEING CLAIMED**: a VAD that never committed the buffer at all produces the identical absence, and so would a buffer boundary landing inside the following utterance, which would also account for the lost `So disruptions come`. **Three candidates, one observation, and no way to separate them without instrumenting the client.** What is now certain is that the earlier "clipped at connection" reading was not one of them. <==
+
+- ==> **A TENSION THIS SESSION FOUND AND DELIBERATELY DID NOT RESOLVE, BECAUSE RESOLVING IT MEANS READING TOM'S DATA.** The kickoff says two of Tom's September 11 student turns "rendered with no text", and line 456 says a turn with no text is never saved in the first place. **THOSE TWO STATEMENTS CANNOT BOTH BE STRAIGHTFORWARDLY TRUE.** Either those turns carry something that survives `.trim()`, or they reached the transcript by a path other than `saveTranscript()`, or the export renders a header for something that is not a turn. **Tom's class was not read, so this is filed as a question and not as an answer.** It is the first thing to settle before anyone tries to fix the empty turns, because the fix depends on which of those it is.
 - **`conversation.item.input_audio_transcription.failed` never fired**, in any of the 165 turns. The switch still has no case for it, so a failed transcription would fall through and leave the turn holding nothing. **Untested, unchanged, and still a separate decision.**
 - **`turn_detection` was not touched.** `silence_duration_ms` is still the tuned 1600.
 
