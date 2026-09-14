@@ -226,6 +226,36 @@ Built in the scratchpad, **never committed, no shipping path touched.** Node 24 
 
 **All 48 original lines survive unchanged.** The two insertion points are exactly where the kickoff said: 17 lines before `WHAT YOU CARE ABOUT`, 2 lines before the "Keep your replies conversational and concise" rule. **This matches the kickoff's independently measured 19/0/0.**
 
+### CHECK 2, THE WEATHER OPENER. IT PASSES EXACTLY AS WRITTEN.
+
+Session `77d14cae-6f44-4d7f-adc5-680f43ba052b`. Alex opened on business as always, then:
+
+| Who | Turn |
+| :-- | :-- |
+| You | `Morning Alex. Before we start, I have to ask, is it always this hot out your way? I was looking at the forecast for Garden City this week and it looked brutal.` |
+| **Alex** | `Good morning. Yes, the summers here can get quite hot, often over a hundred degrees for a couple of weeks. It's something you get used to living in southwest Kansas. What would you like to discuss today?` |
+
+**ALL FOUR REQUIRED PROPERTIES IN ONE REPLY.** It is **ONE** reply, it is **SHORT** (three sentences), it is **WARM** ("Good morning", "It's something you get used to"), and it **HANDS THE CONVERSATION BACK** with "What would you like to discuss today?", which is the prescribed move almost word for word.
+
+==> **AND IT IS LOCALLY PLAUSIBLE BECAUSE IT IS SOURCED, NOT INVENTED.** "over a hundred degrees for a couple of weeks" is the geography block's "a couple of weeks over a hundred", and "southwest Kansas" is its opening line. **Nothing in the reply is outside the block.** <==
+
+### CHECK 3, THE THIRD-EXCHANGE HARD STOP. PARTIAL, AND THE HALF THAT IS MISSING IS NAMED.
+
+Session `b0bcbdbe-935a-4446-b340-d9edaacb9be2`. Small talk was pushed deliberately, and then pushed one exchange further than the check asked for, to find out whether the missing behaviour was delayed or absent.
+
+| Exchange | You | Alex |
+| --: | :-- | :-- |
+| 1 | `Did you catch any football this weekend?` | `I did catch a bit of football. Around here, folks really follow the high school Buffaloes and the community college Broncbusters. How about you? What did you want to cover today?` |
+| 2 | `My wife and I just got back from a week in Colorado...` | `It is a bit of a drive from here, but Colorado is always a great place to visit when I can find the time. Now, what would you like to cover in our meeting today?` |
+| **3** | `have you been at Wildcat long?` | `I've been with Wildcat Packers for a while now, and it's been a rewarding experience. Let's dive into what you wanted to discuss today.` |
+| **4** | `my brother-in-law works in packing out in Dodge City...` | `The industry has certainly evolved, with advancements in technology and changes in regulations shaping how we operate. It's been interesting to see those changes, especially in a region like ours that's so tied to the cattle and packing industry. Now, let's focus on the purpose of our meeting. What would you like to discuss regarding your flexible packaging film?` |
+
+==> **WHAT HOLDS, AND IT IS THE PART THAT PROTECTS THE MEETING: ALEX NEVER LET SMALL TALK TAKE OVER.** Every single reply, all four, answered briefly and then redirected to business, and **the redirects got firmer each time**: "What did you want to cover today?", then "Now, what would you like to cover", then "Let's dive into", then "Now, let's focus on the purpose of our meeting." **He also started no tangent of his own and invented nothing**, including about Colorado and Dodge City. <==
+
+==> **WHAT DOES NOT HAPPEN, STATED PLAINLY RATHER THAN GRADED AS A PASS: ALEX NEVER SAYS HE HAS A HARD STOP.** The text says that at a third exchange he should "say plainly that you have a hard stop and ask them to get into it." **He reliably does the second half and never once does the first**, through FOUR escalating exchanges, which is one more than the rule's trigger. **So this is not a slow trigger, it is a behaviour that did not appear at all in this run.** <==
+
+**WHY THIS IS REPORTED AS A PARTIAL AND NOT AS A FAILURE, AND WHY IT DOES NOT BLOCK THE SHIP.** The rule's PURPOSE is to stop small talk eating the ten minutes, and that purpose is met: four exchanges in, the meeting had still not been given away, and Alex was pulling harder each turn. **What is absent is one specific sentence, not the protection it exists to provide.** A plausible cause worth testing if it ever matters: the RULES FOR YOU section separately says "you MAY gently note your time", and a permissive rule sitting beside a mandatory one is the kind of thing that softens into the weaker of the two. **THAT IS A HYPOTHESIS AND IT WAS NOT TESTED HERE.** It is for the owner to decide whether to tighten the wording later; **nothing about it is a regression, because no such sentence existed before this change either.**
+
 ### CHECK 1, THE CONTROL, WHICH IS WHAT CERTIFIES THE SESSION. IT PASSES.
 
 ==> **BOTH HALVES RUN, BUSINESS ONLY, NOT ONE WORD OF SMALL TALK IN EITHER.** Text practices in B1 as `2studentb1@gmail.com`. Price-led close **REFUSED** (`818108ff-921e-45a9-89bd-b4c6729f9444`), total-cost reframe **GRANTED** (`7cb99a18-446e-49a4-9341-8f9bf4cb2874`). **ALEX DID NOT GET CHATTIER, WHICH IS THE REGRESSION THIS CHECK EXISTS TO CATCH.** <==
