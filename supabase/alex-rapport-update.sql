@@ -97,8 +97,37 @@
 -- read-back confirms 093025a7.
 --
 -- ---------------------------------------------------------------------------
--- STATUS: SECTION 1 RUN 2026-09-14. Answers are recorded inline below. Sections
--- 2 to 5 are pending the owner's read of this file.
+-- RUN AND COMPLETED ON 2026-09-14. ALL THREE WRITES LANDED BYTE-EXACT FIRST
+-- TIME. Nothing had to be retried.
+--
+--   SECTION 2 (B1 probe)    68bc4303 -> 2725 / 6c8a50a8..., 10988 / 093025a7...
+--   SECTION 3 (B1 restore)  68bc4303 -> 525 / 4ce11150..., 3112 / 861fd9e7...
+--                           proved by a SEPARATE read, both booleans true.
+--   SECTION 4 (Tom's row)   901058cf -> 10988 / 093025a7...,
+--                           scenario_context untouched at 2725 / 6c8a50a8...
+--   SECTION 5a              all THIRTEEN unchanged_ columns true on a fresh read.
+--   SECTION 5b              a21ce861 untouched, 920 and 5737, both true.
+--   SECTION 5c              exactly ONE row carries the new md5, and it is
+--                           Tom's. B1 does not appear, so the restore took.
+--
+-- THE TEXT-GUARD PASSED ON ALL THREE WRITES, which is also the proof that all
+-- three transcriptions into the MCP were byte-perfect.
+--
+-- 3c CAME BACK EXACTLY AS PREDICTED BEFORE THE RUN: scenarios 1, assignments 1,
+-- rubrics 0, other_student_row_still_there 1, probe_student_kept_practices 3,
+-- and all three rows named for eviction gone. 1studentb1's practice survived,
+-- which is prunePractices' scoping holding rather than luck.
+--
+-- THE BEHAVIOURAL PROOF ran in B1 as 2studentb1@gmail.com: EIGHT TEXT practices.
+-- Checks 1 to 6 all observed; check 1 (the control) passed on BOTH halves and
+-- was recorded in PROJECT_STATE BEFORE section 4 was run, which is the gate this
+-- file's section 4 comment demands. CHECK 3 IS A PARTIAL: the bound holds and
+-- Alex redirects every time, but he never says he has a hard stop. See
+-- PROJECT_STATE for the full wording and both halves of the matched pair.
+--
+-- VOICE WENT UNTESTED, as in T0. Voice and text build the AI's instructions from
+-- the same buildSystemMessage() call, so the text runs exercise the changed text
+-- byte for byte identically. THE AUDIO PATH IS NOT TESTED AND IS NOT CLAIMED.
 -- ===========================================================================
 
 

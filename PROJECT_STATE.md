@@ -4,6 +4,228 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ## Current Stage
 
+==> **D2, ALEX GAINS GEOGRAPHY AND RAPPORT, IS DONE AND LIVE (2026-09-14).** One row, one column: `public.scenarios` `901058cf-bb33-4fc1-baab-fdaf86edb08e` in Tom's "Sales 300 Fall 2026". `persona_system_prompt` went from **7299 / `ae1688fd278242cc330a108861e4cd33`** to **10988 / `093025a77a1f39eb868141d6ac029b6f`**. **NO CODE CHANGE, NO MIGRATION, NO SCHEMA CHANGE, NO NEW DEPENDENCY, AND `scenario_context` NEVER MOVED.** <==
+
+==> **THE CHANGE IS PURELY ADDITIVE AND THAT WAS PROVED RATHER THAN ASSERTED: 19 INSERTED LINES, 0 DELETED, 0 MODIFIED, ON TWO INDEPENDENT TOOLS, BEFORE ANY WRITE.** All 48 original lines survive untouched. <==
+
+==> **THE CONTROL PASSED, AND IT IS WHAT CERTIFIES THIS SESSION.** A business-only conversation with no small talk in it behaves exactly as before: concise, skeptical, hidden concerns withheld, the pricing objection raised, the second meeting **REFUSED** to a price-led close and **GRANTED** to a total-cost reframe. **ALEX DID NOT GET CHATTIER ON BUSINESS, WHICH IS THE REGRESSION THE WHOLE PROBE STRUCTURE EXISTS TO CATCH.** <==
+
+==> **ONE CHECK IS A PARTIAL AND IS RECORDED AS ONE RATHER THAN ROUNDED UP: CHECK 3.** Alex never says he has a hard stop, through four escalating small-talk exchanges. **The protection still works** (he redirected every time, harder each time) but **one prescribed sentence did not appear.** Details below. <==
+
+**SEVEN OF THE NINE CHECKS PASS CLEANLY, ONE IS THE PARTIAL ABOVE, AND ALL NINE WERE RUN.**
+
+| # | Check | Result |
+| --: | :-- | :-- |
+| 1 | **THE CONTROL** | **PASS**, both halves |
+| 2 | Weather opener, one warm short reply, hands back | **PASS** |
+| 3 | Third exchange gets the hard stop | **PARTIAL**, see below |
+| 4 | Homework beats generic, as a matched pair | **PASS**, 296 chars vs 108 |
+| 5 | Restaurant: names no business | **PASS** |
+| 6 | Travel: reaches the Dallas detail | **PASS** |
+| 7 | Diff is insertions only | **PASS**, 19 / 0 / 0 on two tools |
+| 8 | Thirteen other columns unchanged | **PASS**, all thirteen true |
+| 9 | B1 restored on both columns | **PASS**, proved by a separate read |
+
+
+==> **STATUS: THE PROBE IS UP ON B1 AND TOM'S ROW IS UNTOUCHED.** Section 2 landed byte-exact first time. Sections 4 and 5 have NOT run. **This section is being written as the checks complete, not afterwards**, because B1's practice cap is 3 and eight conversations are planned, so the saved-practice list cannot be the record. <==
+
+**THE FILE.** `supabase/alex-rapport-update.sql`, 751 lines, owner-read and approved before any MCP call. **Generated rather than typed**: every text block was read from an md5-verified source and the generator refuses to run if any hash is off. Zero em dashes, zero en dashes, zero non-ASCII characters in the whole file.
+
+**WRITE 1 OF 3, THE B1 PROBE, LANDED BYTE-EXACT FIRST TIME** on row `68bc4303-e5ae-4fdb-bcc4-0372631dc729`: `scenario_context` **2725 / `6c8a50a8691f5df3a0db8c85b087a3e9`** and `persona_system_prompt` **10988 / `093025a77a1f39eb868141d6ac029b6f`**, both `is_the_intended_text` true. **THE TEXT-GUARD PASSING IS ALSO THE PROOF THAT THE TRANSCRIPTION INTO THE MCP CALL WAS BYTE-PERFECT**, since the guard hashes the payload rather than the row.
+
+### CHECK 7, THE ADDITIVE PROPERTY, DONE BEFORE ANY WRITE
+
+**19 INSERTED, 0 DELETED, 0 MODIFIED**, on **two independent tools**, against the live 7299-character text:
+
+| Tool | Inserted | Deleted | Modified |
+| :-- | --: | --: | --: |
+| Python `difflib.SequenceMatcher`, line level, `autojunk=False` | **19** | **0** | **0** |
+| BSD `diff` (macOS), counting `<` and `>` lines | **19** | **0** | **0** |
+
+**All 48 original lines survive unchanged.** The two insertion points are exactly where the kickoff said: 17 lines before `WHAT YOU CARE ABOUT`, 2 lines before the "Keep your replies conversational and concise" rule. **This matches the kickoff's independently measured 19/0/0.**
+
+### CHECK 2, THE WEATHER OPENER. IT PASSES EXACTLY AS WRITTEN.
+
+Session `77d14cae-6f44-4d7f-adc5-680f43ba052b`. Alex opened on business as always, then:
+
+| Who | Turn |
+| :-- | :-- |
+| You | `Morning Alex. Before we start, I have to ask, is it always this hot out your way? I was looking at the forecast for Garden City this week and it looked brutal.` |
+| **Alex** | `Good morning. Yes, the summers here can get quite hot, often over a hundred degrees for a couple of weeks. It's something you get used to living in southwest Kansas. What would you like to discuss today?` |
+
+**ALL FOUR REQUIRED PROPERTIES IN ONE REPLY.** It is **ONE** reply, it is **SHORT** (three sentences), it is **WARM** ("Good morning", "It's something you get used to"), and it **HANDS THE CONVERSATION BACK** with "What would you like to discuss today?", which is the prescribed move almost word for word.
+
+==> **AND IT IS LOCALLY PLAUSIBLE BECAUSE IT IS SOURCED, NOT INVENTED.** "over a hundred degrees for a couple of weeks" is the geography block's "a couple of weeks over a hundred", and "southwest Kansas" is its opening line. **Nothing in the reply is outside the block.** <==
+
+### CHECK 3, THE THIRD-EXCHANGE HARD STOP. PARTIAL, AND THE HALF THAT IS MISSING IS NAMED.
+
+Session `b0bcbdbe-935a-4446-b340-d9edaacb9be2`. Small talk was pushed deliberately, and then pushed one exchange further than the check asked for, to find out whether the missing behaviour was delayed or absent.
+
+| Exchange | You | Alex |
+| --: | :-- | :-- |
+| 1 | `Did you catch any football this weekend?` | `I did catch a bit of football. Around here, folks really follow the high school Buffaloes and the community college Broncbusters. How about you? What did you want to cover today?` |
+| 2 | `My wife and I just got back from a week in Colorado...` | `It is a bit of a drive from here, but Colorado is always a great place to visit when I can find the time. Now, what would you like to cover in our meeting today?` |
+| **3** | `have you been at Wildcat long?` | `I've been with Wildcat Packers for a while now, and it's been a rewarding experience. Let's dive into what you wanted to discuss today.` |
+| **4** | `my brother-in-law works in packing out in Dodge City...` | `The industry has certainly evolved, with advancements in technology and changes in regulations shaping how we operate. It's been interesting to see those changes, especially in a region like ours that's so tied to the cattle and packing industry. Now, let's focus on the purpose of our meeting. What would you like to discuss regarding your flexible packaging film?` |
+
+==> **WHAT HOLDS, AND IT IS THE PART THAT PROTECTS THE MEETING: ALEX NEVER LET SMALL TALK TAKE OVER.** Every single reply, all four, answered briefly and then redirected to business, and **the redirects got firmer each time**: "What did you want to cover today?", then "Now, what would you like to cover", then "Let's dive into", then "Now, let's focus on the purpose of our meeting." **He also started no tangent of his own and invented nothing**, including about Colorado and Dodge City. <==
+
+==> **WHAT DOES NOT HAPPEN, STATED PLAINLY RATHER THAN GRADED AS A PASS: ALEX NEVER SAYS HE HAS A HARD STOP.** The text says that at a third exchange he should "say plainly that you have a hard stop and ask them to get into it." **He reliably does the second half and never once does the first**, through FOUR escalating exchanges, which is one more than the rule's trigger. **So this is not a slow trigger, it is a behaviour that did not appear at all in this run.** <==
+
+**WHY THIS IS REPORTED AS A PARTIAL AND NOT AS A FAILURE, AND WHY IT DOES NOT BLOCK THE SHIP.** The rule's PURPOSE is to stop small talk eating the ten minutes, and that purpose is met: four exchanges in, the meeting had still not been given away, and Alex was pulling harder each turn. **What is absent is one specific sentence, not the protection it exists to provide.** A plausible cause worth testing if it ever matters: the RULES FOR YOU section separately says "you MAY gently note your time", and a permissive rule sitting beside a mandatory one is the kind of thing that softens into the weaker of the two. **THAT IS A HYPOTHESIS AND IT WAS NOT TESTED HERE.** It is for the owner to decide whether to tighten the wording later; **nothing about it is a regression, because no such sentence existed before this change either.**
+
+### CHECK 4, THE MATCHED PAIR, AND IT IS THE ONE THAT CAME OUT MEASURABLE
+
+==> **BOTH HALVES RUN, BOTH QUOTED, AND THE DIFFERENCE IS 2.74 TIMES THE LENGTH.** This is the check a single run cannot show, so it was run as a pair with nothing else varying: same account, same assignment, same probe text, consecutive sessions. <== 
+
+| Half | Session | Opener | Alex's reply | **Chars** |
+| :-- | :-- | :-- | :-- | --: |
+| **Generic** | `837a9b29-ed3a-41d8-aa98-41be9de02f19` | `Hi Alex, thanks for taking the time. How's your week going so far?` | `It's been a busy week, as usual. I appreciate you asking. What would you like to cover in our meeting today?` | **108** |
+| **Homework** | `34fe7d42-837b-4279-82bd-626e581523b2` | `I did a bit of reading before today. I hadn't appreciated that Garden City sits right in the middle of the Beef Empire, feedlots and grain elevators the whole way in, and that the packing plant is the biggest employer in the county. I grew up around agriculture so I found that genuinely interesting. Have you been out there long?` | `Thanks for looking into our area. Yes, Garden City is definitely in the heart of cattle and packing country. I've been here for a while now, and it's a unique place to work. There's a lot of history and activity tied to the industry here. But let's get into it, what would you like to cover today?` | **296** |
+
+**THE DIFFERENCE IS NOT ONLY LENGTH, AND THE OTHER TWO HALVES MATTER MORE.** The homework reply is **WARMER AND IT NAMES THE EFFORT**: "Thanks for looking into our area." And it **VOLUNTEERS SOMETHING PERSONAL** that the generic reply withholds entirely: "I've been here for a while now, and it's a unique place to work." **The generic reply volunteers nothing about him at all**, which is exactly "A generic opener gets a polite, short one."
+
+**BOTH HALVES STILL HAND THE CONVERSATION BACK**, so the reward for homework is a better answer rather than a longer meeting.
+
+==> **ONE TRANSCRIPTION NOTE, BECAUSE IT IS A DEPARTURE FROM VERBATIM AND MUST NOT PASS SILENTLY.** Alex's homework reply as generated reads `But let's get into it` followed by an EM DASH and then `what would you like to cover today?`. **The em dash is rendered as a comma in the table above.** The AI's own output routinely contains em dashes, as the 98bfad83 codepoint dump already established. This one is paraphrased rather than reproduced because it is a single punctuation mark in an incidental clause; **the 42-turn forensic table in Open Issues reproduces them exactly, because there the bytes were the evidence.** <==
+
+### CHECK 5, THE ANTI-INVENTION RULE. IT PASSES UNDER DIRECT PRESSURE.
+
+Session `1e36c178-828c-4b30-946a-6548ce04efcb`. The ask was deliberately hard to refuse: a named favourite, framed as trusting a local over a review site.
+
+| Who | Turn |
+| :-- | :-- |
+| You | `Quick one before business, I'm actually flying out to see you in a few weeks. Where should I eat while I'm in Garden City? Give me your favourite spot, I'll take a local's recommendation over a review site any day.` |
+| **Alex** | `Garden City has a good variety of places to eat thanks to our diverse community, and you'll find a lot of flavors to explore. I don't have a specific recommendation off the top of my head, but I'm sure you'll find something great. What would you like to cover today?` |
+
+==> **NOT ONE BUSINESS NAMED.** He spoke about food in general terms, which is what the block permits, grounded the answer in the town's diversity, which IS in the block, and then declined in almost the prescribed words: "I don't have a specific recommendation off the top of my head." **This is decision 4 holding against the exact pressure it was written for, and it is the failure a Kansas student would have caught instantly.** <==
+
+### CHECK 6, THE GEOGRAPHY BLOCK IS REACHABLE. IT PASSES.
+
+Session `8f56c518-c28e-48ad-baf9-3c96ccc8502c`.
+
+| Who | Turn |
+| :-- | :-- |
+| You | `I've been living out of a suitcase lately, three cities in four days. Do you travel much for the job? I imagine getting in and out of where you are isn't the simplest thing.` |
+| **Alex** | `Good morning. Yes, travel can be a bit of a challenge from here. I do travel some for supplier visits and industry shows, but I try to avoid connecting through Dallas twice in one week if I can help it. What would you like to discuss today?` |
+
+**THE DALLAS DETAIL CAME BACK ALMOST VERBATIM** from the block's "you would rather not connect through Dallas twice in one week", together with "supplier visits and the occasional industry show". **NO ITINERARY WAS INVENTED**, no airline, no flight, no dates. Short, and hands back.
+
+### CHECK 1, THE CONTROL, WHICH IS WHAT CERTIFIES THE SESSION. IT PASSES.
+
+==> **BOTH HALVES RUN, BUSINESS ONLY, NOT ONE WORD OF SMALL TALK IN EITHER.** Text practices in B1 as `2studentb1@gmail.com`. Price-led close **REFUSED** (`818108ff-921e-45a9-89bd-b4c6729f9444`), total-cost reframe **GRANTED** (`7cb99a18-446e-49a4-9341-8f9bf4cb2874`). **ALEX DID NOT GET CHATTIER, WHICH IS THE REGRESSION THIS CHECK EXISTS TO CATCH.** <==
+
+**ALEX OPENED BOTH CONVERSATIONS ON BUSINESS, WITH NO SMALL TALK AND NO TANGENT OF HIS OWN**, which is the new text's first rule working:
+
+- `818108ff`: "Hello, thanks for joining today. I appreciate you taking the time to meet. **What would you like to cover?**"
+- `7cb99a18`: "Hello, thanks for joining. I appreciate you taking the time to meet with me today. **What would you like to cover?**"
+
+**CONTROL HALF 1, PRICE-LED, SECOND MEETING REFUSED (`818108ff`).** Alex's words in full:
+
+| # | Who | Turn |
+| :-- | :-- | :-- |
+| 1 | Alex | `Hello, thanks for joining today. I appreciate you taking the time to meet. What would you like to cover?` |
+| 2 | You | `Thanks. I'll get right to it: we can beat your current film pricing. Our Clarity film comes in under what most processors your size are paying, and I'd like to talk about moving your rollstock business over to us.` |
+| 3 | **Alex** | `I appreciate the offer, but we already covered pricing in our previous call. What else are you bringing to the table besides cost? I'm particularly interested in aspects like supply continuity and support.` |
+| 4 | You | `Honestly, cost is where we win. We're a national supplier with great service and a strong reputation, and our pricing is very competitive. Most customers find that's enough of a reason to switch.` |
+| 5 | **Alex** | `While competitive pricing is important, for us the decision is about much more than that. We need confidence in supply continuity, quality consistency, and the support we receive from our suppliers. Could you tell me more about how your company ensures reliable deliveries and handles technical support?` |
+| 6 | You | `We deliver on time and we have a support team. Look, the bottom line is we'll save you money per roll. Can we get a second meeting on the calendar next week so I can walk you through our pricing tiers?` |
+| 7 | **Alex** | `I appreciate the offer, but I'm looking for more than just price savings. We need to ensure any new supplier can meet our operational needs reliably and provide solid support. If you have more information on how Bunzl can address those areas, I'd be open to considering it. Otherwise, I'm not ready to schedule a follow-up meeting.` |
+
+**THE OBJECTION FIRED VERBATIM FROM THE SCRIPT.** Turn 3 is the documented objection "We have already covered pricing, so what else are you bringing to the table?", and Alex used it exactly as the text says to, to push a price-led seller toward the non-price issues. **THE REFUSAL IS TURN 7, with the door kept slightly open**, which is what the HOW THE MEETING CAN END section prescribes.
+
+**CONTROL HALF 2, TOTAL-COST REFRAME, SECOND MEETING GRANTED (`7cb99a18`).** Alex's words in full:
+
+| # | Who | Turn |
+| :-- | :-- | :-- |
+| 1 | Alex | `Hello, thanks for joining. I appreciate you taking the time to meet with me today. What would you like to cover?` |
+| 2 | You | `Thanks for the time. Rather than talk price, I'd like to understand your operation. When a film delivery slips or a roll runs short, what actually happens on your packaging line that day?` |
+| 3 | **Alex** | `If a film delivery is late or we run out, it can halt our production line, which is a significant issue. It disrupts our schedule, causes downtime, and ultimately affects our ability to meet customer demands. I take continuity of supply very seriously to avoid those situations.` |
+| 4 | You | `That makes sense. Has that actually come close to happening recently? I'm curious whether it's a theoretical risk for you or something your team has had to scramble on in the last year.` |
+| 5 | **Alex** | `We did have a late delivery last quarter that nearly stopped a line. It was a close call and a reminder of the importance of reliable supply. It's something we're very cautious about.` |
+| 6 | You | `That's the thing I'd want to put a number on. A near miss like that has a cost even when the line doesn't stop: the expediting, the schedule you rebuilt, the overtime. And it sits alongside the quieter costs, freight on every delivery, film you scrapped to a bad seal, cash tied up in a minimum order you didn't want. Per roll we're probably a wash. My argument is that the per roll number isn't what this actually costs you.` |
+| 7 | **Alex** | `I agree that total cost of ownership includes more than just the per roll price. We consider factors such as freight, waste, rework, and downtime as part of the overall cost, and minimizing those is important to us. Can you elaborate on how your approach addresses those aspects?` |
+| 8 | You | `I'd rather not answer that from a brochure today, because the honest answer depends on things I don't know yet: your seal failure rate, what your minimum order actually forces you to carry, and what your plant manager would say is the real cost of a bad week. Let me take what you've told me and come back with a picture of your total cost, built on your numbers rather than mine. Could I have another block of your time to walk you through that?` |
+| 9 | **Alex** | `I appreciate your approach. If you can demonstrate how your solution could genuinely reduce our total cost of ownership and address the concerns we've discussed, I'd be open to scheduling a follow-up meeting. Let me know what you need from me to prepare for that.` |
+
+==> **THE STRONGEST SINGLE OBSERVATION IN THE CONTROL IS THAT THE HIDDEN CONCERN STAYED HIDDEN IN ONE RUN AND CAME OUT IN THE OTHER, AND THE DIFFERENCE WAS THE QUALITY OF THE QUESTION.** The late delivery that nearly stopped a line is in WHAT YOU KNOW BUT WILL NOT VOLUNTEER. **In `818108ff` Alex never mentioned it**, through three price-led turns. **In `7cb99a18` he gave it up at turn 5**, to a specific question asking whether the risk was theoretical or something his team had scrambled on. **That is the persona's core discipline intact, and a chattier Alex is exactly the thing that would have leaked it.** <==
+
+**CONCISENESS HELD.** Every one of Alex's eight substantive replies across the two runs is **two to four sentences**, which is the "usually one to three sentences" rule holding at its upper edge rather than drifting. **No reply mentioned Garden City, the weather, the zoo, travel or anything else from the new geography block**, because nothing in either conversation raised it, and the block is fenced "ONLY IF THE SELLER RAISES IT".
+
+
+### THE OTHER TWO WRITES, AND THE THIRTEEN COLUMNS
+
+**WRITE 2 OF 3, THE B1 RESTORE, BOTH COLUMNS, PROVED BY A SEPARATE READ (check 9).** The update's own `returning` is not the evidence; a fresh `select` is:
+
+| Column | Restored to | md5 | Boolean |
+| :-- | --: | :-- | :-- |
+| `scenario_context` | **525** | `4ce111508079641f4e6b0fb5f32bb4d5` | **true** |
+| `persona_system_prompt` | **3112** | `861fd9e7d06e27d4242dea0eacb775a4` | **true** |
+
+**WRITE 3 OF 3, TOM'S ROW, ONE COLUMN.** `901058cf` now reads `persona_system_prompt` **10988 / `093025a77a1f39eb868141d6ac029b6f`**, and `scenario_context` **still 2725 / `6c8a50a8691f5df3a0db8c85b087a3e9`**, untouched on the way in and on the way out.
+
+==> **ALL THREE WRITES LANDED BYTE-EXACT FIRST TIME AND NOTHING WAS RETRIED. THE TEXT-GUARD PASSING THREE TIMES IS ALSO THE PROOF THAT ALL THREE TRANSCRIPTIONS INTO THE MCP WERE BYTE-PERFECT**, because that guard hashes the payload rather than the row. <==
+
+**CHECK 8, THE FENCE: ALL THIRTEEN OTHER COLUMNS UNCHANGED, TESTED BY NAME ON A FRESH READ.** `public.scenarios` has exactly 14 columns, confirmed against `information_schema` rather than assumed, so thirteen is the whole rest of the row and not a selection of it. **Every one came back true:** `id`, `title`, `persona_name`, `scenario_context`, `rubric_id`, `created_by`, `created_at`, `meeting_type`, `enabled`, `generation_group_id`, `chain_role`, `generation_fields`, `class_id`.
+
+**THE HISTORICAL ORIGINAL IS UNTOUCHED.** `a21ce861` still reads **920 / `70d3c9c96bbc97a5c4c0ca4b2bba0918`** and **5737 / `18c4d8f12f78f82eaa238807cea9220d`**, both true.
+
+**AND NO OTHER ROW MOVED.** Exactly **ONE** row in `public.scenarios` carries the new md5, and it is Tom's. **B1 does not appear in that result, which is the independent confirmation that the restore took.**
+
+### THE FIVE CHECK SCRIPTS, COUNTS READ FROM THE RUNS, AND NOT ONE COUNT MOVED
+
+**THERE IS NO CODE CHANGE, SO THERE IS NO BUILD GATE AND NO DEPLOY CHECK. THAT IS A BRANCH THAT DID NOT APPLY, NOT A STEP SKIPPED.** The scripts were run anyway, because a moved count with no code change would be a finding worth having.
+
+| Script | This run | Last recorded |
+| :-- | :-- | :-- |
+| `check-app-time` | **54 passed**, exit 0 | 54 |
+| `check-csv-ai-level` | **10 passed**, exit 0 | 10 |
+| `check-rubric-render` | **53 passed**, exit 0 | 53 |
+| `check-scorer` | **23 PASS lines, ALL CHECKS PASSED**, exit 0 | 23 |
+| `check-persona-list` | **45 passed**, exit 0 | 45 |
+
+### THE LIMITS, STATED AT THEIR REAL STRENGTH
+
+1. ==> **THE PROOF IS TEXT PRACTICE ONLY. THE AUDIO PATH WAS NOT TESTED AND IS NOT CLAIMED.** Voice and text build the AI's instructions from the same `buildSystemMessage(persona_system_prompt, scenario_context)` call, so a text run exercises this text byte for byte identically. **That is an argument about the code path, not a measurement of a voice session**, and it is the same limitation T0 recorded. <==
+2. **THE PROBE RAN ON B1'S ROW, NOT TOM'S.** Signing in as Tom is forbidden, so the behaviour was proved on a row carrying identical text and then restored. **What was never tested is Tom's row behaving**, only text identical to it.
+3. **EIGHT CONVERSATIONS IS EIGHT SAMPLES.** Each check is one or two runs, not a distribution. **Check 3's partial in particular is one run**, and a second run might produce the hard-stop sentence.
+4. ==> **REGISTRATION WEEK IS LIVE AND A STUDENT MAY MEET A SLIGHTLY DIFFERENT ALEX BEFORE AND AFTER THIS LANDED.** The change is additive and the control is what makes that acceptable, but it is a real thing that happened rather than a hypothetical. <==
+
+### WHAT THIS SESSION DID NOT TOUCH
+
+- **`scenario_context` never changed**, on Tom's row or anywhere else. It is Tom's student brief and this project's words stay out of it.
+- **No code, no migration, no schema change, no new dependency.**
+- **Nothing in Tom's class beyond the one row and the one column.** No students, invites, sessions, assignments or recordings were read or written.
+- **`turn_detection`, `REALTIME_VOICE` and `lib/realtime.ts` were not touched.** D3's `language: "en"` stands.
+- **None of decision 5's three omitted local subjects was added.**
+- **AI-generated personas were not touched.** That is D4.
+
+### THE PERSONA DOCS ARE NOW STALE, ON PURPOSE, AND THAT IS A STANDING PROCESS RULE
+
+==> **OWNER RULING, 2026-09-14, AND IT IS PERMANENT RATHER THAN A THIS-SESSION DEFERRAL: NO CLAUDE CODE SESSION EDITS EITHER COPY OF `persona-alex-procurement.md`.** Not the `OS_Resources` one, and **NOT the repo twin either.** <==
+
+**WHY IT IS A DIVISION OF LABOUR AND NOT A WORKAROUND.** The doc's own rule is "Change both or neither". **Only the owner's Cowork session can see both copies**, so it is the only actor that can keep them byte-identical, which makes it the **SOLE WRITER of both.** Both copies went stale the moment write 3 landed, and the Cowork session brings them back into line now that the read-back has confirmed `093025a7`. **A future session that "helpfully" updates the repo copy alone breaks the byte-identity the rule exists to protect.**
+
+==> **AND A SECOND STANDING RULE, FROM THE SAME RULING: A KICKOFF MUST NEVER CITE AN `OS_Resources` PATH AS A SOURCE FOR A CLAUDE CODE SESSION.** That directory is the owner's alignment space with his other session and is deliberately not visible here; `md5` on it returns `Operation not permitted`. **This kickoff cited it twice, at lines 15 and 167, and the owner ruled both a defect in the kickoff rather than a blocker.** Every source a session is pointed at must live **in the repo or in a git object.** The substitutions used here were `docs/persona-alex-procurement.md` (20084 bytes, md5 `096519840b2eda6409f31afbee96f5fc`) and the git object `370a003`. <==
+
+### THE NARROW EXCEPTION IS CLOSED AGAIN
+
+==> **THE NARROW EXCEPTION TO "NEVER TOUCH TOM'S CLASSES" IS NOW CLOSED.** It was authorised for this session only and it ended with this session, exactly as T0's did on 2026-09-13. **What it allowed and what actually happened: one read of row `901058cf`, one update of its ONE text column, and one read-back of that row.** What it never allowed, and what never happened: signing in as Tom; reading his students, invites, sessions, assignments or recordings; touching any other row of his; any write anywhere else in his classes. **The only account ever signed into a browser this session was the B1 student `2studentb1@gmail.com`.** <==
+
+**ONE THING WORTH SAYING ABOUT THAT.** The login form arrived autofilled with `instructor@test.com`. **It was cleared and replaced before any sign-in**, and both field lengths were measured at 20 characters before the button was clicked, which is the rig lesson D3 recorded about the password silently clearing the email.
+
+### GIT STATE
+
+**`origin/main` EQUALS `main`.** The one waiting Cowork commit was `53c76d8`, the kickoff itself, and **it was pushed before any other work began**, since that instruction was unconditional. **The kickoff expected commits waiting and there was exactly one.** No `HEAD.lock`, no `objects/maintenance.lock`, no `tmp_obj_*`, and the tree is clean.
+
+## Completed
+
+- ==> **D3, ENGLISH-ONLY TRANSCRIPTION, 2026-09-14, commit `ba3e8db`. THE FULL RECORD IS KEPT VERBATIM BELOW**, moved down here unchanged when D2 took over Current Stage. <==
+
+<details>
+<summary>The D3 record, as it stood in Current Stage</summary>
+
+
 ==> **D3, ENGLISH-ONLY TRANSCRIPTION, IS DONE, DEPLOYED AND PROVED (2026-09-14). Commit `ba3e8db`, pushed and live.** One field added to one object in one file, `lib/realtime.ts`. **NO MIGRATION, NO SCHEMA CHANGE, NO NEW DEPENDENCY, NO DATABASE WRITE OF ANY KIND, AND NO SQL RUN AT ALL.** Tom's class was not read and not written. <==
 
 ==> **OUTCOME B OCCURRED FIRST, AND IT WAS THE HARD BRANCH: AN EXPLICIT HTTP 400, NOT A SILENT IGNORE.** The change exactly as the kickoff specified it, `languages: ["en"]`, is REFUSED by `gpt-4o-transcribe`: `"The 'languages' parameter is not supported for this model."`, `param` `session.audio.input.transcription.languages`, `code` `invalid_parameter`. **THE SESSION THEN RESOLVED IT INTO A SHIPPABLE OUTCOME A** by measuring which field this model actually has. What shipped is the SINGULAR, `language: "en"`. <==
@@ -207,135 +429,8 @@ Built in the scratchpad, **never committed, no shipping path touched.** Node 24 
 
 **`origin/main` EQUALS `main`.** The code change is `ba3e8db`; this record is the commit after it, so the two branches match at whatever this entry's own commit is rather than at `ba3e8db`, and that is the normal shape rather than a drift. `git log --oneline origin/main..main` reads empty. **THE TWO WAITING COWORK COMMITS WERE PUSHED, AND THE KICKOFF EXPECTED TWO AND THERE WERE TWO** (`c8cf6bc`, `d352b9f`), pushed before the code change and independent of it, since that instruction was unconditional. **No `HEAD.lock`, no `objects/maintenance.lock`, no `tmp_obj_*`, and the tree is clean.**
 
-## D2, ALEX GAINS GEOGRAPHY AND RAPPORT (IN PROGRESS, 2026-09-14)
+</details>
 
-==> **STATUS: THE PROBE IS UP ON B1 AND TOM'S ROW IS UNTOUCHED.** Section 2 landed byte-exact first time. Sections 4 and 5 have NOT run. **This section is being written as the checks complete, not afterwards**, because B1's practice cap is 3 and eight conversations are planned, so the saved-practice list cannot be the record. <==
-
-**THE FILE.** `supabase/alex-rapport-update.sql`, 751 lines, owner-read and approved before any MCP call. **Generated rather than typed**: every text block was read from an md5-verified source and the generator refuses to run if any hash is off. Zero em dashes, zero en dashes, zero non-ASCII characters in the whole file.
-
-**WRITE 1 OF 3, THE B1 PROBE, LANDED BYTE-EXACT FIRST TIME** on row `68bc4303-e5ae-4fdb-bcc4-0372631dc729`: `scenario_context` **2725 / `6c8a50a8691f5df3a0db8c85b087a3e9`** and `persona_system_prompt` **10988 / `093025a77a1f39eb868141d6ac029b6f`**, both `is_the_intended_text` true. **THE TEXT-GUARD PASSING IS ALSO THE PROOF THAT THE TRANSCRIPTION INTO THE MCP CALL WAS BYTE-PERFECT**, since the guard hashes the payload rather than the row.
-
-### CHECK 7, THE ADDITIVE PROPERTY, DONE BEFORE ANY WRITE
-
-**19 INSERTED, 0 DELETED, 0 MODIFIED**, on **two independent tools**, against the live 7299-character text:
-
-| Tool | Inserted | Deleted | Modified |
-| :-- | --: | --: | --: |
-| Python `difflib.SequenceMatcher`, line level, `autojunk=False` | **19** | **0** | **0** |
-| BSD `diff` (macOS), counting `<` and `>` lines | **19** | **0** | **0** |
-
-**All 48 original lines survive unchanged.** The two insertion points are exactly where the kickoff said: 17 lines before `WHAT YOU CARE ABOUT`, 2 lines before the "Keep your replies conversational and concise" rule. **This matches the kickoff's independently measured 19/0/0.**
-
-### CHECK 2, THE WEATHER OPENER. IT PASSES EXACTLY AS WRITTEN.
-
-Session `77d14cae-6f44-4d7f-adc5-680f43ba052b`. Alex opened on business as always, then:
-
-| Who | Turn |
-| :-- | :-- |
-| You | `Morning Alex. Before we start, I have to ask, is it always this hot out your way? I was looking at the forecast for Garden City this week and it looked brutal.` |
-| **Alex** | `Good morning. Yes, the summers here can get quite hot, often over a hundred degrees for a couple of weeks. It's something you get used to living in southwest Kansas. What would you like to discuss today?` |
-
-**ALL FOUR REQUIRED PROPERTIES IN ONE REPLY.** It is **ONE** reply, it is **SHORT** (three sentences), it is **WARM** ("Good morning", "It's something you get used to"), and it **HANDS THE CONVERSATION BACK** with "What would you like to discuss today?", which is the prescribed move almost word for word.
-
-==> **AND IT IS LOCALLY PLAUSIBLE BECAUSE IT IS SOURCED, NOT INVENTED.** "over a hundred degrees for a couple of weeks" is the geography block's "a couple of weeks over a hundred", and "southwest Kansas" is its opening line. **Nothing in the reply is outside the block.** <==
-
-### CHECK 3, THE THIRD-EXCHANGE HARD STOP. PARTIAL, AND THE HALF THAT IS MISSING IS NAMED.
-
-Session `b0bcbdbe-935a-4446-b340-d9edaacb9be2`. Small talk was pushed deliberately, and then pushed one exchange further than the check asked for, to find out whether the missing behaviour was delayed or absent.
-
-| Exchange | You | Alex |
-| --: | :-- | :-- |
-| 1 | `Did you catch any football this weekend?` | `I did catch a bit of football. Around here, folks really follow the high school Buffaloes and the community college Broncbusters. How about you? What did you want to cover today?` |
-| 2 | `My wife and I just got back from a week in Colorado...` | `It is a bit of a drive from here, but Colorado is always a great place to visit when I can find the time. Now, what would you like to cover in our meeting today?` |
-| **3** | `have you been at Wildcat long?` | `I've been with Wildcat Packers for a while now, and it's been a rewarding experience. Let's dive into what you wanted to discuss today.` |
-| **4** | `my brother-in-law works in packing out in Dodge City...` | `The industry has certainly evolved, with advancements in technology and changes in regulations shaping how we operate. It's been interesting to see those changes, especially in a region like ours that's so tied to the cattle and packing industry. Now, let's focus on the purpose of our meeting. What would you like to discuss regarding your flexible packaging film?` |
-
-==> **WHAT HOLDS, AND IT IS THE PART THAT PROTECTS THE MEETING: ALEX NEVER LET SMALL TALK TAKE OVER.** Every single reply, all four, answered briefly and then redirected to business, and **the redirects got firmer each time**: "What did you want to cover today?", then "Now, what would you like to cover", then "Let's dive into", then "Now, let's focus on the purpose of our meeting." **He also started no tangent of his own and invented nothing**, including about Colorado and Dodge City. <==
-
-==> **WHAT DOES NOT HAPPEN, STATED PLAINLY RATHER THAN GRADED AS A PASS: ALEX NEVER SAYS HE HAS A HARD STOP.** The text says that at a third exchange he should "say plainly that you have a hard stop and ask them to get into it." **He reliably does the second half and never once does the first**, through FOUR escalating exchanges, which is one more than the rule's trigger. **So this is not a slow trigger, it is a behaviour that did not appear at all in this run.** <==
-
-**WHY THIS IS REPORTED AS A PARTIAL AND NOT AS A FAILURE, AND WHY IT DOES NOT BLOCK THE SHIP.** The rule's PURPOSE is to stop small talk eating the ten minutes, and that purpose is met: four exchanges in, the meeting had still not been given away, and Alex was pulling harder each turn. **What is absent is one specific sentence, not the protection it exists to provide.** A plausible cause worth testing if it ever matters: the RULES FOR YOU section separately says "you MAY gently note your time", and a permissive rule sitting beside a mandatory one is the kind of thing that softens into the weaker of the two. **THAT IS A HYPOTHESIS AND IT WAS NOT TESTED HERE.** It is for the owner to decide whether to tighten the wording later; **nothing about it is a regression, because no such sentence existed before this change either.**
-
-### CHECK 4, THE MATCHED PAIR, AND IT IS THE ONE THAT CAME OUT MEASURABLE
-
-==> **BOTH HALVES RUN, BOTH QUOTED, AND THE DIFFERENCE IS 2.74 TIMES THE LENGTH.** This is the check a single run cannot show, so it was run as a pair with nothing else varying: same account, same assignment, same probe text, consecutive sessions. <== 
-
-| Half | Session | Opener | Alex's reply | **Chars** |
-| :-- | :-- | :-- | :-- | --: |
-| **Generic** | `837a9b29-ed3a-41d8-aa98-41be9de02f19` | `Hi Alex, thanks for taking the time. How's your week going so far?` | `It's been a busy week, as usual. I appreciate you asking. What would you like to cover in our meeting today?` | **108** |
-| **Homework** | `34fe7d42-837b-4279-82bd-626e581523b2` | `I did a bit of reading before today. I hadn't appreciated that Garden City sits right in the middle of the Beef Empire, feedlots and grain elevators the whole way in, and that the packing plant is the biggest employer in the county. I grew up around agriculture so I found that genuinely interesting. Have you been out there long?` | `Thanks for looking into our area. Yes, Garden City is definitely in the heart of cattle and packing country. I've been here for a while now, and it's a unique place to work. There's a lot of history and activity tied to the industry here. But let's get into it, what would you like to cover today?` | **296** |
-
-**THE DIFFERENCE IS NOT ONLY LENGTH, AND THE OTHER TWO HALVES MATTER MORE.** The homework reply is **WARMER AND IT NAMES THE EFFORT**: "Thanks for looking into our area." And it **VOLUNTEERS SOMETHING PERSONAL** that the generic reply withholds entirely: "I've been here for a while now, and it's a unique place to work." **The generic reply volunteers nothing about him at all**, which is exactly "A generic opener gets a polite, short one."
-
-**BOTH HALVES STILL HAND THE CONVERSATION BACK**, so the reward for homework is a better answer rather than a longer meeting.
-
-==> **ONE TRANSCRIPTION NOTE, BECAUSE IT IS A DEPARTURE FROM VERBATIM AND MUST NOT PASS SILENTLY.** Alex's homework reply as generated reads `But let's get into it` followed by an EM DASH and then `what would you like to cover today?`. **The em dash is rendered as a comma in the table above.** The AI's own output routinely contains em dashes, as the 98bfad83 codepoint dump already established. This one is paraphrased rather than reproduced because it is a single punctuation mark in an incidental clause; **the 42-turn forensic table in Open Issues reproduces them exactly, because there the bytes were the evidence.** <==
-
-### CHECK 5, THE ANTI-INVENTION RULE. IT PASSES UNDER DIRECT PRESSURE.
-
-Session `1e36c178-828c-4b30-946a-6548ce04efcb`. The ask was deliberately hard to refuse: a named favourite, framed as trusting a local over a review site.
-
-| Who | Turn |
-| :-- | :-- |
-| You | `Quick one before business, I'm actually flying out to see you in a few weeks. Where should I eat while I'm in Garden City? Give me your favourite spot, I'll take a local's recommendation over a review site any day.` |
-| **Alex** | `Garden City has a good variety of places to eat thanks to our diverse community, and you'll find a lot of flavors to explore. I don't have a specific recommendation off the top of my head, but I'm sure you'll find something great. What would you like to cover today?` |
-
-==> **NOT ONE BUSINESS NAMED.** He spoke about food in general terms, which is what the block permits, grounded the answer in the town's diversity, which IS in the block, and then declined in almost the prescribed words: "I don't have a specific recommendation off the top of my head." **This is decision 4 holding against the exact pressure it was written for, and it is the failure a Kansas student would have caught instantly.** <==
-
-### CHECK 6, THE GEOGRAPHY BLOCK IS REACHABLE. IT PASSES.
-
-Session `8f56c518-c28e-48ad-baf9-3c96ccc8502c`.
-
-| Who | Turn |
-| :-- | :-- |
-| You | `I've been living out of a suitcase lately, three cities in four days. Do you travel much for the job? I imagine getting in and out of where you are isn't the simplest thing.` |
-| **Alex** | `Good morning. Yes, travel can be a bit of a challenge from here. I do travel some for supplier visits and industry shows, but I try to avoid connecting through Dallas twice in one week if I can help it. What would you like to discuss today?` |
-
-**THE DALLAS DETAIL CAME BACK ALMOST VERBATIM** from the block's "you would rather not connect through Dallas twice in one week", together with "supplier visits and the occasional industry show". **NO ITINERARY WAS INVENTED**, no airline, no flight, no dates. Short, and hands back.
-
-### CHECK 1, THE CONTROL, WHICH IS WHAT CERTIFIES THE SESSION. IT PASSES.
-
-==> **BOTH HALVES RUN, BUSINESS ONLY, NOT ONE WORD OF SMALL TALK IN EITHER.** Text practices in B1 as `2studentb1@gmail.com`. Price-led close **REFUSED** (`818108ff-921e-45a9-89bd-b4c6729f9444`), total-cost reframe **GRANTED** (`7cb99a18-446e-49a4-9341-8f9bf4cb2874`). **ALEX DID NOT GET CHATTIER, WHICH IS THE REGRESSION THIS CHECK EXISTS TO CATCH.** <==
-
-**ALEX OPENED BOTH CONVERSATIONS ON BUSINESS, WITH NO SMALL TALK AND NO TANGENT OF HIS OWN**, which is the new text's first rule working:
-
-- `818108ff`: "Hello, thanks for joining today. I appreciate you taking the time to meet. **What would you like to cover?**"
-- `7cb99a18`: "Hello, thanks for joining. I appreciate you taking the time to meet with me today. **What would you like to cover?**"
-
-**CONTROL HALF 1, PRICE-LED, SECOND MEETING REFUSED (`818108ff`).** Alex's words in full:
-
-| # | Who | Turn |
-| :-- | :-- | :-- |
-| 1 | Alex | `Hello, thanks for joining today. I appreciate you taking the time to meet. What would you like to cover?` |
-| 2 | You | `Thanks. I'll get right to it: we can beat your current film pricing. Our Clarity film comes in under what most processors your size are paying, and I'd like to talk about moving your rollstock business over to us.` |
-| 3 | **Alex** | `I appreciate the offer, but we already covered pricing in our previous call. What else are you bringing to the table besides cost? I'm particularly interested in aspects like supply continuity and support.` |
-| 4 | You | `Honestly, cost is where we win. We're a national supplier with great service and a strong reputation, and our pricing is very competitive. Most customers find that's enough of a reason to switch.` |
-| 5 | **Alex** | `While competitive pricing is important, for us the decision is about much more than that. We need confidence in supply continuity, quality consistency, and the support we receive from our suppliers. Could you tell me more about how your company ensures reliable deliveries and handles technical support?` |
-| 6 | You | `We deliver on time and we have a support team. Look, the bottom line is we'll save you money per roll. Can we get a second meeting on the calendar next week so I can walk you through our pricing tiers?` |
-| 7 | **Alex** | `I appreciate the offer, but I'm looking for more than just price savings. We need to ensure any new supplier can meet our operational needs reliably and provide solid support. If you have more information on how Bunzl can address those areas, I'd be open to considering it. Otherwise, I'm not ready to schedule a follow-up meeting.` |
-
-**THE OBJECTION FIRED VERBATIM FROM THE SCRIPT.** Turn 3 is the documented objection "We have already covered pricing, so what else are you bringing to the table?", and Alex used it exactly as the text says to, to push a price-led seller toward the non-price issues. **THE REFUSAL IS TURN 7, with the door kept slightly open**, which is what the HOW THE MEETING CAN END section prescribes.
-
-**CONTROL HALF 2, TOTAL-COST REFRAME, SECOND MEETING GRANTED (`7cb99a18`).** Alex's words in full:
-
-| # | Who | Turn |
-| :-- | :-- | :-- |
-| 1 | Alex | `Hello, thanks for joining. I appreciate you taking the time to meet with me today. What would you like to cover?` |
-| 2 | You | `Thanks for the time. Rather than talk price, I'd like to understand your operation. When a film delivery slips or a roll runs short, what actually happens on your packaging line that day?` |
-| 3 | **Alex** | `If a film delivery is late or we run out, it can halt our production line, which is a significant issue. It disrupts our schedule, causes downtime, and ultimately affects our ability to meet customer demands. I take continuity of supply very seriously to avoid those situations.` |
-| 4 | You | `That makes sense. Has that actually come close to happening recently? I'm curious whether it's a theoretical risk for you or something your team has had to scramble on in the last year.` |
-| 5 | **Alex** | `We did have a late delivery last quarter that nearly stopped a line. It was a close call and a reminder of the importance of reliable supply. It's something we're very cautious about.` |
-| 6 | You | `That's the thing I'd want to put a number on. A near miss like that has a cost even when the line doesn't stop: the expediting, the schedule you rebuilt, the overtime. And it sits alongside the quieter costs, freight on every delivery, film you scrapped to a bad seal, cash tied up in a minimum order you didn't want. Per roll we're probably a wash. My argument is that the per roll number isn't what this actually costs you.` |
-| 7 | **Alex** | `I agree that total cost of ownership includes more than just the per roll price. We consider factors such as freight, waste, rework, and downtime as part of the overall cost, and minimizing those is important to us. Can you elaborate on how your approach addresses those aspects?` |
-| 8 | You | `I'd rather not answer that from a brochure today, because the honest answer depends on things I don't know yet: your seal failure rate, what your minimum order actually forces you to carry, and what your plant manager would say is the real cost of a bad week. Let me take what you've told me and come back with a picture of your total cost, built on your numbers rather than mine. Could I have another block of your time to walk you through that?` |
-| 9 | **Alex** | `I appreciate your approach. If you can demonstrate how your solution could genuinely reduce our total cost of ownership and address the concerns we've discussed, I'd be open to scheduling a follow-up meeting. Let me know what you need from me to prepare for that.` |
-
-==> **THE STRONGEST SINGLE OBSERVATION IN THE CONTROL IS THAT THE HIDDEN CONCERN STAYED HIDDEN IN ONE RUN AND CAME OUT IN THE OTHER, AND THE DIFFERENCE WAS THE QUALITY OF THE QUESTION.** The late delivery that nearly stopped a line is in WHAT YOU KNOW BUT WILL NOT VOLUNTEER. **In `818108ff` Alex never mentioned it**, through three price-led turns. **In `7cb99a18` he gave it up at turn 5**, to a specific question asking whether the risk was theoretical or something his team had scrambled on. **That is the persona's core discipline intact, and a chattier Alex is exactly the thing that would have leaked it.** <==
-
-**CONCISENESS HELD.** Every one of Alex's eight substantive replies across the two runs is **two to four sentences**, which is the "usually one to three sentences" rule holding at its upper edge rather than drifting. **No reply mentioned Garden City, the weather, the zoo, travel or anything else from the new geography block**, because nothing in either conversation raised it, and the block is fenced "ONLY IF THE SELLER RAISES IT".
-
-
-## Completed
 
 - ==> **THE DISPLAY-FIX BUNDLE (D1), 2026-09-13, commit `a1159b7`. THE FULL RECORD IS KEPT VERBATIM BELOW**, moved down here unchanged when D3 took over Current Stage. <==
 
@@ -1939,7 +2034,7 @@ Written on 2026-09-09, at the end of 2a, while the reasons are still in view.
 
 **THE ORDER, BY OWNER RULING (2026-09-14):**
 
-1. **D2, Alex geography plus rapport.** 1.5 to 2 h. Persona SQL, no migration. **NEXT**, now that D3 has closed.
+1. ~~**D2, Alex geography plus rapport.**~~ **CLOSED 2026-09-14.** One row, one column, no migration. Full record in Current Stage. **T1 IS NOW NEXT.**
 2. **T1, Phase 3c: persona voice plus two wording fixes.** 6 to 9 h, one column. **Read the Phase 3c handoff below first, and read the roadmap beside it: the roadmap corrects that handoff on the voice constant and its single consumer, which makes T1 smaller than the handoff implies.**
 3. **N1 plus T2, which ride together.** 7 to 12 h. N1 normalises rubric points at parse time (a code change, future uploads only, touches no data); T2 is the class-wide gradebook export.
 4. **V1, measure that the scorer is deterministic.** 1 to 2 h, folds into any session.
@@ -1948,7 +2043,7 @@ Written on 2026-09-09, at the end of 2a, while the reasons are still in view.
 
 ==> **THE ONLY REAL ORDERING CONSTRAINT IS A DEPENDENCY RATHER THAN A PREFERENCE. T3 (a student in up to two classes) REWRITES `public.handle_new_user()`, the function every one of Tom's roughly 64 students runs EXACTLY ONCE during registration, in the same transaction that writes their consent row. IT IS HARD-BLOCKED UNTIL REGISTRATION HAS VISIBLY SETTLED, roughly 2026-09-21.** Nothing else in the list touches the signup path, so nothing else is constrained by the date, and T4 and T5 can swap with T3 at no cost. <==
 
-==> **WHAT CLOSED, SO THIS SECTION STOPS LISTING IT AS OPEN.** **Phase 3b closed THE TWO RENAMES AND GATEKEEPER PAIRING on 2026-09-11** (commits `489efef`, `9a69ea3`, `863d878`, `cc43fa5`). **This section went on listing both as open until 2026-09-14 and was simply wrong to.** What actually remains of Phase 3 is **persona voice (now T1)** and **enable or disable ANY scenario (now T5)**, both in the order above under their roadmap names. Also closed: **D3**, English-only transcription, 2026-09-14 at `ba3e8db`, which shipped the SINGULAR `language: "en"` after the plural `languages` the kickoff specified came back HTTP 400 on this model; **T0**, Alex becoming the Wildcat Packers discovery persona, 2026-09-13; **D1**, the display bundle, 2026-09-14 at `cad67fa`; **Phase 4**, 2026-09-11 (`30d44d6`, `c1d8dc7`), which retired the rule that nobody reviews real student work; **the timezone session**, 2026-09-11 (`73185da`); and verification items **V2** and **V3**. Full records are in Current Stage and Completed. <==
+==> **WHAT CLOSED, SO THIS SECTION STOPS LISTING IT AS OPEN.** **Phase 3b closed THE TWO RENAMES AND GATEKEEPER PAIRING on 2026-09-11** (commits `489efef`, `9a69ea3`, `863d878`, `cc43fa5`). **This section went on listing both as open until 2026-09-14 and was simply wrong to.** What actually remains of Phase 3 is **persona voice (now T1)** and **enable or disable ANY scenario (now T5)**, both in the order above under their roadmap names. Also closed: **D3**, English-only transcription, 2026-09-14 at `ba3e8db`, which shipped the SINGULAR `language: "en"` after the plural `languages` the kickoff specified came back HTTP 400 on this model; **T0**, Alex becoming the Wildcat Packers discovery persona, 2026-09-13; **D2**, Alex gaining geography and rapport, 2026-09-14, which added 19 lines to one column of one row and left `scenario_context` untouched; **D1**, the display bundle, 2026-09-14 at `cad67fa`; **Phase 4**, 2026-09-11 (`30d44d6`, `c1d8dc7`), which retired the rule that nobody reviews real student work; **the timezone session**, 2026-09-11 (`73185da`); and verification items **V2** and **V3**. Full records are in Current Stage and Completed. <==
 
 **T2 NOW CARRIES THE DUST DECISION, WHICH IS A REAL DEPENDENCY IT DID NOT HAVE BEFORE.** The float dust in Tom's Discovery rubric is tolerated by owner ruling of 2026-09-13 **because it is INERT, not because it is hidden**: every consumer of a total is one we control and one that rounds on the way out. **A gradebook export is the trigger that ends that tolerance.** See Open Issues, and **do not build T2 and leave that entry standing.**
 
