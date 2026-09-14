@@ -223,7 +223,7 @@ export function Conversation({
                 ? "Ending..."
                 : "Scoring..."
               : isSubmission
-                ? "Submit assignment"
+                ? "Submit for review"
                 : "End session"}
           </Button>
         </div>
@@ -271,8 +271,8 @@ export function Conversation({
       {isSubmission && confirming && (
         <div className="mt-3 rounded-lg border border-amber-300 bg-surface-warning p-4 text-body">
           <p className="text-content-warning">
-            Submit this graded assignment for scoring? This is your one official
-            attempt and cannot be redone.
+            Submit this conversation for review? This is your one official
+            submission and cannot be redone.
           </p>
           <div className="mt-3 flex items-center gap-2">
             <Button
@@ -288,7 +288,7 @@ export function Conversation({
               onClick={doEnd}
               disabled={ending}
             >
-              {ending ? "Scoring..." : "Submit and score"}
+              {ending ? "Scoring..." : "Submit for review"}
             </Button>
           </div>
         </div>

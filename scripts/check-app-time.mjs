@@ -100,7 +100,16 @@ mkdirSync(join(work, "components"), { recursive: true });
 
 // Whole modules, copied as shipped. Each is small and imports nothing outside
 // lib/, which is why they can be run rather than read.
-for (const f of ["app-time.ts", "available-date.ts", "date-taken.ts", "recording-download.ts"]) {
+//
+// ==> types.ts JOINED THIS LIST ON 2026-09-13, AND THE SCRIPT EARNED ITS KEEP
+//     BY GOING RED FIRST. The display-fix bundle routed reset-history.tsx's
+//     prior score through formatPoints(), which added an import of @/lib/types
+//     to a component this script copies into a temp directory and compiles.
+//     The rewrite turned it into ../lib/types, which was not there, and the run
+//     died on TS2307 rather than on any behaviour. THE HARNESS INVARIANT ABOVE
+//     STILL HOLDS: lib/types.ts imports nothing at all, by a rule stated in its
+//     own header, so copying it drags nothing else in.
+for (const f of ["app-time.ts", "available-date.ts", "date-taken.ts", "recording-download.ts", "types.ts"]) {
   writeFileSync(
     join(work, "lib", f),
     readFileSync(join(REPO, "lib", f), "utf8").replaceAll("@/lib/", "./"),
@@ -272,6 +281,7 @@ const CHECK = String.raw`
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   APP_TIME_ZONE,
+  formatElapsed,
   formatInstant,
   formatInstantDay,
   instantDayStamp,
@@ -395,6 +405,66 @@ check("the reset history renders the Central time",
   resetHtml.includes("Sep 10, 2026, 10:21 PM"), true);
 check("and the word UTC appears nowhere in it (ruling 2)",
   /UTC/.test(resetHtml) ? "UTC is still there" : "no UTC anywhere", "no UTC anywhere");
+
+// ==> TWO CHECKS THAT ARE NOT ABOUT TIMEZONES, AND WHY THEY LIVE IN THE
+//     TIMEZONE SCRIPT ANYWAY. The display fix of 2026-09-13 closed the second
+//     of two raw-score leaks by routing this component's prior score through
+//     formatPoints(). ResetHistory is stood up HERE and nowhere else in the
+//     repo, and a second harness for one small component is a second harness to
+//     drift out of step with the first.
+//
+//     THERE IS NO LIVE VENUE FOR THIS, WHICH IS WHY IT IS EXECUTED RATHER THAN
+//     CLICKED. Every submission_resets row in the test classes points at an
+//     assignment that has since been deleted, and the dashboard loads them with
+//     .eq("assignment_id", selected.id), so not one of them can ever be
+//     selected on screen. This render IS the proof, not a rehearsal for one.
+const DUSTY_RESET = {
+  ...RESET_ROW,
+  id: "r2",
+  prior_score_total: 62.50000000000001,
+  prior_score_max: 100.00000000000001,
+};
+const dustyResetHtml = renderToStaticMarkup(ResetHistory({ resets: [DUSTY_RESET] }) as any);
+check("the reset history's prior score is rounded to one decimal (leak 2 of 2)",
+  dustyResetHtml.includes("(62.5 / 100)"), true);
+check("and no float dust survives anywhere in the reset history markup",
+  /\d\.\d{3,}/.test(dustyResetHtml) ? "dust is still there" : "no dust", "no dust");
+
+// ---------------------------------------------------------------------------
+// ==> formatElapsed. A DURATION, WHICH IS THE ONE THING IN THIS FILE THAT HAS
+//     NO TIMEZONE. Added 2026-09-13 for the transcript timestamps.
+//
+//     IT IS CHECKED IN THIS SCRIPT FOR A REASON THAT IS NOT OBVIOUS. The script
+//     already re-runs itself byte-for-byte under TZ=UTC and TZ=Asia/Tokyo, and
+//     that comparison is the strongest available proof that this function never
+//     reaches for APP_TIME_ZONE: a duration that quietly formatted through a
+//     zone would still agree with itself here, but a duration built out of
+//     LOCAL calendar parts would not. Nothing else in the repo would catch it.
+const T0 = "2026-09-10T19:35:59.821Z";
+check("the first turn reads 00:00, because it is measured against itself",
+  formatElapsed(T0, T0), "00:00");
+check("seconds only", formatElapsed(T0, "2026-09-10T19:36:07.000Z"), "00:07");
+check("minutes and seconds", formatElapsed(T0, "2026-09-10T19:37:25.479Z"), "01:25");
+check("it truncates rather than rounding, so a stamp never runs ahead of the clock",
+  formatElapsed(T0, "2026-09-10T19:36:00.820Z"), "00:00");
+check("it rolls to h:mm:ss past an hour and not before",
+  [formatElapsed(T0, "2026-09-10T20:35:58.821Z"), formatElapsed(T0, "2026-09-10T20:36:00.821Z")],
+  ["59:59", "1:00:01"]);
+// A TEXT practice resumes across reloads onto ONE transcript, so this value is
+// real rather than hypothetical. It renders as what it is; there is no
+// per-sitting reset and inventing one would mean guessing.
+check("a resumed practice renders a genuinely large elapsed value in full",
+  formatElapsed(T0, "2026-09-12T01:14:30.821Z"), "29:38:31");
+check("negatives clamp to 00:00 rather than printing a negative duration",
+  formatElapsed("2026-09-10T19:36:10.000Z", T0), "00:00");
+check("an unreadable value is null, matching formatInstant, so the caller drops the stamp",
+  [formatElapsed("not a date", T0), formatElapsed(T0, "not a date"), formatElapsed(null, T0), formatElapsed(T0, "")],
+  [null, null, null, null]);
+// ==> THE NAMING RULE, MEASURED RATHER THAN TRUSTED. Every other export in
+//     lib/app-time.ts means "a moment, rendered in US Central". This one does
+//     not, and its name has to say so or the file's whole purpose fails.
+check("the duration helper carries neither Instant nor Day in its name",
+  /Instant|Day/.test(formatElapsed.name) ? "it does" : "it does not", "it does not");
 
 // ---------------------------------------------------------------------------
 console.log("");

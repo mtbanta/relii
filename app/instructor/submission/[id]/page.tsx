@@ -53,6 +53,7 @@ import { readAiOriginal } from "@/lib/submission-review";
 import { SubmissionReviewForm } from "@/components/submission-review-form";
 import type { ReviewLine } from "@/components/submission-review-form";
 import { buttonClasses } from "@/components/ui/button";
+import { formatElapsed } from "@/lib/app-time";
 import { cardClasses } from "@/components/ui/card";
 import { Icon, IconArrowLeft } from "@/components/ui/icon";
 import { RubricScore } from "@/components/rubric-score";
@@ -127,6 +128,9 @@ export default async function InstructorSubmissionPage({
 
   const score = (session.score ?? null) as SessionScore | null;
   const transcript = (session.transcript ?? []) as TranscriptTurn[];
+  // Elapsed from the FIRST turn, exactly as the student results page and the
+  // .txt download do it. One helper, three surfaces, so they cannot drift.
+  const transcriptStart = transcript.length > 0 ? transcript[0].at : null;
   const isVoice = session.mode === "voice_video";
 
   // The student, the assignment and ITS rubric, and the scenario. All read with
@@ -446,18 +450,28 @@ export default async function InstructorSubmissionPage({
                 }`,
               })}
             >
-              {transcript.map((turn, i) => (
-                <div key={i}>
-                  <p className="text-meta font-medium text-content-tertiary">
-                    {turn.role === "student"
-                      ? studentName
-                      : scenario?.persona_name ?? "Customer"}
-                  </p>
-                  <p className="max-w-reading text-body whitespace-pre-wrap text-content-primary">
-                    {turn.text}
-                  </p>
-                </div>
-              ))}
+              {transcript.map((turn, i) => {
+                // The same elapsed stamp the student sees on their own results
+                // page, from the same helper, so the two cannot drift.
+                const elapsed = formatElapsed(transcriptStart, turn.at);
+                return (
+                  <div key={i}>
+                    <p className="text-meta font-medium text-content-tertiary">
+                      {turn.role === "student"
+                        ? studentName
+                        : scenario?.persona_name ?? "Customer"}
+                      {elapsed && (
+                        <span className="ml-2 font-normal tabular-nums">
+                          {elapsed}
+                        </span>
+                      )}
+                    </p>
+                    <p className="max-w-reading text-body whitespace-pre-wrap text-content-primary">
+                      {turn.text}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <p className="text-body text-content-secondary">

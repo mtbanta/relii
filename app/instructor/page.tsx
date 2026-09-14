@@ -325,10 +325,21 @@ export default async function InstructorSubmissions({
   //     therefore made this tile read 69 above a table row reading 68.5, which
   //     is one screen printing two different numbers for one student.
   //
-  //     IT NOW SHOWS ONE DECIMAL. An average is a derived number, so displaying
-  //     it to a fixed precision is honest; NO INDIVIDUAL SCORE IS ROUNDED
-  //     ANYWHERE, which is the rule lib/types.ts formatPoints() exists to hold
-  //     and which the Score column below now goes through too. <==
+  //     IT SHOWS ONE DECIMAL, AND SO DOES EVERY INDIVIDUAL SCORE NOW. An
+  //     average is a derived number, so displaying it to a fixed precision is
+  //     honest.
+  //
+  //     THE DISTINCTION THIS COMMENT USED TO DRAW IS GONE, AND IT IS CORRECTED
+  //     HERE RATHER THAN LEFT TO MISLEAD. It said NO INDIVIDUAL SCORE IS
+  //     ROUNDED ANYWHERE, which was true until 2026-09-13, when lib/types.ts
+  //     formatPoints() began rounding to one decimal so that a stored
+  //     49.50000000000001 prints as 49.5.
+  //
+  //     THE RULE IS NARROWER NOW AND STILL LOAD-BEARING: individual scores are
+  //     rounded to ONE DECIMAL and NEVER to a whole number. That is exactly
+  //     what the reasoning above requires, because one decimal preserves 49.5,
+  //     38.5, 13.5, 4.5 and 0.5. The Score column below goes through that same
+  //     helper. <==
   const avgTotal =
     scored.length > 0
       ? scored.reduce((sum, s) => sum + (s.score?.total ?? 0), 0) / scored.length

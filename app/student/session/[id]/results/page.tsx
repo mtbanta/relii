@@ -19,6 +19,7 @@ import type {
   SessionScore,
   TranscriptTurn,
 } from "@/lib/types";
+import { formatElapsed } from "@/lib/app-time";
 import { cardClasses } from "@/components/ui/card";
 import { Icon, IconArrowLeft } from "@/components/ui/icon";
 import { Badge } from "@/components/ui/badge";
@@ -113,6 +114,10 @@ export default async function ResultsPage({
 
   const score = session.score as SessionScore | null;
   const transcript = (session.transcript ?? []) as TranscriptTurn[];
+  // Elapsed timestamps run from the FIRST turn, so the first one reads 00:00.
+  // Hoisted out of the map below rather than read as transcript[0] inside it,
+  // which keeps the empty case obvious and does the read once.
+  const transcriptStart = transcript.length > 0 ? transcript[0].at : null;
   const isVoice = session.mode === "voice_video";
 
   // If this session has a recording, mint a short-lived signed link to it. We can
@@ -388,18 +393,31 @@ export default async function ResultsPage({
               }`,
             })}
           >
-            {transcript.map((turn, i) => (
-              <div key={i}>
-                <p className="text-meta font-medium text-content-tertiary">
-                  {turn.role === "student"
-                    ? "You"
-                    : (scenario?.persona_name ?? "Customer")}
-                </p>
-                <p className="max-w-reading text-body whitespace-pre-wrap text-content-primary">
-                  {turn.text}
-                </p>
-              </div>
-            ))}
+            {transcript.map((turn, i) => {
+              // HOW FAR INTO THE CALL THIS TURN CAME. A duration, not a clock
+              // time; see formatElapsed in lib/app-time.ts. It sits inline in
+              // the speaker line on purpose: nothing is positioned, so the
+              // print stylesheet above needs no rule of its own and the stamp
+              // cannot be clipped away.
+              const elapsed = formatElapsed(transcriptStart, turn.at);
+              return (
+                <div key={i}>
+                  <p className="text-meta font-medium text-content-tertiary">
+                    {turn.role === "student"
+                      ? "You"
+                      : (scenario?.persona_name ?? "Customer")}
+                    {elapsed && (
+                      <span className="ml-2 font-normal tabular-nums">
+                        {elapsed}
+                      </span>
+                    )}
+                  </p>
+                  <p className="max-w-reading text-body whitespace-pre-wrap text-content-primary">
+                    {turn.text}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </section>
       </div>

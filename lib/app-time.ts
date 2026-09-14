@@ -194,3 +194,60 @@ export function startOfAppDay(value: string | null | undefined): number | null {
   const secondOffset = offsetMs(firstPass);
   return utcMidnight + secondOffset;
 }
+
+// ==> THIS ONE IS A DURATION, NOT AN INSTANT, AND IT HAS NO TIMEZONE AT ALL.
+//
+//     Every other export in this file turns a stored MOMENT into US Central
+//     text, and every one of them carries "Instant" or "Day" in its name so a
+//     reader never has to guess which of the two kinds of date they are
+//     holding. THIS FUNCTION IS NEITHER, so it says neither. It answers "how
+//     far into the conversation was this turn", which is a LENGTH OF TIME, and
+//     a length of time is the same length in every zone on earth.
+//
+//     IT MUST NOT TOUCH APP_TIME_ZONE, AND IT DOES NOT. Reaching for the
+//     constant here would be harmless today and wrong in principle, and this
+//     file's whole purpose is that the distinction is visible rather than
+//     remembered. If a future session adds a second duration helper, keep it
+//     out of the Instant naming too.
+//
+//     ELAPSED FROM THE FIRST TURN, NOT CLOCK TIME. The owner's ruling of
+//     2026-09-13: Tom evaluates time himself, and elapsed is what tells him
+//     where a ten-minute call went. The first turn therefore reads 00:00 by
+//     construction, because it is measured against itself.
+//
+//     "mm:ss", ROLLING TO "h:mm:ss" PAST AN HOUR. An hour of role-play is far
+//     outside what the assignment clock allows, but a TEXT practice resumes
+//     across reloads onto one transcript (app/api/chat/route.ts line 123), so a
+//     student who comes back the next day genuinely produces a large value.
+//     THAT IS RENDERED AS WHAT IT ACTUALLY IS. There is deliberately no
+//     per-sitting reset: inventing one would mean guessing where a sitting
+//     ended, and a wrong guess is worse than an honest 27:14:03.
+//
+//     NULL FOR ANYTHING UNREADABLE, matching formatInstant above. This is not
+//     defensive padding: app/api/voice/transcript/route.ts line 31 accepts ANY
+//     non-empty string as a turn's `at`, so a malformed one can be in storage
+//     even though TranscriptTurn.at is a required field on the type. The caller
+//     then prints the turn with no stamp rather than "NaN:NaN".
+//
+//     NEGATIVES CLAMP TO 00:00. Turns should arrive in order, but the two
+//     writing paths stamp with their own clocks, and a duration that reads
+//     "-00:03" tells a reader nothing except that something is broken. <==
+export function formatElapsed(
+  startValue: string | null | undefined,
+  value: string | null | undefined,
+): string | null {
+  if (!startValue || !value) return null;
+  const start = new Date(startValue).getTime();
+  const at = new Date(value).getTime();
+  if (Number.isNaN(start) || Number.isNaN(at)) return null;
+
+  const total = Math.max(0, Math.floor((at - start) / 1000));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor(total / 60) % 60;
+  const seconds = total % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+
+  return hours > 0
+    ? `${hours}:${pad(minutes)}:${pad(seconds)}`
+    : `${pad(minutes)}:${pad(seconds)}`;
+}

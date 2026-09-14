@@ -823,7 +823,7 @@ export function VoiceConversation({
             {status === "ending"
               ? "Finishing..."
               : isSubmission
-                ? "Submit assignment"
+                ? "Submit for review"
                 : "End session"}
           </Button>
         </div>
@@ -833,8 +833,8 @@ export function VoiceConversation({
       {isSubmission && confirming && (
         <div className="mb-3 rounded-lg border border-amber-300 bg-surface-warning p-4 text-body">
           <p className="text-content-warning">
-            Submit this graded assignment for scoring? This ends the call and is
-            your one official attempt; it cannot be redone.
+            Submit this call for review? This ends the call and is your one
+            official submission; it cannot be redone.
           </p>
           <div className="mt-3 flex items-center gap-2">
             <Button
@@ -848,7 +848,7 @@ export function VoiceConversation({
               size="sm"
               onClick={endCall}
             >
-              Submit and score
+              Submit for review
             </Button>
           </div>
         </div>
@@ -889,7 +889,7 @@ export function VoiceConversation({
             microphone. {personaName} will speak first, then you reply by
             talking. Speak naturally, and click{" "}
             <span className="font-medium">
-              {isSubmission ? "Submit assignment" : "End session"}
+              {isSubmission ? "Submit for review" : "End session"}
             </span>{" "}
             when you are done.
             {isSubmission && (

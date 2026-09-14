@@ -1,4 +1,5 @@
 import { formatInstant } from "@/lib/app-time";
+import { formatPoints } from "@/lib/types";
 
 // The per-assignment reset history on the instructor dashboard. A small
 // "Resets: N" line that expands (native HTML <details>, so it needs no
@@ -92,8 +93,14 @@ export function ResetHistory({ resets }: { resets: ResetHistoryRow[] }) {
                 </span>
                 {" · "}
                 {typeLabel}
+                {/* PD DISPLAY FIX. LEAK 2 OF 2, AND IT WAS THE ONE NOBODY HAD
+                    WRITTEN DOWN. A PRIOR score carries float dust exactly the
+                    way a current one does, and this rendered it raw. Inside
+                    hadScore, so both values are already known non-null. */}
                 {isRetake && hadScore
-                  ? ` (${r.prior_score_total} / ${r.prior_score_max})`
+                  ? ` (${formatPoints(r.prior_score_total!)} / ${formatPoints(
+                      r.prior_score_max!,
+                    )})`
                   : ""}
               </p>
               <p className="text-content-tertiary">

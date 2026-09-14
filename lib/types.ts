@@ -265,14 +265,38 @@ export function formatLimit(bytes: number): string {
 //     unchanged instead of becoming "NaN", because showing a student the raw
 //     stored value is more honest than showing them a word.
 //
-//     IT DOES NOT ROUND ANYTHING, INCLUDING TO ONE DECIMAL. Every value in a
-//     rubric is a whole number or a half by construction, so there is nothing to
-//     tidy. If a rubric ever carried a third, this prints it in full rather than
-//     rounding it away, which is the safer of the two failures: a long number is
-//     visibly odd, a quietly rounded grade is not. <==
+//     ==> IT NOW ROUNDS TO ONE DECIMAL, AND NEVER TO A WHOLE NUMBER. The
+//     owner's ruling of 2026-09-13. Tom's September 11 practice rendered its
+//     Discovery criterion as 49.50000000000001 / 55.00000000000001 while every
+//     other criterion on the same page printed clean. Binary floating point
+//     cannot hold every decimal exactly, so a value that reaches this helper
+//     with dust on it used to print the dust, in front of a student.
+//
+//     ONE DECIMAL IS THE FLOOR, NOT A PREFERENCE. Tom's Discovery ladder awards
+//     49.5, 38.5, 13.5, 4.5 and 0.5, and Phase 4a already had to remove a
+//     Math.round() from the instructor average because rounding made one screen
+//     print 69 directly above a row reading 68.5. One decimal preserves every
+//     one of those values. Do not let anything reintroduce whole-number
+//     rounding here, at a call site, or anywhere near a grade.
+//
+//     WHAT THIS GIVES UP, STATED RATHER THAN GLOSSED. A value that is neither a
+//     whole nor a half, a third say, now prints as one decimal instead of in
+//     full. The wording above this line used to prefer the opposite trade, on
+//     the reasoning that a long number is visibly odd and a quietly rounded
+//     grade is not. THAT REASONING WAS NOT WRONG, IT WAS OUTVOTED BY A REAL
+//     SCREEN: no rubric in reach awards thirds, and 49.50000000000001 in front
+//     of a student is the worse of the two failures. The old wording is in git.
+//
+//     WHERE THE DUST COMES FROM IS NOT ESTABLISHED, AND THIS IS A RENDER FIX
+//     RATHER THAN A CURE. lib/scoring.ts line 437 sums points_earned with plain
+//     float addition and app/api/session/end/route.ts line 272 stores that sum
+//     as score_total, so a STORED total may still carry dust that every screen
+//     now hides. Changing the parser, normalising at parse time and backfilling
+//     any stored row were all deliberately left alone. <==
 export function formatPoints(value: number): string {
   const n = Number(value);
-  return Number.isFinite(n) ? String(n) : String(value);
+  if (!Number.isFinite(n)) return String(value);
+  return String(Math.round(n * 10) / 10);
 }
 
 // One performance level of one criterion, as stored.

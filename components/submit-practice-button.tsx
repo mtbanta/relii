@@ -1,6 +1,6 @@
 "use client";
 
-// The "Submit as graded assignment" control on an eligible saved practice
+// The "Submit for review" control on an eligible saved practice
 // (Piece 4). It promotes a completed voice+video practice (with a recording and a
 // score) into the graded submission for its assignment. A short confirm panel
 // describes the real effect, then it POSTs to /api/practice/submit and refreshes
@@ -11,6 +11,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { formatPoints } from "@/lib/types";
 
 export function SubmitPracticeButton({
   sessionId,
@@ -58,7 +59,7 @@ export function SubmitPracticeButton({
         size="xs"
         onClick={() => setConfirming(true)}
       >
-        Submit as graded assignment
+        Submit for review
       </Button>
     );
   }
@@ -66,9 +67,14 @@ export function SubmitPracticeButton({
   return (
     <div className="mt-1 w-full rounded-md border border-amber-300 bg-surface-warning p-3 text-meta">
       <p className="text-content-warning">
-        Submit this practice as your graded assignment? It becomes your official
-        submission
-        {hasScore ? ` and keeps its score (${scoreTotal} / ${scoreMax})` : ""}.
+        Submit this practice for review? It becomes your official submission
+        {/* PD DISPLAY FIX. LEAK 1 OF 2: this rendered the raw stored numbers,
+            bypassing formatPoints(), so a total carrying float dust printed it
+            here in full while every other score surface on the page went
+            through the helper. THE PERIOD STAYS ON THE SAME LINE AS THE CLOSING
+            BRACE: JSX joins a text line to the line above it with a space, so a
+            "." of its own would render as "(113 / 200) . Your other". */}
+        {hasScore ? ` and keeps its score (${formatPoints(scoreTotal)} / ${formatPoints(scoreMax)})` : ""}.
         Your other practices stay. This can only be changed if your instructor
         allows a retake.
       </p>
@@ -89,7 +95,7 @@ export function SubmitPracticeButton({
           onClick={submit}
           disabled={loading}
         >
-          {loading ? "Submitting..." : "Submit for a grade"}
+          {loading ? "Submitting..." : "Submit for review"}
         </Button>
       </div>
       {error && <p className="mt-2 text-content-danger">{error}</p>}

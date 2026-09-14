@@ -453,6 +453,56 @@ check(45, "only the level in force appears in the changed criterion's section",
   shown.length === 1 && shown[0] === "Kiln-ready",
   "found: " + shown.join(", "));
 
+// --- PD DISPLAY FIX, 2026-09-13. THE FLOAT DUST. ---------------------------
+//
+// ==> THERE IS NO LIVE VENUE FOR THIS, AND THAT ABSENCE IS THE REASON IT IS
+//     HERE. Tom's September 11 practice renders its Discovery criterion as
+//     49.50000000000001 / 55.00000000000001 while every other criterion on the
+//     same page prints clean. NOT ONE STORED SCORE IN THE TEST CLASSES CARRIES
+//     DUST, measured 2026-09-13: B3's Discovery stores a clean 49.5 / 55, the
+//     very same criterion. So a click-through against test data renders the
+//     same text before and after the fix. That proves no regression and proves
+//     nothing whatever about the fix. These checks are the discriminating half.
+//
+//     THE TWO VALUES ARE NOT INVENTED. They are the two numbers off his screen.
+//
+//     WHERE THE DUST IS BORN IS STILL UNMEASURED and deliberately out of scope:
+//     lib/scoring.ts line 437 sums points_earned with plain float addition and
+//     app/api/session/end/route.ts line 272 stores that sum, so a STORED total
+//     may carry dust that every screen now hides. This is a render fix.
+check(46, "formatPoints rounds dust off a half",
+  formatPoints(49.50000000000001) === "49.5", "got " + formatPoints(49.50000000000001));
+check(47, "formatPoints rounds dust off a whole and drops the .0",
+  formatPoints(55.00000000000001) === "55", "got " + formatPoints(55.00000000000001));
+check(48, "formatPoints leaves a plain integer alone",
+  formatPoints(12) === "12", "got " + formatPoints(12));
+check(49, "formatPoints keeps a half at one decimal, never rounding it to a whole",
+  formatPoints(4.5) === "4.5", "got " + formatPoints(4.5));
+check(50, "formatPoints renders zero as 0",
+  formatPoints(0) === "0", "got " + formatPoints(0));
+check(51, "formatPoints still hands back a non-finite value unchanged",
+  formatPoints(NaN) === "NaN" && formatPoints(Infinity) === "Infinity",
+  "got " + formatPoints(NaN) + " and " + formatPoints(Infinity));
+
+// ==> AND THE SAME THING THROUGH THE SHIPPED COMPONENT, not the helper alone.
+//     The criterion's own ladder is irrelevant to this: rubric-score.tsx renders
+//     the ITEM's points_earned and points_max and never a level's points, which
+//     is why a 55-point item on a 30-point criterion is not a mismatch here.
+const dusty = renderToStaticMarkup(
+  <RubricScore
+    items={[item("1-centring", "Sound", 49.50000000000001, 55.00000000000001, "Dust on both numbers.")]}
+    criteria={CRITERIA}
+    audience="student"
+  />,
+);
+const dustyPairs = [...dusty.matchAll(/(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/g)].map((m) => m[1] + "/" + m[2]);
+check(52, "the rendered pair reads 49.5 / 55, all three times it is stated",
+  dustyPairs.length === 3 && dustyPairs.every((p) => p === "49.5/55"),
+  "rendered: " + dustyPairs.join(" "));
+check(53, "no number with three or more decimal places survives in the markup",
+  !/\d\.\d{3,}/.test(dusty),
+  "found: " + (dusty.match(/\d\.\d{3,}/) ?? [""])[0]);
+
 console.log("");
 if (failures > 0) {
   console.log(failures + " of " + ran + " CHECK(S) FAILED");
