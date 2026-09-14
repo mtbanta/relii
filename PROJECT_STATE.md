@@ -29,6 +29,8 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ==> **CHECK 2 CERTIFIES THIS SESSION, AND ITS LIMIT MUST BE READ WITH IT. NOT ONE STORED SCORE IN THE TEST CLASSES CARRIES DUST**, measured before any code was written: B3's Discovery stores a clean `49.5 / 55`, the very criterion that renders `49.50000000000001 / 55.00000000000001` on Tom's screen. So the live half of check 2 proves **retroactivity and no regression**, and it does NOT prove the dust fix. **THE DISCRIMINATING HALF IS CHECK 1**, executed against the shipped component, and the owner reloads his own practice for the rest. **Writing dust into a test row to manufacture a venue was considered and rejected: it is a write and it is outside the fence.** <==
 
+==> **THE OWNER CLOSED THE OTHER HALF ON 2026-09-13, AND THIS IS THE OBSERVATION THAT ACTUALLY CERTIFIES THE DUST FIX.** He reloaded his own practice after the deploy and reported: **"Discovery reads 49.5 / 55 now, confirmed."** Before the deploy that same criterion read `49.50000000000001 / 55.00000000000001`. **THIS IS THE ONLY OBSERVATION IN THE SESSION MADE AGAINST DATA THAT ACTUALLY CARRIED DUST**, because no test row does, and it is the retroactivity requirement met in the one place it mattered: **his stored score was never re-scored and nothing was written to the database.** <==
+
 ---
 
 ### CHECK 8: THE RUBRIC READ, VERBATIM, AND THE ORIGIN OF THE DUST
