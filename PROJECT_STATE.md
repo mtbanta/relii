@@ -105,6 +105,10 @@ Built in the scratchpad, **never committed, no shipping path touched.** Node 24 
 
 **Session `98bfad83-b357-46f7-b854-895234d5f03d`**, Barry Bedford (`2studentb1@gmail.com`), `Presentation-Close: Alex (regional manager)`, voice and video, **Sep 14, 2026, 1:38 PM, recording length 02:13**, conversation-only so no score. **B1's saved practices went 2 of 3 to 3 of 3**, which is the FIFO cap doing its job and is expected, not litter.
 
+==> **AND THE NUMBER TO SET BESIDE IT, BECAUSE THREE DIFFERENT COUNTS FOR B1 NOW EXIST IN THIS FILE AND THEY WOULD OTHERWISE READ AS A DISCREPANCY (measured 2026-09-14 during D2).** T0 recorded **3 sessions**; the line above says **3 of 3**; D2's baseline read says **4 sessions**. **ALL THREE ARE CORRECT AND THEY COUNT DIFFERENT THINGS.** <==
+
+**THE CAP IS PER STUDENT PER ASSIGNMENT, NOT PER CLASS.** `lib/practice.ts` sets `KEPT_PRACTICES = 3`, and `prunePractices()` scopes every query to `(student_id, assignment_id, kind = 'practice', the finished status)`, so **it can never touch another student's rows.** B1's 4 rows are **2studentb1 with exactly 3, which is at the cap, plus 1studentb1 with 1**, which is a different student and therefore **out of the prune's scope by construction rather than by luck.** The "3 of 3" above is 2studentb1's own count, not the class total.
+
 **THE RIG, LABELS READ BEFORE THE APP WAS TOUCHED, EVERY LAUNCH AND NOT ONCE:** `audio: Fake Default Audio Input`, `video: fake_device_0`. Flags `--use-fake-device-for-media-stream`, `--use-fake-ui-for-media-stream`, `--use-file-for-fake-audio-capture`. Standalone Playwright script in the scratchpad against system Chrome by `executablePath`, module out of the npx cache. **`.mcp.json` was NOT edited.** `page.on("dialog", d => d.accept())` registered before any click.
 
 **ONE NEW RIG DETAIL WORTH KEEPING.** On the login form, filling the password **cleared the email field**, silently. The first run failed with a 30 second navigation timeout that looks exactly like a wrong password. **The fix is to measure both field lengths after filling and re-fill until both match**, which is the same "measure, do not assume" lesson already recorded for the redacted-password case, now with a second cause.
@@ -1399,7 +1403,15 @@ B3_STUDENT_PASSWORD=...
   | Short student turns (25 chars or fewer) | **10**, matching D3's count |
   | Non-ASCII found at all | **U+2019 x21 and U+2014 x5, EVERY ONE IN A PERSONA TURN, NONE IN A STUDENT TURN** |
 
-  ==> **SO THE HYPOTHESIS IS NOT CONFIRMED AND IT IS NOT REFUTED, AND THE REASON MATTERS: THIS TRANSCRIPT HAS NO BLANK TURN TO DUMP.** The test was "dump the codepoints of a blank-rendering turn", and there is no such turn here to dump. **The turn_detection session still has NO SPECIMEN**, and it should stop expecting this session's data to supply one. <==
+  ==> **THE HYPOTHESIS IS WEAKENED BY THIS EVIDENCE, AND THE OWNER SAID SO FIRST (ruling, 2026-09-14). IT IS NOT MERELY UNTESTED, AND AN EARLIER DRAFT OF THIS LINE RECORDED IT THAT WAY, WHICH WAS TOO KIND TO IT.** The hypothesis was the OWNER'S, argued from the Arabic turn in Tom's PDF, and **he withdrew its central claim on this evidence rather than defending it.** <==
+
+  **WHY IT IS WEAKENED, STATED AS THE EVIDENCE AND NOT AS A FEELING.** The hypothesis needs the TRANSCRIBER to emit bidi or zero-width marks. **Across 21 student turns, 10 of them short, `gpt-4o-transcribe` emitted NONE.** The only non-ASCII in the whole session is `U+2019` and `U+2014`, and every instance is in a turn ALEX generated, not in a turn the transcriber produced.
+
+  ==> **SO THE LIKELIER EXPLANATION IS NOW THE CAVEAT THAT WAS ALREADY WRITTEN DOWN: THE PDF EXPORTER INSERTED THOSE MARKS ITSELF DURING RIGHT-TO-LEFT LAYOUT.** If that is what happened, the marks were never in the stored turn, and the bidi explanation collapses entirely. **The caveat has gone from a hedge to the leading candidate.** <==
+
+  **WHAT SURVIVES IS NARROWER AND IS STILL REAL, SO NOBODY SHOULD CLOSE THIS.** Tom's blank turns **passed a filter that drops empty text**. `t.text.trim()` is truthy for them, so **something non-empty was in those turns, and nobody yet knows what it was.** That question is untouched by this session's negative.
+
+  **AND THE TEST ITSELF STILL HAS NOT RUN, FOR A PLAIN REASON: THERE WAS NO BLANK TURN HERE TO DUMP CODEPOINTS FROM.** The turn_detection session **still has NO SPECIMEN** and should stop expecting this session's data to supply one. **The way to get one is to reproduce a blank-rendering turn in B1**, which this session did not attempt and was not asked to.
 
   **BUT ONE THING THIS DOES ESTABLISH, AND IT WEAKENS THE HYPOTHESIS RATHER THAN SUPPORTING IT.** The hypothesis rests on the transcriber emitting bidi or zero-width marks. **Across 21 student turns from `gpt-4o-transcribe`, including 10 short ones of exactly the shape that failed for Tom, it emitted NONE.** The only non-ASCII in the whole session comes from the persona's own generated speech, not from transcription. **That does not settle Tom's Arabic turn**, which was a different language on a different day, and the PDF-exporter caveat still stands untouched. It does mean the marks are not a routine product of this transcription path.
 
