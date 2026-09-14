@@ -1178,7 +1178,26 @@ All exit **0**, all under `TZ=UTC`, at 2026-09-13 21:38 CDT.
   | The instructor average tile, `app/instructor/page.tsx` line 429 | `toFixed(1)` |
   | `app/api/admin/class/[id]/export/route.ts` | Carries no score at all |
 
-  **ONE PART OF THE AUDIT IS STRONGER THAN IT WAS STATED, MEASURED RATHER THAN ASSUMED.** The percentage does not merely agree "far past the tenth it keeps": `49.50000000000001 / 55.00000000000001` and `49.5 / 55` are **bit-identical as a ratio, to twenty decimal places**, because the dust in the numerator and the denominator cancels. The rounding is a second line of defence there, not the thing doing the work. The only other comparison in reach is the `score.max_total > 0` divide-by-zero guard on line 249, and `55.00000000000001 > 0` answers the same as `55 > 0`. **No sort or `.order()` anywhere in the app names a score or a total.**
+  ==> **THE ROUNDING AT LINE 252 IS LOAD-BEARING. IT IS NOT A SECOND LINE OF DEFENCE, AND AN EARLIER DRAFT OF THIS ENTRY SAID IT WAS.** The correction is recorded because the measurement was right and the MECHANISM was wrong, and the mechanism is the part a future session acts on.
+
+  **What is true:** `49.50000000000001 / 55.00000000000001` and `49.5 / 55` really are the same double, both `0x3feccccccccccccd`.
+
+  **Why, and it is NOT cancellation.** The two relative perturbations are different sizes, `1.4354e-16` on the numerator and `1.2919e-16` on the denominator. They leave a residual of about `1.29e-17` at the value 0.9, which is under half an ULP there (`5.55e-17`, one ULP being `1.11e-16`), so it rounds back to the same double. **IDENTITY BY ROUNDING, NOT BY CANCELLATION.**
+
+  **AND IT DOES NOT GENERALISE, WHICH IS THE PART THAT MATTERS. Three of six plausible pairs off Tom's own ladder are NOT bit-identical**, measured 2026-09-13:
+
+  | Pair | Same double as the clean ratio? | Renders |
+  | :-- | :-- | :-- |
+  | `49.50000000000001 / 55.00000000000001` | yes | 90 |
+  | `13.500000000000002 / 55.00000000000001` | yes | 24.5 |
+  | `4.500000000000001 / 55.00000000000001` | yes | 8.2 |
+  | `38.50000000000001 / 55.00000000000001` | **no** | 70 |
+  | `49.50000000000001 / 55` | **no** | 90 |
+  | `49.5 / 55.00000000000001` | **no** | 90 |
+
+  **All six render the percentage a clean pair would, and they do so BECAUSE OF the `Math.round`, not in spite of it.** On half these cases the rounding at `app/student/session/[id]/results/page.tsx` line 252 is **the only thing standing between the dust and what a student reads.** The inert claim rests on that rounding, exactly as much as it looks like it needs to. **Anyone who removes or loosens it is removing the guard, not tidying a redundant one.** <==
+
+  The only other comparison in reach is the `score.max_total > 0` divide-by-zero guard on line 249, and `55.00000000000001 > 0` answers the same as `55 > 0`. **No sort or `.order()` anywhere in the app names a score or a total.**
 
   ==> **THE TRIGGER THAT ENDS THE TOLERANCE, WHICH IS THE POINT OF THIS ENTRY. IF RELII EVER EXPORTS A SCORE TO CANVAS OR ANY UNIVERSITY GRADEBOOK, A RAW FLOAT LEAVES THE BUILDING AND "INERT" STOPS BEING TRUE.** Every consumer above is one we control and one that rounds on the way out. A gradebook export hands the number to something we do not control, which may store it, display it, or arithmetic on it however it likes. **WHOEVER BUILDS THAT EXPORT IS THE ONE WHO BREAKS THIS ASSUMPTION AND HAS TO REVISIT IT.** Do not build it and leave this entry standing. <==
 
