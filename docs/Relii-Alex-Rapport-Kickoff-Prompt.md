@@ -12,7 +12,7 @@
 
 - **`PROJECT_STATE.md`, Current Stage and Open Issues.** In particular the T0 record of 2026-09-13, whose guard-and-read-back shape this copies.
 - **`supabase/alex-wildcat-discovery-update.sql`.** The file this one is modelled on, including its probe, its md5-verified restore and its own revert.
-- **`OS_Resources/Relii/persona-alex-procurement.md`.** The current live text, which still matches the database byte for byte.
+- **`docs/persona-alex-procurement.md`.** The current live text. **It is the repo twin of an `OS_Resources` copy that Claude Code deliberately cannot see, and the two are kept byte-identical by the owner's Cowork session.** A kickoff must never cite an `OS_Resources` path as a source for you.
 
 ==> **THERE ARE UNPUSHED COMMITS WAITING FOR YOU, AND THEY ARE THIS FILE. YOU PUSH THEM.** This kickoff was written in a Cowork session that **cannot push**: github.com is not on that session's egress allowlist, so it commits and stops. **The owner does not push. You do, for every commit in this repo, including the ones you did not make.** Run `git log --oneline origin/main..main` before you start and name what you find. <==
 
@@ -164,7 +164,7 @@ RULES FOR YOU
 **You cannot sign in as Tom, so the behavioural proof happens in B1 with a probe and a byte-exact restore**, the shape T0 used and the shape of `supabase/phase-2b2-scoring-failure-probe.sql`.
 
 1. **Baseline B1's scenario: BOTH columns**, character counts and md5s, recorded BEFORE anything is written. That is the restore target.
-2. **Apply BOTH columns to B1's scenario as a probe:** the new `persona_system_prompt` from above, AND Tom's current `scenario_context` (2725 chars, md5 `6c8a50a8691f5df3a0db8c85b087a3e9`), which is in `OS_Resources/Relii/persona-alex-procurement.md` and was re-verified against that md5 on 2026-09-14.
+2. **Apply BOTH columns to B1's scenario as a probe:** the new `persona_system_prompt` from above, AND Tom's current `scenario_context` (2725 chars, md5 `6c8a50a8691f5df3a0db8c85b087a3e9`), which is in `docs/persona-alex-procurement.md`, or better in the git object `git show 370a003:docs/persona-alex-procurement.md`. Verify it against that md5 before using it.
 3. Run the conversations below.
 4. **Restore BOTH columns byte-exact and prove it by md5, not by the update reporting success.**
 5. Only then apply the one column to Tom's row.
