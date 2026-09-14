@@ -232,7 +232,14 @@ select
 --
 -- IT TOUCHES TWO TEXT COLUMNS OF ONE ROW. Not the title, not persona_name, not
 -- meeting_type, not enabled, not the group id.
--- ---------------------------------------------------------------------------
+--
+-- ==> IF THIS RETURNS ZERO ROWS, THERE ARE TWO CAUSES AND THEY ARE NOT THE SAME
+--     PROBLEM. DO NOT ASSUME THE FIRST. Either the payload is wrong (a text-guard
+--     failure, which would be a transcription slip), OR THE PROBE IS ALREADY
+--     APPLIED, because the before-guard demands B1's ORIGINAL context md5
+--     4ce11150 and a second run would find 6c8a50a8 sitting there instead.
+--     RE-RUN 1b TO TELL THEM APART: original md5s mean cause one, Wildcat md5s
+--     mean the probe already landed and there is nothing to do. <==
 with approved as (
   -- ==> THE PASTED TEXT GUARDS ITSELF. Both md5 tests at the foot of the WHERE
   --     clause hash THIS text, the bytes actually being sent, against the
@@ -419,6 +426,15 @@ where id = '68bc4303-e5ae-4fdb-bcc4-0372631dc729';
 --     2studentb1's three under the cap. What must NOT have moved is
 --     1studentb1's one row, which belongs to a different student and which
 --     prunePractices is scoped never to reach.
+--
+--     THE EXPECTED ANSWERS, WRITTEN DOWN BEFORE THE RUN RATHER THAN DECIDED
+--     AFTER IT: scenarios 1, assignments 1, rubrics 0,
+--     other_student_row_still_there 1, probe_student_kept_practices 3.
+--     The last one is 3 because the cap is 3 and eight practices will have been
+--     run: it is the cap holding, not a loss. Verified 2026-09-14 that
+--     2studentb1 has ZERO submissions on this assignment, so the practice
+--     buttons render (app/student/page.tsx line 575 gates on !submitted
+--     && !locked) and all eight can actually be started.
 select
   (select count(*) from public.scenarios   where class_id = '196770e0-cdd5-4fe4-80e4-421ee6c7d13f') as scenarios,
   (select count(*) from public.assignments where class_id = '196770e0-cdd5-4fe4-80e4-421ee6c7d13f') as assignments,
@@ -449,6 +465,13 @@ select
 -- ONE ROW, ONE COLUMN. Pinned to the row id AND the class id, so a wrong id
 -- cannot land in some other class. scenario_context is NOT in the SET list, and
 -- its md5 is checked on the way in and read back on the way out.
+--
+-- ==> THIS STATEMENT IS NOT IDEMPOTENT AND IT IS NOT MEANT TO BE. Run twice, the
+--     second run matches ZERO ROWS, because the before-guard demands
+--     ae1688fd and the first run replaced it with 093025a7. A zero-row result
+--     here therefore means either a bad payload or THE UPDATE ALREADY LANDED.
+--     RUN 5a TO TELL THEM APART: prompt_is_new_text true means it is already
+--     done and nothing is wrong. <==
 -- ---------------------------------------------------------------------------
 with approved as (
   select
