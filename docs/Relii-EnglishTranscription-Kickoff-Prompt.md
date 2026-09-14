@@ -4,7 +4,21 @@
 
 **WHY IT RUNS NOW, AHEAD OF ALEX GEOGRAPHY AND RAPPORT (D2).** Registration week started September 14, students practise this week, and **the transcript is the only input to scoring**. A mis-transcribed turn is graded as gibberish and the student never learns why. D2 is quality of experience; this is correctness on live student work.
 
-**THE EVIDENCE, from Tom's own September 11 practice.** A student turn reading `Moikka!` (Finnish). A student turn reading `دررست.` (Arabic script). Two student turns rendered empty. **The student was speaking English throughout.** These are short-utterance language mis-detections, which is exactly what a language hint exists to prevent.
+**THE EVIDENCE, from Tom's own September 11 practice**, re-counted from the exported PDF on 2026-09-14 rather than taken from the change brief. **The transcript holds 19 student turns and FIVE OF THEM ARE BROKEN:**
+
+| Student turn | What it rendered |
+| :-- | :-- |
+| 4 | *(empty)* |
+| 6 | `Moikka!`, Finnish |
+| 8 | `Well,`, English but truncated to one word |
+| 12 | `دررست.`, Arabic script |
+| 17 | *(empty)* |
+
+**The student was speaking English throughout.** Two are language mis-detections, which is exactly what a language hint exists to prevent. **The other three are not**, and the next section says why that matters.
+
+==> **ALL FIVE FAILURES ARE SHORT TURNS, AND THEY SIT IN THE SAME STRUCTURAL PLACE. THIS IS ONE FAMILY OF DEFECT, NOT TWO.** Every one of the five follows an Alex question and immediately precedes a long, fluent student answer. Student turn 8 reads `Well,` and student turn 9 opens `So disruptions come in multiple forms`: **that is one utterance split in two, with the leading fragment mis-handled.** The same shape holds for both empties and both foreign-language turns.
+
+**WHAT THAT MEANS FOR THIS SESSION, AND WHAT IT DOES NOT.** It does not change the fix or the fence: `languages: ["en"]` is still the change, and `turn_detection` is tuned and is still not to be touched. **What it changes is what you record.** `languages` can only address two of the five symptoms. It will do nothing for `Well,` or for the two empty turns, so **a clean run does not mean the family is fixed, and the record must not imply that it does.** <==
 
 **Before anything else, state the filename and line count you read.**
 
@@ -97,7 +111,7 @@ The same transcription object accepts three more fields. **All three are recorde
 | 2 | The client-secrets call returns success, not a rejection | **Separates outcome A from a hard outcome B** |
 | 3 | A real voice practice in B1 through the fake-media rig completes and produces a transcript with student turns in it | Proves nothing regressed: a broken transcription config would empty the transcript, and an empty transcript is an ungradeable submission |
 | 4 | **THE DISCRIMINATING BEHAVIOURAL CHECK:** a `.wav` containing a short, ambiguous English utterance of the kind that failed for Tom, transcribed with the new config | **This is the only check that can show a silent ignore** |
-| 5 | The two empty-turn instances are looked for and **reported, not fixed** | See below |
+| 5 | **THE WHOLE SHORT-TURN FAMILY is counted and reported, not fixed:** how many student turns were short, and how many of those were empty, truncated, or in the wrong language. **Baseline to compare against: 5 of 19 in Tom's practice** | A count is comparable across runs; "the empty turns did not recur" is not |
 | 6 | The five existing check scripts run, counts read from the runs | Standing practice |
 
 ==> **ON CHECK 4, STATE THE LIMIT HONESTLY IN THE RECORD.** One clean sample does not prove mis-detection is gone. It shows the config did not break anything and that the specific failure shape is not trivially reproducible. **THE REAL VERDICT COMES FROM TOM'S COHORT THIS WEEK**, and the record should say so rather than claim more. <==
@@ -162,7 +176,8 @@ No em dashes and no en dashes outside chat. Record each owner ruling in PROJECT_
 - **WHICH OUTCOME OCCURRED, A or B**, said plainly in the first sentence;
 - **the request body as sent**, showing `languages` beside `model`;
 - **the transcript from the live practice, with its student turns quoted**;
-- **whether empty turns recurred**, and what the buffer-committed mechanism looked like if they did;
+- **the short-turn count, against the 5-of-19 baseline**, broken out as empty, truncated, and wrong-language, plus what the buffer-committed mechanism looked like for any that recurred;
+- **an explicit statement that `languages` addresses only the wrong-language subset**, so a clean run is not evidence that truncation or empty turns are fixed;
 - **the five script counts, read from their runs**;
 - **the honest limit on check 4**: one clean sample is not proof that mis-detection is gone, and the real verdict comes from Tom's cohort this week;
 - **confirmation that `origin/main` equals `main`**, with the kickoff commits pushed rather than left behind.
