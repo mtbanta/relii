@@ -1156,6 +1156,38 @@ All exit **0**, all under `TZ=UTC`, at 2026-09-13 21:38 CDT.
 
 ## Open Issues
 
+- ==> **FLOAT DUST IN TOM'S DISCOVERY RUBRIC IS TOLERATED ON PURPOSE, AND IT IS TOLERATED BECAUSE IT IS INERT RATHER THAN BECAUSE IT IS HIDDEN (owner ruling, 2026-09-13).** No normalising, no backfill, no parser change. **The rubric row and every `score_total` stay exactly as they are.** <==
+
+  **WHERE IT LIVES AND WHERE IT DOES NOT.** The dust is in the `items` of rubric `64f3f919`, on the Discovery criterion only: `55.00000000000001`, `49.50000000000001`, `44.00000000000001`, `38.5`, `27.500000000000004`, `5.500000000000001`. All six reproduce byte for byte as `100 * 0.55 * m` in IEEE 754 doubles, with the six multipliers taken from row 3 of the uploaded workbook, `0.55` from B7 and `100` from D18. **IT IS NOT FROM `lib/rubric-xlsx.ts`**, whose `numericValue()` reads `cell.result ?? cell.value` and never multiplies, **AND IT IS NOT FROM THE COPY IN `docs/`** (md5 `e7ea15ecf67c5ff48538ddb745e1fcea`), whose cached values on that row are clean `55 / 49.5 / 44 / 38.5 / 27.5 / 5.5` with the last four carrying no formula at all. It came in with whichever workbook was actually uploaded. **THAT FILE HAS NEVER BEEN READ, so anything more specific would be a guess.**
+
+  **IT REACHES STORED TOTALS, AND NEW ONES WILL STILL CARRY IT.** `lib/scoring.ts` line 437 sums `points_earned` with plain float addition (`scoredItems.reduce((sum, item) => sum + item.points_earned, 0)`) and `app/api/session/end/route.ts` line 272 stores that sum as `score_total`. **This is not a legacy condition that ages out**: every future score against this rubric is born the same way.
+
+  ==> **WHY IT IS TOLERATED: THE AUDIT SAYS IT IS INERT, NOT MERELY INVISIBLE. NOTHING COMPARES, THRESHOLDS OR SORTS ON A TOTAL.** The owner audited every read of `score_total` and `score.total` on 2026-09-13 and that search comes back empty. **RE-RUN IT, DO NOT RE-REASON IT.** The audit is one command:
+
+  ```
+  grep -rn "score_total\|score\.total\|max_total" --include="*.ts" --include="*.tsx" app lib components | grep -vE "formatPoints\("
+  ```
+
+  **Every surviving hit must be a type declaration, a `select()` column list, a null check, a pass-through, a comment, or one of the consumers below. A hit that is an inequality, a `sort`, an `.order()`, or a threshold ENDS THE TOLERANCE.** **Run verbatim on 2026-09-13 it returned 48 hits and every one was accounted for.** The count is a tripwire, not a target: it moves whenever any of these files is edited, so a moved count means re-read the hits, not that something is wrong.
+
+  | Consumer | Why the dust cannot escape |
+  | :-- | :-- |
+  | Every screen, the submit confirm, the reset history | `formatPoints`, which rounds to one decimal |
+  | The per-submission CSV, `app/api/instructor/submission/[id]/csv/route.ts` line 136 | `formatPoints` |
+  | The percentage, `app/student/session/[id]/results/page.tsx` line 252 | `Math.round((score.total / score.max_total) * 1000) / 10` |
+  | The instructor average tile, `app/instructor/page.tsx` line 429 | `toFixed(1)` |
+  | `app/api/admin/class/[id]/export/route.ts` | Carries no score at all |
+
+  **ONE PART OF THE AUDIT IS STRONGER THAN IT WAS STATED, MEASURED RATHER THAN ASSUMED.** The percentage does not merely agree "far past the tenth it keeps": `49.50000000000001 / 55.00000000000001` and `49.5 / 55` are **bit-identical as a ratio, to twenty decimal places**, because the dust in the numerator and the denominator cancels. The rounding is a second line of defence there, not the thing doing the work. The only other comparison in reach is the `score.max_total > 0` divide-by-zero guard on line 249, and `55.00000000000001 > 0` answers the same as `55 > 0`. **No sort or `.order()` anywhere in the app names a score or a total.**
+
+  ==> **THE TRIGGER THAT ENDS THE TOLERANCE, WHICH IS THE POINT OF THIS ENTRY. IF RELII EVER EXPORTS A SCORE TO CANVAS OR ANY UNIVERSITY GRADEBOOK, A RAW FLOAT LEAVES THE BUILDING AND "INERT" STOPS BEING TRUE.** Every consumer above is one we control and one that rounds on the way out. A gradebook export hands the number to something we do not control, which may store it, display it, or arithmetic on it however it likes. **WHOEVER BUILDS THAT EXPORT IS THE ONE WHO BREAKS THIS ASSUMPTION AND HAS TO REVISIT IT.** Do not build it and leave this entry standing. <==
+
+  **THE THREE OPTIONS ARE NOT ONE DECISION AND THEY DO NOT RIDE TOGETHER.** A future session that treats them as a single "fix the dust" task is doing three different things with three different risks:
+
+  1. **Normalising the rubric row** is a WRITE TO A LIVE ROW in Tom's class, the row every future score is graded against. Cheapest to state, and it needs the same md5-guarded discipline as the persona update.
+  2. **Normalising at parse time** is a CODE CHANGE affecting FUTURE UPLOADS ONLY. It fixes nothing that already exists. **It is the one with real value, because it stops new rubrics being born dusty**, and it is the only one of the three that touches no data.
+  3. **Backfilling `score_total`** is a WRITE TO GRADED STUDENT WORK, some of which may already be reviewed by an instructor. **THIS ONE NEVER TRAVELS WITH THE OTHER TWO.**
+
 - ==> **CLOSED 2026-09-11 BY COMMIT `73185da`. THE MEASUREMENT THAT CLOSES IT IS THE ONE THIS ENTRY ASKED FOR: B1 session `0ae456b3`, stored `2026-09-03 23:47:11+00`, read "Sep 3, 2026, 11:47 PM" on relii.vercel.app before the deploy and reads "Sep 3, 2026, 6:47 PM" after it.** The hour was the discriminator and the hour moved. Every human-readable timestamp in the app now resolves through one constant in `lib/app-time.ts`; the reset history's `" UTC"` suffix is gone; and the Available Date unlocks at 12:00 AM Central rather than midnight UTC, which was a second defect this entry did not name. **THE ENTRY'S OWN WARNING WAS THE RIGHT ONE AND WAS FOLLOWED: the three functions did NOT all want the same answer.** `formatDateTaken` and `formatShortDate` moved to Central; `formatDueDate` did not move, and neither did the three other date-only formatters. They are named in `lib/app-time.ts`'s header as deliberately absent. Full detail in Current Stage. **THE ORIGINAL ENTRY IS KEPT BELOW, because the day-boundary case it recorded is the clearest statement of what the defect cost a student.** <==
 
 - ==> **EVERY DATE IN THE APP RENDERS IN UTC, AND A GRADE SAVED IN THE US EVENING PRINTS AS THE NEXT DAY. MEASURED 2026-09-11, AND THE OWNER HAS ALREADY RULED ON THE FIX.**
