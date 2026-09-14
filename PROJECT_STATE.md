@@ -135,6 +135,8 @@ Built in the scratchpad, **never committed, no shipping path touched.** Node 24 
 | 20 | 02:00 | `Hi Alex, thanks for making time today. I know your calendar is tight.` |
 | 21 | 02:03 | `Well` |
 
+==> **ONE INFERENCE WAS MADE FROM THIS RUN AND WITHDRAWN THE SAME DAY, RECORDED BECAUSE THE WITHDRAWAL IS THE USEFUL PART.** Alex spent the practice insisting he runs an HVAC firm while the script asked about packaging lines, and that was offered as a live argument for D2 (Alex geography and rapport). **IT IS NOTHING OF THE KIND. IT IS B1 WORKING CORRECTLY.** B1's own persona IS an HVAC one: `supabase/alex-wildcat-discovery-update.sql` line **322** reads `You are Alex, the Regional Manager at a mid-sized (roughly 300 employees) residential HVAC firm`, and B1's assignment is titled **`HVAC Alex - trial close`**. **A persona holding its ground against a mismatched student script is the persona behaving as written.** It says nothing about Tom's Alex and nothing about D2. **The mismatch is a fact about the test script, which was written for Tom's packaging scenario and run against B1's HVAC one, and not a fact about the persona.** <==
+
 **THE SHORT-TURN COUNT, AGAINST THE 5-OF-19 BASELINE.** Short means 25 characters or fewer, which is the one and two word shape all five of Tom's failures had.
 
 | | Tom, Sep 11 | This run, Sep 14 |
@@ -168,6 +170,20 @@ Built in the scratchpad, **never committed, no shipping path touched.** Node 24 
 ==> **AND THE MISSING TURN AT 00:13 IS EXACTLY WHAT THAT FILTER DOES TO ONE.** A committed-but-untranscribed `Right.` would leave no trace in the saved transcript, which is precisely what was observed. **THE MECHANISM IS STILL NOT ESTABLISHED AND IS NOT BEING CLAIMED**: a VAD that never committed the buffer at all produces the identical absence, and so would a buffer boundary landing inside the following utterance, which would also account for the lost `So disruptions come`. **Three candidates, one observation, and no way to separate them without instrumenting the client.** What is now certain is that the earlier "clipped at connection" reading was not one of them. <==
 
 - ==> **A TENSION THIS SESSION FOUND AND DELIBERATELY DID NOT RESOLVE, BECAUSE RESOLVING IT MEANS READING TOM'S DATA.** The kickoff says two of Tom's September 11 student turns "rendered with no text", and line 456 says a turn with no text is never saved in the first place. **THOSE TWO STATEMENTS CANNOT BOTH BE STRAIGHTFORWARDLY TRUE.** Either those turns carry something that survives `.trim()`, or they reached the transcript by a path other than `saveTranscript()`, or the export renders a header for something that is not a turn. **Tom's class was not read, so this is filed as a question and not as an answer.** It is the first thing to settle before anyone tries to fix the empty turns, because the fix depends on which of those it is.
+
+  ==> **AND THERE IS A LEADING CANDIDATE FOR HOW A TURN PASSES THE FILTER AND STILL RENDERS AS NOTHING. IT IS A HYPOTHESIS TO TEST, NOT AN ANSWER, AND IT MUST NOT HARDEN INTO ONE.** <==
+
+  **THE FILTER WAS IN FORCE WHEN TOM PRACTISED.** Line 456 dates to `427b51d`, **2026-06-22**, three months before September 11. Confirmed with `git log -L 456,456:components/voice-conversation.tsx`, not assumed.
+
+  **THE EXPORT SHOWS A REAL HEADING WITH NOTHING UNDER IT**, a `You` heading followed by empty lines, rather than a page break or an extraction artifact. **So the text passed `t.text.trim()` and still displayed as nothing.** That is only possible if it holds characters that are not whitespace to JavaScript but draw nothing.
+
+  ==> **AND THE TRANSCRIBER IS KNOWN TO EMIT EXACTLY THOSE.** Tom's Arabic turn extracts with **U+202B** and **U+202C** bidi controls around it. **Measured on 2026-09-14 rather than reasoned about:** JavaScript `trim()` strips whitespace and U+FEFF, and it does **NOT** strip U+202B, U+202C or U+200B. A turn whose text is only bidi or zero-width marks therefore **passes line 456 and renders invisible**. <==
+
+  **IT ALSO EXPLAINS THE ASYMMETRY THIS SESSION FOUND, WHICH IS THE REASON TO TAKE IT SERIOUSLY.** In B1 the short `Right.` produced **NO TURN**; in Tom's transcript the equivalent produced a **BLANK** one. **Truly empty is dropped by the filter, blank-but-not-empty survives it. One filter, two symptoms**, and until now the two looked like different defects.
+
+  ==> **THE CAVEAT THAT KEEPS THIS A HYPOTHESIS: THE PDF EXPORTER MAY HAVE INSERTED THOSE BIDI MARKS ITSELF** while laying out right-to-left text, in which case they were never in the stored turn and this explanation collapses. <==
+
+  ==> **THE DECISIVE TEST, AND IT IS CHEAP: DUMP THE CHARACTER CODES OF A BLANK-RENDERING TURN'S TEXT.** Codepoints settle it in one read; nothing else does. **DO IT IN B1 BY REPRODUCING A BLANK-RENDERING TURN FIRST. DO NOT RUN IT AGAINST TOM'S DATA AND DO NOT ASK TO.** This is the first thing the `turn_detection` session should do, before it touches a single value. <==
 - **`conversation.item.input_audio_transcription.failed` never fired**, in any of the 165 turns. The switch still has no case for it, so a failed transcription would fall through and leave the turn holding nothing. **Untested, unchanged, and still a separate decision.**
 - **`turn_detection` was not touched.** `silence_duration_ms` is still the tuned 1600.
 
@@ -1360,6 +1376,15 @@ B3_STUDENT_PASSWORD=...
 
 
 ## Open Issues
+
+- ==> **THE EMPTY AND DROPPED STUDENT TURNS ARE STILL OPEN, AND AS OF 2026-09-14 THERE IS A NAMED HYPOTHESIS AND A CHEAP DECISIVE TEST FOR THEM. RAISED FROM D3.** Two of Tom's five September 11 failures were blank turns and one was truncated; **`language: "en"` addresses none of them.** <==
+
+  **THE FILTER IS THE CENTRE OF IT.** `components/voice-conversation.tsx` line **456**, in `saveTranscript()`, filters `t.done && t.text.trim()`, so a student turn with genuinely no text is **dropped from the saved transcript entirely rather than saved blank**. It has done so since `427b51d`, 2026-06-22. **This means "no blank turn in the transcript" is not evidence that no turn was lost**, and D3's live run in B1 lost one outright: `Right.` produced no turn at all, twenty-one seconds into a running call.
+
+  **THE HYPOTHESIS.** A turn whose text is only bidi or zero-width marks (**U+202B, U+202C, U+200B**) passes `trim()`, which strips whitespace and U+FEFF but not those, and renders as nothing. The transcriber is known to emit them: Tom's Arabic turn extracts wrapped in U+202B and U+202C. **That would make "dropped" and "blank" the same defect seen through one filter.** **THE CAVEAT: the PDF exporter may have added those marks itself during right-to-left layout, which would collapse the explanation.**
+
+  ==> **THE TEST: DUMP THE CODEPOINTS OF A BLANK-RENDERING TURN. IN B1, BY REPRODUCING ONE. NOT ON TOM'S DATA.** Do this before touching `turn_detection`, whose `silence_duration_ms` of 1600 is a tuned value that nothing measured so far implicates. <==
+
 
 - ==> **FLOAT DUST IN TOM'S DISCOVERY RUBRIC IS TOLERATED ON PURPOSE, AND IT IS TOLERATED BECAUSE IT IS INERT RATHER THAN BECAUSE IT IS HIDDEN (owner ruling, 2026-09-13).** No normalising, no backfill, no parser change. **The rubric row and every `score_total` stay exactly as they are.** <==
 
