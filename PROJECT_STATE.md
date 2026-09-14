@@ -256,6 +256,19 @@ All exit **0**, all under `TZ=UTC`, at 2026-09-13 21:38 CDT.
 
 **ONE FALSE START WORTH KEEPING, BECAUSE IT COST FIVE SIGN-IN ATTEMPTS.** A password pasted into chat is replaced by the literal 10-character token `<password>` inside tool arguments, so Playwright typed ten wrong characters and Supabase returned a real 400. It looks exactly like a wrong password, and it failed IDENTICALLY for two different accounts, which is the tell. One measurement settles it and costs no attempt: read `document.querySelector('input[type=password]').value.length` after filling. It read 10, first character code 60, a `<`. Recorded in memory.
 
+==> **THE WORKAROUND, AND THE RULE THAT IT IS CREATED AND DELETED PER SESSION RATHER THAN LEFT STANDING (2026-09-13).** Writing the credentials to a **gitignored `.env*.local` file** and reading them from there routes around the redaction entirely, because the value never has to survive a trip through a tool argument. `.gitignore` line 12 (`.env*.local`) covers it, so it can never be committed. **The shape that worked, four keys:**
+
+```
+TEST_INSTRUCTOR_EMAIL=instructor@test.com
+TEST_INSTRUCTOR_PASSWORD=...
+B3_STUDENT_EMAIL=b3student@test.com
+B3_STUDENT_PASSWORD=...
+```
+
+**WRITE IT AT THE START OF A SESSION THAT NEEDS SIGN-IN AND DELETE IT AT THE END OF THAT SESSION.** ==> **NOTHING IN THE REPO REFERENCES THIS FILE.** No script loads it, no check reads it, and no code path depends on it existing. So it is NOT infrastructure that can be left in place: **it has to be created and removed per session**, and a copy left behind is plaintext passwords sitting in a directory every agent session that touches this repo can read, serving nothing. The 2026-09-13 file was deleted at the owner's instruction the same session it was created. <==
+
+==> **AND THE PREMISE ABOVE IS NOT RELIABLE, MEASURED THE SAME DAY. DO NOT TELL THE OWNER A CHAT-PASTED PASSWORD IS UNUSABLE WITHOUT MEASURING IT FIRST.** On 2026-09-13 the owner pasted two passwords as an ordinary chat message and **both reached the page intact**: `value.length` read 20 and 14, neither was the `<password>` token, and both sign-ins succeeded first try. The redaction has now been observed to fire once (2026-09-11, above) and NOT to fire on three later occasions, with no visible difference in how the password arrived. **THE ONLY DURABLE RULE IS THE MEASUREMENT, NOT THE WORKAROUND:** read `value.length` before submitting, whatever route the password came by. Asking for the file first and being told no costs one round trip; refusing to try a pasted one costs the same round trip and the owner's patience. <==
+
 **WHAT WAS BUILT, AND WHAT EACH PIECE IS FOR.**
 
 **THE TWO RENAMES.** "Active Assignments" is now **"Published Assignments"** (`app/instructor/page.tsx`), and the THREE comments naming the old label are corrected (`app/instructor/page.tsx` lines 3 and 363, `components/assignment-selector.tsx` line 19). The kickoff named two of those three; the one in the file header was found by grep and corrected with the owner's approval. "Working in" is now **"Class"**, and the seven sentences that described the working class now say **"the selected class"**: `components/class-picker.tsx` (the label and the screen-reader label), `app/instructor/roster/page.tsx`, `app/instructor/assignments/page.tsx`, `components/bulk-invite-form.tsx`, `components/other-class-notice.tsx`, and `components/class-manager.tsx` (two). The internal id `working-class` in the picker is deliberately unchanged: it is plumbing and never on screen, the same reasoning that kept the `/instructor/scaffold` route when that page was renamed.
