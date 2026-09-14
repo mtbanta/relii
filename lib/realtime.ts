@@ -56,7 +56,34 @@ export async function mintRealtimeClientSecret(instructions: string): Promise<{
         input: {
           // Transcribe the student's speech so it lands in the saved transcript
           // (the transcript is the only input to scoring).
-          transcription: { model: INPUT_TRANSCRIPTION_MODEL },
+          //
+          // "language" tells the transcriber what to expect to hear. Tom's
+          // September 11 practice came back with two English turns rendered in
+          // Finnish and Arabic, and a mis-transcribed turn is graded as
+          // gibberish without the student ever learning why.
+          //
+          // ==> IT IS THE SINGULAR FIELD HERE, AND THAT IS MEASURED RATHER THAN
+          //     ASSUMED. The plural "languages" is the field on the CURRENT
+          //     transcription models, and this model is not one of them:
+          //     gpt-4o-transcribe answers a request carrying "languages" with
+          //     HTTP 400, "The 'languages' parameter is not supported for this
+          //     model." The client-secrets response advertises this model's own
+          //     schema as "language" and "prompt", singular, with no plural key
+          //     at all. DO NOT "CORRECT" THIS TO THE PLURAL: doing so returns
+          //     400 on every mint, which app/api/voice/token/route.ts turns
+          //     into a 502 and NO VOICE AT ALL for the student.
+          //
+          //     Sending both is refused too, so the two are alternatives and
+          //     never a pair.
+          //
+          //     WHAT IT FIXES AND WHAT IT DOES NOT. Measured 2026-09-14 over a
+          //     paired run, same audio, 8 sessions each way: with the hint, 72
+          //     of 72 turns transcribed as English; without it, a short "Yeah."
+          //     came back as German "Ja." on 6 of 8 runs. It addresses
+          //     MIS-DETECTION ONLY. The empty and truncated turns in Tom's
+          //     practice are turn-detection and missing-text problems, neither
+          //     of them is touched by this line, and neither was reproduced.
+          transcription: { model: INPUT_TRANSCRIPTION_MODEL, language: "en" },
           // Server-side voice-activity detection decides when the student has
           // finished a turn. silence_duration_ms is the main "do not cut me off"
           // dial: a longer silence means Alex waits longer before replying.
