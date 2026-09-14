@@ -4,6 +4,116 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ## Current Stage
 
+==> **THE DISPLAY-FIX BUNDLE IS DONE, DEPLOYED AND PROVED (2026-09-13). Commit `a1159b7`, pushed and live.** Three render-layer changes in one pass: the student submit control reads "Submit for review", `formatPoints()` rounds to one decimal, and every transcript turn carries an elapsed stamp on all three surfaces. **NO MIGRATION, NO SCHEMA CHANGE, NO NEW DEPENDENCY, AND NOT ONE STORED VALUE CHANGED.** Twelve files, 325 insertions. **ZERO DATABASE WRITES IN THE ENTIRE SESSION.** <==
+
+**THE OWNER'S RULINGS, 2026-09-13, recorded as they were given.**
+
+1. **THE TESTING VENUE EXTENDS FROM B1 TO B1 AND B3.** Asked for and granted after measurement, not as a convenience. **B1 CANNOT SUPPLY CHECKS 2 THROUGH 7 AND THAT IS A FACT ABOUT ITS DATA, NOT A DIFFICULTY**: it holds three sessions, every one `kind = practice` with `score` NULL, and its one surviving assignment `HVAC Alex - trial close` is `required_mode = 'text'` with `rubric_id` null, so the submit control is gated off and no score exists to render. B3 is owned by the same test instructor `instructor@test.com`. **Tom's class was untouched by this either way.**
+2. **THE NARROW EXCEPTION TO "NEVER TOUCH TOM'S CLASSES" WAS OPENED FOR CHECK 8 AND IS NOW CLOSED AGAIN.** What it allowed and what happened: **one read of `assignments` in class `9a4af990` to find the rubric id, and one read of that one `rubrics` row.** What it never allowed and never happened: signing in as Tom, reading his students, invites, sessions or recordings, and any write anywhere. **The only accounts signed into a browser this session were `b3student@test.com` and `instructor@test.com`, and both were signed out afterwards.**
+3. **THE COPY WAS APPROVED AS QUOTED, ALL ELEVEN STRINGS**, with the in-progress labels (`Submitting...`, `Scoring...`, `Finishing...`) deliberately left unchanged because they describe what the server is actually doing at that moment.
+
+---
+
+### THE EIGHT CHECKS, WITH WHAT WAS OBSERVED
+
+| # | Check | OBSERVED |
+| :-- | :-- | :-- |
+| 1 | `formatPoints` over the whole table | Executed as `check-rubric-render` **46 to 51**: `49.50000000000001`->`49.5`, `55.00000000000001`->`55`, `12`->`12`, `4.5`->`4.5`, `0`->`0`, and `NaN`/`Infinity` still returned unchanged. **52 and 53** render Tom's two values through the shipped `RubricScore`: the pair reads `49.5 / 55` all three times it is stated, and no number with three or more decimals survives in the markup. |
+| 2 | An EXISTING score, never re-scored, renders through the new function after the deploy | B3 submission `4098e62d` on relii.vercel.app: **`68.5 / 100`** with items **`8 / 10`, `49.5 / 55`, `1.5 / 15`, `1 / 10`, `4.5 / 5`, `4 / 5`**, on the student results page AND the instructor submission page. A scan of the rendered text for `\d\.\d{3,}` returns **empty on both**. Nothing was written to reach this. |
+| 3 | Both leaks closed on screen | **Leak 1, observed:** the submit confirm on B3 practice `66f5d3ab` reads *"Submit this practice for review? It becomes your official submission and keeps its score (113 / 200). Your other practices stay. This can only be changed if your instructor allows a retake."* **Leak 2 has NO LIVE VENUE AND THAT WAS VERIFIED RATHER THAN ASSUMED:** B1's dashboard renders **"Resets: 0"**. Its five `submission_resets` rows all name assignments that no longer exist, and the dashboard loads them with `.eq("assignment_id", selected.id)`, so not one can ever be selected. It is proved instead by `check-app-time` rendering `ResetHistory` with a dusty prior score and reading back **`(62.5 / 100)`**. |
+| 4 | All four strings read "review", and no page still says "Submit as graded assignment" | On the student home: the resting control reads **`Submit for review`**, the confirm panel's buttons read **`Cancel`** and **`Submit for review`**. A regex over the rendered page for the four old strings returns **empty**. **THIS IS THE DEPLOY CHECK: only the new build can render it.** |
+| 5 | The `.txt` first turn reads `00:00` and later turns increase | HTTP **200**. Header gained **`Started: Sep 10, 2026, 2:35 PM`** beneath `Submitted: Sep 10, 2026, 2:45 PM`. Turns run **`[00:00]`, `[00:30]`, `[00:31]`, `[00:42]`, `[00:42]`, `[01:02]`, `[01:02]`, `[01:25]`, `[01:25]`**. |
+| 6 | The same elapsed values on all three surfaces, for the SAME session | Session `4098e62d`, nine turns, **byte-identical on all three**: student results page, instructor submission page, and the `.txt`. One helper, no drift. |
+| 7 | The student results page PRINTED, transcript and stamps intact and not clipped | Under `emulateMedia({media:'print'})` the transcript card computes **`overflow-y: visible`, `max-height: none`, `aspect-ratio: auto`**, and **`scrollHeight === clientHeight` (726 = 726), so `clipped` is false**. All nine turns and all nine stamps present in the print render, with the full rubric beneath. |
+| 8 | The rubric behind Tom's Discovery assignment, verbatim | Below, in its own section. |
+
+==> **CHECK 2 CERTIFIES THIS SESSION, AND ITS LIMIT MUST BE READ WITH IT. NOT ONE STORED SCORE IN THE TEST CLASSES CARRIES DUST**, measured before any code was written: B3's Discovery stores a clean `49.5 / 55`, the very criterion that renders `49.50000000000001 / 55.00000000000001` on Tom's screen. So the live half of check 2 proves **retroactivity and no regression**, and it does NOT prove the dust fix. **THE DISCRIMINATING HALF IS CHECK 1**, executed against the shipped component, and the owner reloads his own practice for the rest. **Writing dust into a test row to manufacture a venue was considered and rejected: it is a write and it is outside the fence.** <==
+
+---
+
+### CHECK 8: THE RUBRIC READ, VERBATIM, AND THE ORIGIN OF THE DUST
+
+Tom's assignment is **`Bunzl:  Meeting with Alex, the Procurement Director at Wildcat Packers`** (`4d3f2e55`, `voice_video`), rubric **`64f3f919`**, name **"Discovery Role-Play"**, `max_total` **100**.
+
+| | |
+| :-- | :-- |
+| Criterion | **`Discovery`**, weight **`0.55`** |
+| The six level points, in order, verbatim | **`55.00000000000001`, `49.50000000000001`, `44.00000000000001`, `38.5`, `27.500000000000004`, `5.500000000000001`** |
+| Criterion max | **`55.00000000000001`** |
+
+**THE OTHER FIVE CRITERIA ARE CLEAN.** Approach (0.1) `10, 9, 8, 7, 5, 1`; Close (0.15) `15, 13.5, 12, 10.5, 7.5, 1.5`; Overcoming Objections (0.1) `10, 9, 8, 7, 5, 1`; Communication Skills (0.05) and Overall Impression (0.05) `5, 4.5, 4, 3.5, 2.5, 0.5`.
+
+==> **ALL SIX DUSTY VALUES REPRODUCE BYTE FOR BYTE AS `100 * 0.55 * m` IN IEEE 754 DOUBLES**, where `m` runs `1, 0.9, 0.8, 0.7, 0.5, 0.1`, and those six multipliers are literally **row 3** of Tom's workbook, `0.55` is **B7** and `100` is **D18**. Six of six, to the last digit, including the clean `38.5` that `0.7` happens to produce. **DISCOVERY IS DUSTY AND NOTHING ELSE IS BECAUSE 0.55 IS THE ONLY WEIGHT IN THAT RUBRIC THAT IS INEXACT AGAINST 100:** `100 * 0.1`, `100 * 0.15` and `100 * 0.05` are all exact. <==
+
+==> **TWO THINGS ARE RULED OUT, AND ONE IS NOT ESTABLISHED. SAID AT ITS REAL STRENGTH.** **The parser is innocent as documented:** `numericValue()` in `lib/rubric-xlsx.ts` reads `cell.result ?? cell.value` and never multiplies. **The repo's workbook is not the source:** `docs/_Discovery-role-play-rubric-Sales-300-Fall-2026-copy.xlsx` (md5 `e7ea15ecf67c5ff48538ddb745e1fcea`, the copy PROJECT_STATE names) carries **clean cached values on every cell of that row**, `55 / 49.5 / 44 / 38.5 / 27.5 / 5.5`, and its last four are plain numbers with **no formula at all**. **SO THE MULTIPLICATION HAPPENED IN WHATEVER WORKBOOK TOM ACTUALLY UPLOADED, WHOSE CACHED FORMULA RESULTS WERE THE RAW IEEE PRODUCTS. THAT FILE WAS NOT READ AND ITS CONTENTS ARE NOT ESTABLISHED.** Anything past this line would be a guess, and nothing was changed on the strength of one. <==
+
+**ALSO MEASURED AND DELIBERATELY NOT ACTED ON:** `lib/scoring.ts` line 437 sums `points_earned` with plain float addition and `app/api/session/end/route.ts` line 272 stores that sum as `score_total`, **so stored totals may carry dust even though every screen now hides it.** Changing the parser, normalising at parse time and backfilling any row remain **the owner's decision, not taken here.**
+
+---
+
+### WHAT A RESUMED PRACTICE RENDERS
+
+**NO RESUMED PRACTICE EXISTS IN THE TEST DATA, AND ONE WAS NOT MANUFACTURED TO PRODUCE A NUMBER.** The largest real gap across all five sessions in B1 and B3 is **2 minutes 20 seconds**, on B3 practice `66f5d3ab`, which renders eleven stamps running **`00:00, 00:36, 00:36, 00:59, 00:59, 01:23, 01:23, 01:58, 01:59, 02:19, 02:19`**. B1's three sessions run 1m08s, 1m04s and 26s.
+
+**THE BEHAVIOUR IS STILL DEFINED AND IT IS CHECKED:** `check-app-time` asserts that a turn 29h 38m 31s after the first renders **`29:38:31`**, in full, because `app/api/chat/route.ts` line 123 appends to one transcript across reloads and a text practice resumed the next day genuinely produces that. **THERE IS NO PER-SITTING RESET AND ONE WAS NOT INVENTED**: it would mean guessing where a sitting ended, and a wrong guess is worse than an honest 29:38:31. Voice is unaffected; a dropped call ends the practice.
+
+**ONE THING OBSERVED THAT NOBODY ASKED ABOUT, recorded so it is not investigated later as a defect.** Stamps come in equal pairs (`00:42, 00:42`), because the voice path stamps a student turn and the persona reply at the same second when the transcript POST arrives. Monotonic non-decreasing is the correct expectation, not strictly increasing.
+
+---
+
+### THE FIVE CHECK SCRIPTS, COUNTS READ FROM THE RUNS
+
+All exit **0**, all under `TZ=UTC`, at 2026-09-13 21:38 CDT.
+
+| Script | Count | Was |
+| :-- | :-- | :-- |
+| `check-app-time` | **54 passed**, 0 skipped (so `95ec986` is still reachable) | 43 |
+| `check-csv-ai-level` | **10 passed** | 10 |
+| `check-rubric-render` | **53 passed** | 45 |
+| `check-scorer` | **ALL CHECKS PASSED** | same |
+| `check-persona-list` | **45 passed** | 45 |
+
+==> **`check-app-time` WENT RED FIRST, AND THAT IS THE SCRIPT DOING EXACTLY WHAT IT EXISTS FOR.** Routing `reset-history.tsx` through `formatPoints` added an import of `@/lib/types` to a component the script copies into a temp directory, where it rewrites `@/lib/` to `../lib/`. It had never copied `types.ts`, so the run died on **`TS2307: Cannot find module '../lib/types'`** rather than on any behaviour. **THE HARNESS INVARIANT SURVIVES THE FIX:** `lib/types.ts` imports nothing at all, by a rule in its own header, so adding it to the copy list drags nothing else in. **A COUNT THAT MOVES IS A FINDING, AND THIS ONE WAS.** <==
+
+**THE ELEVEN NEW `check-app-time` CHECKS AND THE EIGHT NEW `check-rubric-render` ONES EXIST BECAUSE THERE IS NO LIVE VENUE FOR WHAT THEY MEASURE.** Two render `ResetHistory` with a dusty prior score, which is leak 2's only possible proof. Nine cover `formatElapsed`. **THE SCRIPT'S OWN HARNESS PROVES THE DURATION HELPER NEVER REACHES FOR `APP_TIME_ZONE`:** it re-runs itself under `TZ=UTC` and `TZ=Asia/Tokyo` and compares byte for byte, and a duration built from local calendar parts would not survive that. Nothing else in the repo would catch it.
+
+---
+
+### THE TWO LEAKS, NAMED AND CLOSED
+
+| # | File | Line | Was |
+| :-- | :-- | :-- | :-- |
+| 1 | `components/submit-practice-button.tsx` | 71 | `` ` and keeps its score (${scoreTotal} / ${scoreMax})` `` |
+| 2 | `components/reset-history.tsx` | 96 | `` ` (${r.prior_score_total} / ${r.prior_score_max})` `` |
+
+**LEAK 2 WAS NOT IN THE CHANGE BRIEF.** It is live on the instructor dashboard and **a prior score carries dust exactly the way a current one does**. Both now go through `formatPoints`. Both sit inside a branch that has already proved the values non-null, and both use a non-null assertion at the call site the way `app/instructor/page.tsx:607` already does. **`formatPoints`'s signature was NOT widened to accept null**, which would have changed a shared contract to work around one render.
+
+---
+
+### THE COMMENTS THAT BECAME FALSE, AND WHY
+
+**TWO, NOT ONE. The brief named the first; the second is worse and is in the file being changed.**
+
+**`app/instructor/page.tsx` lines 328 to 331** read *"NO INDIVIDUAL SCORE IS ROUNDED ANYWHERE, which is the rule lib/types.ts formatPoints() exists to hold"*. **That stopped being true the moment the function changed**, and a future session reading it would have believed a rule the code no longer holds. It now states what is actually true: individual scores are rounded to **one decimal and never to a whole number**. **The Phase 4a reasoning above it survives intact** and is the reason one decimal is the floor: Tom's ladder awards 49.5, 38.5, 13.5, 4.5 and 0.5, and rounding once made a screen print 69 above a row reading 68.5.
+
+**`lib/types.ts` lines 268 to 272** read *"IT DOES NOT ROUND ANYTHING, INCLUDING TO ONE DECIMAL."* Corrected, and the correction **states what the ruling gives up rather than glossing it**: a value that is neither a whole nor a half, a third say, now prints as one decimal instead of in full. The old wording preferred the opposite trade and was not wrong, it was outvoted by a real screen.
+
+---
+
+### THE BUILD GATE, THE PUSH, AND THE DEPLOY
+
+**Gate, all after `rm -rf .next`, 2026-09-13 21:38 CDT: `tsc --noEmit` exit 0, `eslint .` exit 0, `npm run build` exit 0.** One warning observed and **not caused by this work**: Turbopack reports `Encountered unexpected file in NFT list` against `next.config.ts`, a file that holds no options and was not touched.
+
+==> **`origin/main` EQUALS `main`, BOTH AT `a1159b7`, AND THE KICKOFF COMMITS WENT WITH IT.** `git log --oneline origin/main..main` reads empty. **THERE WERE THREE UNPUSHED COMMITS WAITING, NOT THE TWO THE KICKOFF EXPECTED** (`c085136`, `8125dd8`, `92b60f7`), all from the Cowork session that cannot reach github.com. No `HEAD.lock`, no `maintenance.lock`, no `tmp_obj_*`, and `git status` is clean. <==
+
+**DEPLOY CONFIRMED BY A REAL REQUEST, NOT BY WAITING.** `/login`'s etag moved from `"0439ce6a0d003fefb174efd4e76382e2"` to `"d4cbf2be1f6e2f51f9623f10125448dc"` at **21:41:44 CDT**, with `age: 0`. Every on-screen check above ran after that.
+
+**A CAVEAT FOR THE OWNER, WITH ONE HALF THE KICKOFF DID NOT HAVE.** Any PDF already saved keeps the old numbers, **and so does any CSV already downloaded**: `app/api/instructor/submission/[id]/csv/route.ts` routes through `formatPoints` too. Reprint and re-download from the live pages.
+
+**ONE READ-FIRST ITEM COULD NOT BE SATISFIED, AND IT IS BLOCKED RATHER THAN ABSENT.** `OS_Resources/Relii/Relii-Roadmap-and-Estimates.md` sits under `~/Desktop`, which macOS refuses this tool entirely: `ls` returns **`Operation not permitted`**, not "No such file". **THE DIRECTORY DEMONSTRABLY EXISTS.** This is the 2026-09-13 lesson applied in the other direction: a blocked read is not a missing file, and neither is a silenced one.
+
+==> **A FALSE NEGATIVE THIS SESSION PRODUCED AND THEN CAUGHT, WRITTEN DOWN BECAUSE THE NEXT ONE MIGHT NOT BE CAUGHT.** The first check-8 query scoped on `instructor_id = '976e5d01-1e05-4c5c-b31f-8f01b1b6d05a'`, a UUID **completed from the `976e5d01-...` PREFIX in this file**, and returned zero rows. Read carelessly that says "Tom has no assignments". **HE HAS ONE.** His real id is `976e5d01-c1dd-484d-ac2e-4ead5a8d429d`, and the corrected query scoped on the class id this file states IN FULL. **A GUESSED IDENTIFIER MATCHES NOTHING AND AN EMPTY RESULT LOOKS THE SAME EITHER WAY.** Never complete a truncated id; scope on a value written down whole. Also: `classes` has no `owner_id` column, it is `instructor_id`, which cost the first query of the session. <==
+
 ==> **ALEX IS NOW THE WILDCAT PACKERS DISCOVERY PERSONA (2026-09-13). DONE, PROVED, AND CLEANED UP.** One row, `901058cf-bb33-4fc1-baab-fdaf86edb08e`, in Tom's "Sales 300 Fall 2026" (`9a4af990-13f9-49ef-80c9-f9d3ab556cc5`), two columns: `scenario_context` and `persona_system_prompt`. **NO CODE CHANGE, NO MIGRATION, NO SCHEMA CHANGE, NO NEW DEPENDENCY.** The file is `supabase/alex-wildcat-discovery-update.sql` and it carries its own revert, twice over. **THREE WRITES IN THE WHOLE SESSION: a probe onto B1, its restore, and this one update.** <==
 
 **WHY IT IS URGENT.** Tom's roughly 64 students register the week of **September 14, 2026**. He has already handed them two case documents describing **Alex Morgan at Wildcat Packers**. Until this row changes, students practice against the old generic Alex who gatekeeps a plant manager named Jordan, which **contradicts the documents in their hand**.
