@@ -8,7 +8,9 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ==> **CHECK 2 IS THE ONE THAT DECIDES WHETHER THIS SHIPS, AND IT PASSED ON BOTH HALVES. THE VOICE TRAVELS FROM THE FORM TO OPENAI, AND THE TWO REQUEST BODIES ARE BYTE-IDENTICAL APART FROM THE ONE FIELD.** Measured server-side, with the bodies quoted below, because a voice change cannot be proved by reading a screen and the fake-media rig cannot hear. <==
 
-==> **SEVEN OF THE EIGHT CHECKS PASS CLEANLY, ONE IS A PARTIAL, AND ALL EIGHT RAN.** **THE PARTIAL IS CHECK 7, AND ONLY ITS THIRD STRING.** Check 7 asks that all three strings read correctly **ON SCREEN**. Two were read off the deployed site; the third was proved from the shipped source because its branch has no venue in B1. **That is recorded as a partial rather than rounded up**, the same way D2's check 3 was, and the detail is under check 7 below. <==
+==> **ALL EIGHT CHECKS NOW PASS CLEANLY. CHECK 7 WAS A PARTIAL FOR PART OF THIS SESSION AND WAS THEN CLOSED PROPERLY RATHER THAN ARGUED AWAY.** Check 7 asks that all three strings read correctly **ON SCREEN**. Strings 1 and 3 had live venues in B1; string 2 renders only in the undecided-pair branch, and B1's one generation group held a single already-chosen scenario, so that branch had nowhere to appear. **It was recorded as a partial, and then the venue was created rather than the standard lowered**: a real candidate pair was generated in B1, string 2 was read off the deployed compare page, and the pair was discarded. <==
+
+==> **THE OWNER REFUSED THE CHEAPER ROUTE AND WAS RIGHT ON A GROUND THAT HAD NOTHING TO DO WITH CAUTION.** The alternative was signing in to the super-admin account to reach an undecided pair in the Historical class. **His decisive argument was that the payoff was UNVERIFIED: PROJECT_STATE describes an unchosen candidate there but never establishes a PAIR, and string 2 needs two candidates with neither chosen.** That would have spent the risk on a venue nobody had confirmed exists. A B1 generation was guaranteed to produce it. **He also recorded that no Claude Code session has ever held those credentials, and that the Tom-class guard has held for four sessions precisely because of that.** <==
 
 **NOBODY HAS HEARD `marin` YET, AND THAT IS STATED PLAINLY RATHER THAN LEFT IMPLIED.** Every proof here is of a request body, a database row, or a rendered string. **The two saved audio samples for the owner to label by ear are a separate manual step, they are NOT a check, and they were not done.** The owner chose `marin` by ear before this session began; this session proved it is delivered, not that it sounds right.
 
@@ -20,7 +22,7 @@ This file is the running status of Relii. Read it at the start of every session.
 | 4 | A session with null `assignment_id` still mints | **PASS.** 200 on the live site AND `"cedar"` in the body |
 | 5 | The voice survives the EDIT form round trip | **PASS**, both directions |
 | 6 | The voice survives creation WITH a rubric (the RPC) | **PASS.** `marin` stored through the 14-argument function |
-| 7 | All three strings read correctly **on screen** | **PARTIAL.** Strings 1 and 3 read off the deployed site. String 2 proved from source: its branch has no venue in B1 |
+| 7 | All three strings read correctly **on screen** | **PASS.** All three read off the deployed site. String 2 needed a candidate pair generated in B1 to give its branch a venue |
 | 8 | Build gate, then the five check scripts | **PASS.** 0/0/0, and 54 / 10 / 53 / 23 / 45, not one count moved |
 
 ### THE PRE-FLIGHT, VERBATIM, AND WHY IT WAS RUN BEFORE ANYTHING ELSE
@@ -197,22 +199,46 @@ The `marin` body is the same JSON with `"voice": "marin"`. **The harness asserte
 
 > Alex is switched ON. Saved as Presentation-Close: Alex (regional manager), and now available in the create-assignment list. Attach a rubric when you create the assignment and it will be graded; leave the rubric off and the practice is conversation only.
 
-==> **STRING 2 WAS NOT READ OFF THE DEPLOYED SITE, AND THAT IS A REAL LIMIT RATHER THAN A ROUNDING.** It renders only in the `{!picked && (` branch, which needs an UNDECIDED generated pair. **B1's only generation group holds one scenario and it is already chosen, so that branch has no venue in B1.** It was instead extracted from the shipped source, its enclosing branch condition confirmed, the JSX text nodes resolved the way React concatenates them, and compared to the approved string: **identical, true**. <==
+**STRING 2, ON THE DEPLOYED SITE**, the compare page for the generated pair `6e08afb5-4592-4253-a972-593434f74ac4`:
 
-**TWO UNDECIDED PAIRS DO EXIST** (groups `151d9443` and `a98c23dd`), but both are in "Relii Demo (Historical)", which `instructor@test.com` cannot reach because the compare page is class-scoped. **Viewing string 2 on screen would need either a different sign-in or a probe pair written into B1.** Neither was done, and the owner was offered the choice and did not take it.
+> Both are saved and turned OFF. Neither can be assigned to a student or started by one. Whether a case is graded is decided by the rubric on the assignment, not here.
 
-### WHAT THIS SESSION LEFT IN B1, DELIBERATELY
+==> **GETTING THAT ON SCREEN TOOK A GENERATION, AND THAT IS WHY IT WAS A PARTIAL FIRST.** The string lives in the `{!picked && (` branch, which needs an UNDECIDED pair: two candidates with neither chosen. B1 had none. **The first attempt proved it from the shipped source instead** (branch condition confirmed, JSX text nodes resolved the way React concatenates them, compared to the approved string: identical). **That was recorded as a partial rather than a pass**, and the owner then directed that the venue be created in B1. It was: two candidates, Jordan and Alicia, generated through the real AI Persona Framework flow, the page read, the pair discarded. <==
 
-**TWO TEST ASSIGNMENTS REMAIN IN B1 AND THEY ARE EVIDENCE, NOT CLUTTER.** They are named so a future session reads them as such:
+**THE DISCARD USED THE APP'S OWN CLEANUP**, which named exactly the two candidates, listed what it would not touch ("Chosen personas that are switched on (1: Alex)"), and demanded a typed `DISCARD`.
 
-| Id | Title | `voice` | Rubric | What it proves |
-| :-- | :-- | :-- | :-- | :-- |
-| `8ba0b8b0-ded2-41d1-ab14-a8d9ce823811` | T1 check 2: plain insert, Cedar | `cedar` | none | Write path 1, and check 2's cedar half |
-| `57265ba6-0939-478b-8e6c-b11849f0f7ab` | T1 check 6: rubric path, Marin | `marin` | Blank Row Regression Rubric | Write path 2, the RPC |
+### B1 IS BACK AT ITS BASELINE, PROVED BY COUNT
 
-**B1's ORIGINAL ASSIGNMENT `f63ec110` STILL HAS `voice` NULL AND WAS DELIBERATELY LEFT THAT WAY**, so a null-voice row remains available in B1 for any future check.
+==> **THIS SESSION LEFT NOTHING PERMANENT IN B1. EVERY NUMBER BELOW WAS COMPARED AGAINST THE VALUE MEASURED BEFORE THE CLEANUP BEGAN, NOT AGAINST A REMEMBERED ONE.** <==
 
-**THE FOUR PROBE SESSIONS ARE GONE.** `supabase/t1-session-probes.sql` created them and `supabase/t1-session-probes-restore.sql` removed them, each named by full id. **Confirmed after: 0 probe rows left, 25 real null-assignment sessions still there, 52 sessions in total, which is the pre-probe baseline exactly.**
+| Measure | Reads | Expected |
+| :-- | --: | :-- |
+| B1 scenarios | **1** | 1, Alex only |
+| B1 scenarios switched ON | **1** | 1 |
+| B1 generation groups | **1** | 1, Alex's own |
+| B1 assignments | **1** | 1, HVAC Alex only |
+| B1 assignments with a voice set | **0** | 0 |
+| B1 rubrics | **0** | 0 |
+| B1 sessions | **4** | 4 |
+| **B1 `assignment_deletes`** | **2** | **2, UNMOVED** |
+| The two discarded candidates | **0** | 0 |
+| Sessions in the whole database | **52** | 52 |
+| Null-assignment sessions | **25** | 25 |
+
+**THE TWO TEST ASSIGNMENTS WERE DELETED THROUGH THE REAL INTERFACE**, and the audit question was settled by measurement before either was touched:
+
+| | Title | Sessions held | Delete path | Logged? |
+| :-- | :-- | --: | :-- | :-- |
+| 1 | T1 check 2: plain insert, Cedar | **0** | Card read "Not in use (no student work)" | **No, by design** |
+| 2 | T1 check 6: rubric path, Marin | **0** | Same | **No, by design** |
+
+==> **B1's `assignment_deletes` READ 2 BEFORE AND 2 AFTER, THE SAME TWO IDS** (`d1492d69-42bb-418d-8314-991593aafbd2` and `a46a6b6e-dca0-4581-bb23-9344d151c1ae`). **THE NUMBER DID NOT MOVE, AND THAT IS THE CORRECT OUTCOME**: a clean delete of an assignment holding no student work is not logged, while a delete that destroys work writes a row and demands a typed DELETE. Both of these were the clean path, and the confirm said so in as many words: "It has no student submissions or practices, so nothing else is removed." <==
+
+==> **AND THE BASELINE ITSELF HAD TO BE MEASURED, BECAUSE PROJECT_STATE CARRIES TWO DIFFERENT NUMBERS FOR IT AND BOTH ARE CORRECT FOR THEIR OWN DATE.** Phase 3a (2026-09-10) recorded B1's audit count as **1**; Phase 3b (2026-09-11) recorded the B1 baseline as **2**. A second row landed between them. **A session taking "1" from the older passage would have read the true value of 2 as damage, which is exactly the misreading that passage was written to prevent.** The live value is 2. <==
+
+==> **ONE EXPECTATION OF MINE WAS WRONG AND THE MEASUREMENT CORRECTED IT.** I flagged that check 6's rubric would be orphaned by the delete, reasoning from Phase 2a's revert file, which says rubric rows are deliberately left behind. **That is true of the SQL revert and NOT of the delete route**: after both deletes, B1 held **0 rubrics**, and "Blank Row Regression Rubric" exists nowhere in the table, with **0 rubrics carrying a null class**. The app cleaned it up itself and no manual delete was needed. Checked by name across the whole table rather than by B1's count alone, because a row whose `class_id` had merely been cleared would also make B1's count read 0.
+
+**THE FOUR PROBE SESSIONS ARE GONE.****THE FOUR PROBE SESSIONS ARE GONE.** `supabase/t1-session-probes.sql` created them and `supabase/t1-session-probes-restore.sql` removed them, each named by full id. **Confirmed after: 0 probe rows left, 25 real null-assignment sessions still there, 52 sessions in total, which is the pre-probe baseline exactly.**
 
 ==> **WHY THE RESTORE NAMES FOUR LITERAL IDS AND NOT A SHAPE. "delete where assignment_id is null" WOULD HAVE TAKEN THE TWENTY-FIVE REAL PRE-STAGE-7 SESSIONS WITH IT**, and nothing anywhere would have reported it. "delete where status = 'in_progress'" would have taken any practice a student had open. Both read as reasonable. <==
 
@@ -254,9 +280,10 @@ The `marin` body is the same JSON with `"voice": "marin"`. **The harness asserte
 
 1. ==> **NOBODY HAS HEARD `marin`.** Every proof is a request body, a row, or a string. The API accepts it and echoes it back; that it sounds female, or good, rests on the owner's own listening before this session. <==
 2. **CHECK 2's REQUEST BODY WAS MEASURED OUTSIDE VERCEL.** The shipped route at the deployed commit was run against live rows with a spy. The live site separately proved all four sessions mint 200. **What was never observed is a body leaving Vercel itself**, and no available tool can observe that.
-3. **STRING 2 WAS PROVED FROM SOURCE, NOT ON SCREEN. THIS IS CHECK 7'S PARTIAL**, and it is the only partial in the eight. See check 7 above for what would be needed to close it: either a sign-in that can reach the Historical class, or a probe pair written into B1.
+3. **STRING 2 NEEDED A GENERATED PAIR IN B1 TO HAVE A VENUE AT ALL.** It was a partial until then, proved from source; it is now read off the deployed page. **What is still true is that its branch has no standing venue in B1**, so a future session wanting to see it will have to generate a pair again.
 4. **NO REAL VOICE CONVERSATION WAS HELD.** The four probe sessions were minted for and then deleted. The audio path beyond the mint is unchanged by this piece and was not exercised.
 5. **THE PROBES RAN IN B1, NOT IN TOM'S CLASS**, which was neither read nor written at any point.
+6. **THE SUPER-ADMIN ACCOUNT WAS NOT SIGNED IN TO, AND NO CLAUDE CODE SESSION HAS EVER HELD THOSE CREDENTIALS.** It was considered as a way to reach an undecided pair and the owner refused it. **The Tom-class guard has held for five sessions now partly because that line has never been crossed.**
 
 ### WHAT THIS SESSION DID NOT TOUCH
 
