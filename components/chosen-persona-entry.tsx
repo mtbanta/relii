@@ -40,7 +40,7 @@ export function ChosenPersonaEntry({ persona }: { persona: ChosenPersona }) {
           {persona.row.title}
         </span>
         <span className="mt-0.5 block text-meta text-content-secondary">
-          {chainRoleLabel(persona.row.chainRole)}, generated{" "}
+          {chainRoleLabel(persona.row.chainRole)}, added{" "}
           {formatInstant(persona.createdAt)}
         </span>
         <PersonaPairing pairedWith={persona.row.pairedWith} />

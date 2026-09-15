@@ -9,13 +9,22 @@
 // We call OpenAI's web API directly with the built-in fetch, so there is no
 // extra software dependency to install (same approach as lib/openai.ts).
 
+import {
+  DEFAULT_PERSONA_VOICE,
+  resolvePersonaVoice,
+} from "@/lib/persona-voice";
+
 const OPENAI_CLIENT_SECRETS_URL =
   "https://api.openai.com/v1/realtime/client_secrets";
 
-// The spoken voice Alex uses. "cedar" is one of the newer, natural-sounding
-// realtime voices and reads as neutral, which fits the Alex persona. Change this
-// one value to swap voices later.
-export const REALTIME_VOICE = "cedar";
+// The spoken voice used when the caller does not name one. Since T1 the voice
+// is chosen per ASSIGNMENT and passed in below, so this is the DEFAULT rather
+// than the only value: it is what a session with no assignment gets, and what
+// every assignment created before T1 gets.
+//
+// The name itself lives in lib/persona-voice.ts, which is also where the
+// instructor forms read it from, so "cedar" is written down once.
+export const REALTIME_VOICE = DEFAULT_PERSONA_VOICE;
 
 // The model that turns the student's speech into text for the transcript. This
 // is separate from the conversation model and only affects transcript quality.
@@ -32,7 +41,16 @@ export function getRealtimeModel(): string {
 // Mint a short-lived client secret for one voice session. The persona
 // instructions, voice, turn-taking, and transcription settings are baked into
 // the token here, so the browser cannot change them.
-export async function mintRealtimeClientSecret(instructions: string): Promise<{
+//
+// "voice" is the assignment's chosen voice, passed in by
+// app/api/voice/token/route.ts. Leaving it out, or passing null, gives the
+// default above, which is what a practice with no assignment behind it does.
+// The BROWSER never chooses this: it is read server-side from the assignment
+// row, for the same reason the instructions are.
+export async function mintRealtimeClientSecret(
+  instructions: string,
+  voice?: string | null,
+): Promise<{
   value: string;
   expiresAt: number | null;
   model: string;
@@ -101,7 +119,16 @@ export async function mintRealtimeClientSecret(instructions: string): Promise<{
             interrupt_response: true,
           },
         },
-        output: { voice: REALTIME_VOICE },
+        // The assignment's voice, or REALTIME_VOICE above when there is no
+        // assignment and therefore nothing to read one from.
+        //
+        // It goes through resolvePersonaVoice() rather than straight in, so a
+        // value that is not one of the two known voices becomes the default
+        // instead of reaching OpenAI. The database check constraint should make
+        // that unreachable; this is what stops it costing the student their
+        // voice entirely if it ever is reached, because an unknown voice comes
+        // back HTTP 400 and this route turns that into a 502.
+        output: { voice: resolvePersonaVoice(voice) },
       },
     },
   };

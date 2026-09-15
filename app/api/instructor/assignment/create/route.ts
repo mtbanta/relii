@@ -70,6 +70,7 @@ import {
   MAX_MEETING_MINUTES,
   MIN_MEETING_MINUTES,
 } from "@/lib/meeting-length";
+import { PERSONA_VOICES } from "@/lib/persona-voice";
 
 // A form field as a trimmed string, or "" when absent. FormData values are
 // strings or Files; anything that is not a string is treated as missing.
@@ -148,6 +149,17 @@ export async function POST(request: Request) {
     }
     durationMinutes = parsedDuration;
   }
+
+  // The persona voice (T1). Nothing sent, or anything that is not one of the
+  // two known voices, saves as null, which reads as cedar. The browser sends
+  // one of the two values from a dropdown, the database carries the same rule
+  // as a check constraint, and this is the layer in between that stops a
+  // crafted request writing a voice OpenAI would refuse: an unknown voice comes
+  // back HTTP 400 at mint time, which is no voice at all for the student.
+  const typedVoice = field(form, "voice");
+  const voice = PERSONA_VOICES.some((option) => option.value === typedVoice)
+    ? typedVoice
+    : null;
 
   const companyName = field(form, "company_name") || null;
   const instructions = field(form, "instructions") || null;
@@ -228,6 +240,7 @@ export async function POST(request: Request) {
         p_available_date: availableDate,
         p_due_at: dueAt,
         p_duration_minutes: durationMinutes,
+        p_voice: voice,
       },
     );
 
@@ -259,6 +272,7 @@ export async function POST(request: Request) {
       available_date: availableDate,
       due_at: dueAt,
       duration_minutes: durationMinutes,
+      voice,
       created_by: userId,
       // Never from the request. See the note at the top.
       class_id: classId,

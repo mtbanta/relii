@@ -263,8 +263,9 @@ export default async function CompareCandidatesPage({
             </span>{" "}
             Saved as{" "}
             <span className="font-medium">{winner.title}</span>, and now
-            available in the create-assignment list as a conversation-only case
-            (it is never scored).
+            available in the create-assignment list. Attach a rubric when you
+            create the assignment and it will be graded; leave the rubric off
+            and the practice is conversation only.
           </p>
           <p className="mt-2">
             Before anyone else sees this case, role-play it once yourself through
@@ -316,8 +317,8 @@ export default async function CompareCandidatesPage({
         <div className={cardClasses({ tone: "muted", className: "text-body text-content-primary" })}>
           <p>
             <span className="font-medium">Both are saved and turned OFF.</span>{" "}
-            Neither can be assigned to a student or started by one, and neither
-            is scored (these are conversation-only cases with no rubric).
+            Neither can be assigned to a student or started by one. Whether a
+            case is graded is decided by the rubric on the assignment, not here.
           </p>
           <p className="mt-2 text-content-secondary">
             Choosing one switches it on and permanently deletes the other. Before

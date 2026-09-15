@@ -42,6 +42,9 @@ type AssignmentRow = {
   // duration_minutes is how long the role-play meeting runs (PD-4). Null means
   // the standard 30 minutes, which is what every pre-PD-4 assignment has.
   duration_minutes: number | null;
+  // voice is which of the two voices the persona speaks in (T1). Null means
+  // cedar, which is what every pre-T1 assignment has.
+  voice: string | null;
   instructions: string | null;
   // PHASE 3a: whether this assignment is graded. It is what makes a practice at
   // 'completed' mean a scoring failure rather than ordinary finished work, so
@@ -128,7 +131,7 @@ export default async function InstructorAssignments() {
         // ==> IF A SECOND FOREIGN KEY IS EVER ADDED BETWEEN THESE TWO TABLES,
         //     THIS LINE BREAKS EXACTLY THAT WAY AGAIN. See PROJECT_STATE Open
         //     Issues. <==
-        .select("id, title, company_name, required_mode, due_at, available_date, duration_minutes, instructions, rubric_id, scenarios ( title, persona_name )")
+        .select("id, title, company_name, required_mode, due_at, available_date, duration_minutes, voice, instructions, rubric_id, scenarios ( title, persona_name )")
         .eq("class_id", classId)
         .order("created_at", { ascending: false })
         .returns<AssignmentRow[]>()
@@ -233,6 +236,7 @@ export default async function InstructorAssignments() {
                       due_at: a.due_at,
                       available_date: a.available_date,
                       duration_minutes: a.duration_minutes,
+                      voice: a.voice,
                       required_mode: a.required_mode,
                       scenarioTitle: a.scenarios?.title ?? null,
                       personaName: a.scenarios?.persona_name ?? null,

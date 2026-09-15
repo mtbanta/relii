@@ -30,6 +30,7 @@ import {
   MAX_MEETING_MINUTES,
   MIN_MEETING_MINUTES,
 } from "@/lib/meeting-length";
+import { DEFAULT_PERSONA_VOICE, PERSONA_VOICES } from "@/lib/persona-voice";
 import { MAX_RUBRIC_FILE_BYTES, formatLimit } from "@/lib/types";
 import {
   FileInput,
@@ -98,6 +99,10 @@ export function CreateAssignmentForm({
   const [availableDate, setAvailableDate] = useState("");
   const [dueAt, setDueAt] = useState("");
   const [durationMinutes, setDurationMinutes] = useState("");
+  // The persona voice (T1). Unlike the meeting length there is no blank state:
+  // the dropdown always names one of the two voices, and it starts on the one
+  // every case in the app already speaks in.
+  const [voice, setVoice] = useState<string>(DEFAULT_PERSONA_VOICE);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -208,6 +213,7 @@ export function CreateAssignmentForm({
     body.append("available_date", availableDate);
     body.append("due_at", dueAt);
     body.append("duration_minutes", durationMinutes.trim());
+    body.append("voice", voice);
     // The same file the preview was taken from. The server re-parses it and
     // stores what IT parsed; nothing from the preview response is sent.
     if (RUBRIC_UPLOAD_ENABLED && file) body.append("rubric", file);
@@ -324,6 +330,21 @@ export function CreateAssignmentForm({
           {MAX_MEETING_MINUTES} minutes. The practice clock counts up and the
           practice ends automatically at this length. Leave blank for{" "}
           {DEFAULT_MEETING_MINUTES} minutes.
+        </p>
+      </div>
+
+      <div>
+        <Label className="mb-1">Voice</Label>
+        <Select value={voice} onChange={(e) => setVoice(e.target.value)}>
+          {PERSONA_VOICES.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </Select>
+        <p className="mt-1 text-meta text-content-tertiary">
+          The voice the persona speaks in during a voice and video role-play.
+          This changes how the role-play sounds, not what the persona says.
         </p>
       </div>
 

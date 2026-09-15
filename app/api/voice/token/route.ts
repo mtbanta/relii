@@ -41,7 +41,9 @@ export async function POST(request: Request) {
   // 3. Load the session; confirm it belongs to this student and is still open.
   const { data: session, error: sessionError } = await admin
     .from("sessions")
-    .select("id, student_id, scenario_id, status, kind, created_at")
+    .select(
+      "id, student_id, scenario_id, assignment_id, status, kind, created_at",
+    )
     .eq("id", sessionId)
     .single();
   if (sessionError || !session) {
@@ -84,9 +86,41 @@ export async function POST(request: Request) {
     scenario.scenario_context,
   );
 
-  // 5. Mint the ephemeral token with the real key (server-side only).
+  // 5. Load the voice for this practice (T1). It lives on the ASSIGNMENT, not
+  //    on the scenario, because one scenario can back many assignments and a
+  //    voice stored on the scenario would change all of them at once.
+  //
+  //    ==> A PRACTICE MAY HAVE NO ASSIGNMENT, AND THAT IS ORDINARY RATHER THAN
+  //        BROKEN. Twenty-five sessions predate the rule that a practice is
+  //        always a practice FOR an assignment, and the standing rule is that a
+  //        session with no assignment is conversation-only. Those must still
+  //        get a voice, so the read is skipped entirely and the default stands.
+  //
+  //        A FAILED READ FALLS BACK TOO, RATHER THAN REFUSING TO MINT. If this
+  //        query errors, the student still gets their meeting, in cedar. The
+  //        alternative is a 502 and no voice at all, which is a far worse
+  //        outcome than the wrong-sounding one, and the voice is not a security
+  //        control: the instructions are, and they are already loaded above. <==
+  let voice: string | null = null;
+  if (session.assignment_id) {
+    const { data: assignment, error: assignmentError } = await admin
+      .from("assignments")
+      .select("voice")
+      .eq("id", session.assignment_id)
+      .single();
+    if (assignmentError) {
+      console.error(
+        "Reading the assignment voice failed; falling back to the default:",
+        assignmentError,
+      );
+    } else {
+      voice = assignment?.voice ?? null;
+    }
+  }
+
+  // 6. Mint the ephemeral token with the real key (server-side only).
   try {
-    const token = await mintRealtimeClientSecret(instructions);
+    const token = await mintRealtimeClientSecret(instructions, voice);
     return NextResponse.json({
       value: token.value,
       expiresAt: token.expiresAt,

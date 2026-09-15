@@ -25,7 +25,8 @@ import {
   MIN_MEETING_MINUTES,
   resolveMeetingMinutes,
 } from "@/lib/meeting-length";
-import { Input, Label, Textarea } from "@/components/ui/field";
+import { PERSONA_VOICES, resolvePersonaVoice } from "@/lib/persona-voice";
+import { Input, Label, Select, Textarea } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 
 type Assignment = {
@@ -42,6 +43,9 @@ type Assignment = {
   // duration_minutes is how long the role-play meeting runs (PD-4). Null means
   // the standard 30 minute meeting.
   duration_minutes: number | null;
+  // voice is which of the two voices the persona speaks in (T1). Null means
+  // cedar, which is what every assignment created before it has.
+  voice: string | null;
   required_mode: string;
   scenarioTitle: string | null;
   personaName: string | null;
@@ -93,6 +97,13 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
       ? ""
       : String(assignment.duration_minutes),
   );
+  // The persona voice (T1). There is no blank state here: an empty stored voice
+  // already MEANS cedar, so the dropdown shows cedar and saving writes it out
+  // explicitly. That turns a null into 'cedar' on an old assignment, which is
+  // an owner ruling of 2026-09-15 and changes nothing about how it sounds.
+  const [voice, setVoice] = useState<string>(
+    resolvePersonaVoice(assignment.voice),
+  );
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -109,6 +120,7 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
         ? ""
         : String(assignment.duration_minutes),
     );
+    setVoice(resolvePersonaVoice(assignment.voice));
     setMessage("");
     setIsError(false);
     setEditing(true);
@@ -172,6 +184,9 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
         available_date: availableDate ? availableDate : null,
         due_at: dueAt ? dueAt : null,
         duration_minutes: duration,
+        // Always one of the two known voices, never null: an empty voice
+        // already meant cedar, so writing it out changes nothing audible.
+        voice: resolvePersonaVoice(voice),
       })
       .eq("id", assignment.id);
 
@@ -297,6 +312,21 @@ export function EditAssignmentForm({ assignment }: { assignment: Assignment }) {
           {MAX_MEETING_MINUTES} minutes. The practice clock counts up and the
           practice ends automatically at this length. Leave blank for{" "}
           {DEFAULT_MEETING_MINUTES} minutes.
+        </p>
+      </div>
+
+      <div>
+        <Label className="mb-1">Voice</Label>
+        <Select value={voice} onChange={(e) => setVoice(e.target.value)}>
+          {PERSONA_VOICES.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </Select>
+        <p className="mt-1 text-meta text-content-tertiary">
+          The voice the persona speaks in during a voice and video role-play.
+          This changes how the role-play sounds, not what the persona says.
         </p>
       </div>
 
