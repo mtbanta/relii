@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(vercel *)",
+      "Bash(npx vercel *)",
+      "Bash(npx * vercel *)",
+      "Bash(npx -y vercel *)",
+      "Bash(npx --yes vercel *)",
+      "Bash(bunx vercel *)",
+      "Bash(pnpm dlx vercel *)",
+      "Bash(yarn dlx vercel *)"
+    ]
+  }
+}

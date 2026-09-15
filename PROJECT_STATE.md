@@ -2,6 +2,12 @@
 
 This file is the running status of Relii. Read it at the start of every session.
 
+==> **HOW TO READ THIS FILE, AND IT IS A RULE ABOUT THE FILE ITSELF (owner ruling, 2026-09-15). PROJECT_STATE IS AN ACCRETING HISTORICAL RECORD, NOT A CURRENT-STATE DATABASE.** A number in it is true **as of its own date** and may be superseded further down the file **without either entry saying so**. Neither entry is wrong; they are snapshots of different days sitting in the same document. <==
+
+==> **SO: MEASURE THE PRESENT VALUE. CITE THIS FILE FOR HISTORY AND REASONING.** Use it to learn what a thing is, why it was done, and what it cost. Do not use it as the source for what a count is right now. <==
+
+**THE CASE THAT PRODUCED THIS RULE, 2026-09-15.** The owner directed a cleanup using B1's `assignment_deletes` baseline of **1**, quoting the Phase 3a entry. **A Phase 3b entry a day later carries 2.** He quoted the older one as if it were current; the live value was measured and is **2**. He asked for the correction to be recorded as his own. **A session that had trusted the quoted number would have read the true value as damage**, which is precisely the misreading the Phase 3a entry was written to prevent, arriving by the opposite route.
+
 ## Current Stage
 
 ==> **T1, THE PERSONA VOICE ON THE ASSIGNMENT, IS DONE, DEPLOYED AND PROVED (2026-09-15). Commit `8416926`, pushed and live.** One additive column on `public.assignments`, two fixed voices, one form control in two places, and the three approved wording fixes. **`origin/main` EQUALS `main`, AND THE COWORK KICKOFF COMMIT `bbe3a68` WAS PUSHED FIRST, BEFORE ANY OTHER WORK.** <==
@@ -59,6 +65,20 @@ Invalid value: 'notavoice'. Supported values are: 'alloy', 'ash', 'ballad',
 <==
 
 **THE MODEL WAS THE RIGHT ONE, AND THAT WAS CHECKED RATHER THAN ASSUMED.** `getRealtimeModel()` resolved to `gpt-realtime` in every call. **`OPENAI_REALTIME_MODEL` is set neither locally nor in Vercel production** (the production variable list holds only `OPENAI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`), so the pre-flight measured the model the live site actually uses. A Vercel override would have made the whole pre-flight measure the wrong thing.
+
+### THE VERCEL CLI IS NOW DENIED IN THIS REPO, AND THE MECHANISM IS THE POINT
+
+==> **`vercel env ls` IS NOT A READ. IT TRIGGERS THE CLI DEVICE-LOGIN FLOW AND LEAVES THE MACHINE AUTHENTICATED.** With no stored credentials it blocks on a `vercel.com/oauth/device?user_code=...` URL, and on success the machine stays signed in to the hosting account until somebody logs out. **Reading one environment variable costs a full CLI login.** <==
+
+**WHY IT WAS RUN, BECAUSE THE INSTINCT WAS RIGHT AND ONLY THE METHOD WAS WRONG.** The question was whether `OPENAI_REALTIME_MODEL` is overridden in production. It genuinely mattered: if Vercel set a different realtime model, the whole pre-flight would have measured a model no student ever hits, and `marin` would have shipped on evidence about the wrong thing. **The answer was worth having. The method was broader than the question**, and a deployed route that echoes `model` back in its response would have answered it with no login at all.
+
+**THE GUARDRAIL, AND WHY IT IS DENY RATHER THAN ASK.** `.claude/settings.json`, **tracked**, with `Bash(vercel *)` and seven `npx`/`bunx`/`dlx` spellings in `permissions.deny`. **There is no legitimate use for the Vercel CLI in this project**: deploys happen through the GitHub integration on push to main, which is how every deploy this week was confirmed. **`ask` is what an auto-mode session approves in passing**, which is exactly how the login happened.
+
+==> **IT IS `settings.json` AND NOT `settings.local.json`, AND THAT IS LOAD-BEARING.** `.gitignore` line 28 ignores the local file, so a rule written there would never reach another checkout and would die with this one. <==
+
+**IT TOOK EFFECT WITHOUT A RESTART, AND THAT WAS TESTED RATHER THAN ASSUMED.** `npx vercel --version` and `vercel --version` were both refused immediately after the write. The settings watcher only watches directories that held a settings file when the session began, and `.claude/` already held `settings.local.json`, so the new file was picked up.
+
+==> **AND THE FIRST VERSION OF THE RULE HAD A HOLE, FOUND BY PROBING IT RATHER THAN BY TRUSTING IT.** The two rules originally specified are PREFIX rules, so `npx --yes vercel --version` did NOT match `Bash(npx vercel *)` and **ran**. A flag between `npx` and `vercel` walked straight through. Six more spellings were added, including the middle-wildcard `Bash(npx * vercel *)`, and `npx --yes vercel --version` and `npx -y vercel whoami` are both refused now. **A guardrail nobody attacked is a guardrail nobody has tested.** <==
 
 ### CHECK 2, THE DECIDING ONE, WITH BOTH BODIES QUOTED
 
