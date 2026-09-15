@@ -8,7 +8,7 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ==> **CHECK 2 IS THE ONE THAT DECIDES WHETHER THIS SHIPS, AND IT PASSED ON BOTH HALVES. THE VOICE TRAVELS FROM THE FORM TO OPENAI, AND THE TWO REQUEST BODIES ARE BYTE-IDENTICAL APART FROM THE ONE FIELD.** Measured server-side, with the bodies quoted below, because a voice change cannot be proved by reading a screen and the fake-media rig cannot hear. <==
 
-==> **ALL EIGHT CHECKS RAN AND ALL EIGHT PASS. NONE IS A PARTIAL.** <==
+==> **SEVEN OF THE EIGHT CHECKS PASS CLEANLY, ONE IS A PARTIAL, AND ALL EIGHT RAN.** **THE PARTIAL IS CHECK 7, AND ONLY ITS THIRD STRING.** Check 7 asks that all three strings read correctly **ON SCREEN**. Two were read off the deployed site; the third was proved from the shipped source because its branch has no venue in B1. **That is recorded as a partial rather than rounded up**, the same way D2's check 3 was, and the detail is under check 7 below. <==
 
 **NOBODY HAS HEARD `marin` YET, AND THAT IS STATED PLAINLY RATHER THAN LEFT IMPLIED.** Every proof here is of a request body, a database row, or a rendered string. **The two saved audio samples for the owner to label by ear are a separate manual step, they are NOT a check, and they were not done.** The owner chose `marin` by ear before this session began; this session proved it is delivered, not that it sounds right.
 
@@ -20,7 +20,7 @@ This file is the running status of Relii. Read it at the start of every session.
 | 4 | A session with null `assignment_id` still mints | **PASS.** 200 on the live site AND `"cedar"` in the body |
 | 5 | The voice survives the EDIT form round trip | **PASS**, both directions |
 | 6 | The voice survives creation WITH a rubric (the RPC) | **PASS.** `marin` stored through the 14-argument function |
-| 7 | All three strings read correctly | **PASS.** Two on the deployed site, one from source (see limits) |
+| 7 | All three strings read correctly **on screen** | **PARTIAL.** Strings 1 and 3 read off the deployed site. String 2 proved from source: its branch has no venue in B1 |
 | 8 | Build gate, then the five check scripts | **PASS.** 0/0/0, and 54 / 10 / 53 / 23 / 45, not one count moved |
 
 ### THE PRE-FLIGHT, VERBATIM, AND WHY IT WAS RUN BEFORE ANYTHING ELSE
@@ -114,6 +114,8 @@ The `marin` body is the same JSON with `"voice": "marin"`. **The harness asserte
 
 **PATH 2 IS ALSO THE PROOF THE SIGNATURE CHANGE LANDED RATHER THAN OVERLOADED.** If the 13-argument function had survived, a call carrying `p_voice` would have failed or written null. It wrote `marin`.
 
+==> **AND THE MINT HAS EXACTLY ONE CALLER, WHICH WAS COUNTED RATHER THAN TAKEN FROM THE KICKOFF.** The new `voice` parameter is OPTIONAL, so a second caller would compile clean, pass eslint, pass the build and pass every check script while silently minting cedar forever. No gate in this project can see that. `grep -rn "mintRealtimeClientSecret" app lib components scripts` returns **three hits and no more**: the definition at `lib/realtime.ts:50`, the import at `app/api/voice/token/route.ts:14`, and the single call at line 123. **The kickoff asserted this and the kickoff has now been wrong twice about specifics, so it was measured.** <==
+
 **PATH 3 IS THE ONE THE COLUMN-GRANT QUESTION WAS ABOUT.** It saved with no permission error, which is the grant measurement confirmed by behaviour rather than only by a catalogue read.
 
 ### THE FUNCTION SIGNATURE, BEFORE AND AFTER, READ FROM THE DATABASE
@@ -132,6 +134,10 @@ The `marin` body is the same JSON with `"voice": "marin"`. **The harness asserte
 ==> **WHY THAT POSITIONAL CHECK EXISTS, AND IT IS THE OWNER'S CATCH RATHER THAN THIS SESSION'S: A SIGNATURE CHECK CANNOT SEE A VOICE WRITTEN INTO THE WRONG COLUMN.** Had the two lists disagreed by one position, the function would have written the voice into `created_by` silently. Verified from the STORED body: `voice` at column-list position 9, `p_voice` at values-list position 9, `positions_match` **true**, both lists 12 long, and `created_by` at position 10 still receiving `p_created_by`. <==
 
 **AND THE STORED BODY IS BYTE-IDENTICAL TO THE FILE**, because a transcription into an MCP call is only trustworthy if it is hashed rather than read: **838 characters, md5 `4248c44400dbd69f2dbd8b5cef1773cb`, 24 lines**, matching `supabase/t1-persona-voice.sql` exactly.
+
+==> **THE REVERT'S RECREATED 13-ARGUMENT BODY WAS HASHED TOO, AND THIS IS THE ONE NOBODY WOULD HAVE CAUGHT.** It is hand-transcribed, it is never exercised by any check, and an error in it would sit undetected until the day somebody actually needed to roll back. Extracted from `supabase/t1-persona-voice-revert.sql` and compared to Phase 2a's original: **822 characters, md5 `143044de413338068ab4a934dc754417`, byte-identical**. <==
+
+==> **WHAT WENT INTO THE MCP CALL WAS AN ABRIDGEMENT OF THE 273-LINE FILE THE OWNER READ, AND THAT IS SAID RATHER THAN LEFT IMPLIED.** The prose header was trimmed and section 5's verification queries were run separately so their output could be read. **Every DDL statement is the same, and every effect was then verified from the catalogue rather than from the text that was sent**: the signature and count from `pg_proc`, the body by md5 against the file, the constraint definition from `pg_constraint`, the column from `information_schema`. So the file and the database agree, proved from the database end. <==
 
 ### THE COLUMN-GRANT QUESTION, ANSWERED BY MEASUREMENT
 
@@ -244,7 +250,7 @@ The `marin` body is the same JSON with `"voice": "marin"`. **The harness asserte
 
 1. ==> **NOBODY HAS HEARD `marin`.** Every proof is a request body, a row, or a string. The API accepts it and echoes it back; that it sounds female, or good, rests on the owner's own listening before this session. <==
 2. **CHECK 2's REQUEST BODY WAS MEASURED OUTSIDE VERCEL.** The shipped route at the deployed commit was run against live rows with a spy. The live site separately proved all four sessions mint 200. **What was never observed is a body leaving Vercel itself**, and no available tool can observe that.
-3. **STRING 2 WAS PROVED FROM SOURCE, NOT ON SCREEN.** See check 7 above.
+3. **STRING 2 WAS PROVED FROM SOURCE, NOT ON SCREEN. THIS IS CHECK 7'S PARTIAL**, and it is the only partial in the eight. See check 7 above for what would be needed to close it: either a sign-in that can reach the Historical class, or a probe pair written into B1.
 4. **NO REAL VOICE CONVERSATION WAS HELD.** The four probe sessions were minted for and then deleted. The audio path beyond the mint is unchanged by this piece and was not exercised.
 5. **THE PROBES RAN IN B1, NOT IN TOM'S CLASS**, which was neither read nor written at any point.
 

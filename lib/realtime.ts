@@ -119,15 +119,18 @@ export async function mintRealtimeClientSecret(
             interrupt_response: true,
           },
         },
-        // The assignment's voice, or REALTIME_VOICE above when there is no
-        // assignment and therefore nothing to read one from.
+        // The assignment's voice.
         //
-        // It goes through resolvePersonaVoice() rather than straight in, so a
-        // value that is not one of the two known voices becomes the default
-        // instead of reaching OpenAI. The database check constraint should make
-        // that unreachable; this is what stops it costing the student their
-        // voice entirely if it ever is reached, because an unknown voice comes
-        // back HTTP 400 and this route turns that into a 502.
+        // It goes through resolvePersonaVoice() rather than straight in, which
+        // does two jobs in one call: null (no assignment, or an assignment
+        // created before T1) falls back to DEFAULT_PERSONA_VOICE, which is the
+        // value REALTIME_VOICE above names; and a value that is not one of the
+        // two known voices falls back the same way instead of reaching OpenAI.
+        //
+        // The database check constraint should make an unknown value
+        // unreachable. This is what stops it costing the student their voice
+        // entirely if it ever is reached, because an unknown voice comes back
+        // HTTP 400 and app/api/voice/token/route.ts turns that into a 502.
         output: { voice: resolvePersonaVoice(voice) },
       },
     },
