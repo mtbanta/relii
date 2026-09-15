@@ -4,6 +4,270 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ## Current Stage
 
+==> **T1, THE PERSONA VOICE ON THE ASSIGNMENT, IS DONE, DEPLOYED AND PROVED (2026-09-15). Commit `8416926`, pushed and live.** One additive column on `public.assignments`, two fixed voices, one form control in two places, and the three approved wording fixes. **`origin/main` EQUALS `main`, AND THE COWORK KICKOFF COMMIT `bbe3a68` WAS PUSHED FIRST, BEFORE ANY OTHER WORK.** <==
+
+==> **CHECK 2 IS THE ONE THAT DECIDES WHETHER THIS SHIPS, AND IT PASSED ON BOTH HALVES. THE VOICE TRAVELS FROM THE FORM TO OPENAI, AND THE TWO REQUEST BODIES ARE BYTE-IDENTICAL APART FROM THE ONE FIELD.** Measured server-side, with the bodies quoted below, because a voice change cannot be proved by reading a screen and the fake-media rig cannot hear. <==
+
+==> **ALL EIGHT CHECKS RAN AND ALL EIGHT PASS. NONE IS A PARTIAL.** <==
+
+**NOBODY HAS HEARD `marin` YET, AND THAT IS STATED PLAINLY RATHER THAN LEFT IMPLIED.** Every proof here is of a request body, a database row, or a rendered string. **The two saved audio samples for the owner to label by ear are a separate manual step, they are NOT a check, and they were not done.** The owner chose `marin` by ear before this session began; this session proved it is delivered, not that it sounds right.
+
+| # | Check | Observed |
+| --: | :-- | :-- |
+| 1 | **THE PRE-FLIGHT.** `marin` accepted by the live API on this model | **PASS.** 200, and the session echoes `"voice": "marin"` back |
+| 2 | **TWO ASSIGNMENTS, TWO VOICES, MEASURED IN THE REQUEST BODY** | **PASS.** `cedar` and `marin` sent, bodies identical apart from that field |
+| 3 | `voice` null still mints `cedar` | **PASS.** Body carried `"cedar"` |
+| 4 | A session with null `assignment_id` still mints | **PASS.** 200 on the live site AND `"cedar"` in the body |
+| 5 | The voice survives the EDIT form round trip | **PASS**, both directions |
+| 6 | The voice survives creation WITH a rubric (the RPC) | **PASS.** `marin` stored through the 14-argument function |
+| 7 | All three strings read correctly | **PASS.** Two on the deployed site, one from source (see limits) |
+| 8 | Build gate, then the five check scripts | **PASS.** 0/0/0, and 54 / 10 / 53 / 23 / 45, not one count moved |
+
+### THE PRE-FLIGHT, VERBATIM, AND WHY IT WAS RUN BEFORE ANYTHING ELSE
+
+**D3 lost a session to `languages`, a field every current OpenAI doc page describes, because this app runs a legacy transcription model that answers it with HTTP 400. `app/api/voice/token/route.ts` turns that throw into a 502, which is NO VOICE AT ALL for the student. A refused voice string fails down exactly the same path.** So `marin` was measured rather than read off a page.
+
+**THE HARNESS SHAPE, WHICH IS WHAT MAKES THE RESULT MEAN ANYTHING.** The shipped `mintRealtimeClientSecret()` was compiled untouched and run through a **pass-through fetch spy**, which captured the exact body the shipped code sends. That captured body was then re-issued twice with **only `audio.output.voice` different**. A difference between the two can therefore only be the voice.
+
+| Call | What it is | Voice | Status |
+| :-- | :-- | :-- | :-- |
+| **A** | The shipped `mintRealtimeClientSecret()`, unmodified | `cedar` | **200** |
+| **B** | Call A's captured body, re-issued unchanged | `cedar` | **200** |
+| **C** | The same bytes, one field changed | **`marin`** | **200** |
+| **D** | **NEGATIVE CONTROL** | `notavoice` | **400** |
+
+The harness printed `identical apart from audio.output.voice: true` for B against C before sending.
+
+**CALL C'S RESPONSE, THE PART THAT MATTERS:**
+
+```
+"audio": {
+  "output": { "format": {...}, "voice": "marin", "speed": 1 }
+}
+```
+
+==> **THE ECHO IS THE POINT, NOT THE 200. A 200 that silently dropped the voice would read exactly like success.** The accepted session comes back naming `marin`, so it was accepted rather than ignored. <==
+
+==> **AND THE NEGATIVE CONTROL IS WHAT MAKES THE 200 EVIDENCE RATHER THAN INDIFFERENCE.** `"notavoice"` is refused, and the refusal enumerates the server's own list, which independently confirms both of this project's voices are on it:
+
+```
+Invalid value: 'notavoice'. Supported values are: 'alloy', 'ash', 'ballad',
+'coral', 'echo', 'sage', 'shimmer', 'verse', 'marin', and 'cedar'.
+```
+<==
+
+**THE MODEL WAS THE RIGHT ONE, AND THAT WAS CHECKED RATHER THAN ASSUMED.** `getRealtimeModel()` resolved to `gpt-realtime` in every call. **`OPENAI_REALTIME_MODEL` is set neither locally nor in Vercel production** (the production variable list holds only `OPENAI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`), so the pre-flight measured the model the live site actually uses. A Vercel override would have made the whole pre-flight measure the wrong thing.
+
+### CHECK 2, THE DECIDING ONE, WITH BOTH BODIES QUOTED
+
+**THE PROBLEM, STATED HONESTLY: A REQUEST BODY CANNOT BE OBSERVED FROM OUTSIDE VERCEL.** So check 2 was run in two halves, and both are reported rather than the flattering one.
+
+**HALF ONE, ON THE DEPLOYED SITE.** Signed in as `2studentb1@gmail.com` on `https://www.relii.io`, the real `/api/voice/token` was called for four sessions. **All four returned 200 with `model: "gpt-realtime"` and a 35-character client secret.** That proves the deployed route works for every case including the null-assignment one. **It does not show WHICH voice**, because the route does not return it.
+
+**HALF TWO, THE SHIPPED ROUTE AGAINST LIVE ROWS WITH A SPY.** `app/api/voice/token/route.ts` was compiled at the deployed commit and run against the **live Supabase rows** with a pass-through fetch spy in front of OpenAI.
+
+| Session | Assignment's stored `voice` | **Voice in the body sent to OpenAI** |
+| :-- | :-- | :-- |
+| `...0000a1` | **null** | **`"cedar"`** |
+| `...0000a2` | `cedar` | **`"cedar"`** |
+| `...0000a3` | `marin` | **`"marin"`** |
+| `...0000a4` | **no assignment at all** | **`"cedar"`** |
+
+**THE TWO CHECK 2 BODIES, AS SENT** (the persona instructions, 3922 characters and identical in both, are shown by length so the difference is readable):
+
+```json
+{
+  "session": {
+    "type": "realtime",
+    "model": "gpt-realtime",
+    "instructions": "<3922 chars of persona instructions>",
+    "audio": {
+      "input": {
+        "transcription": { "model": "gpt-4o-transcribe", "language": "en" },
+        "turn_detection": {
+          "type": "server_vad", "threshold": 0.5, "prefix_padding_ms": 300,
+          "silence_duration_ms": 1600, "create_response": true,
+          "interrupt_response": true
+        }
+      },
+      "output": { "voice": "cedar" }
+    }
+  }
+}
+```
+
+The `marin` body is the same JSON with `"voice": "marin"`. **The harness asserted it mechanically and printed `Are the two bodies identical apart from the voice? true`.**
+
+==> **TWO THINGS IN THOSE BODIES ARE THE SCOPE FENCE HOLDING, VISIBLE RATHER THAN PROMISED: `"language": "en"` IS STILL SINGULAR (D3's field, which must never be pluralised) AND `turn_detection` IS UNCHANGED, `silence_duration_ms` still 1600.** <==
+
+**WHAT WAS STUBBED IN THAT HARNESS, NAMED SO NOBODY OVERSTATES IT.** Exactly two things, neither of which decides a voice: `lib/supabase/server.ts`, because a Node process has no browser cookie (it returns the same student id the real cookie resolves to, which half one independently confirms), and `next/server`, because `NextResponse.json` does not resolve outside Next. **The session read, the assignment read, `resolvePersonaVoice`, `buildSystemMessage` and `mintRealtimeClientSecret` are all shipped code reading live rows.**
+
+### ALL THREE WRITE PATHS WERE EXERCISED, NAMED INDIVIDUALLY
+
+==> **AN ASSIGNMENT IS WRITTEN IN THREE PLACES AND A VALUE DROPPED ON ONE OF THEM IS INVISIBLE.** This is the part the roadmap did not account for. Each was driven through the real interface on the deployed site and then read back from the database. <==
+
+| # | Path | How it was exercised | Result |
+| --: | :-- | :-- | :-- |
+| **1** | The plain insert, `create/route.ts` line 261, used when NO rubric is attached | Created "T1 check 2: plain insert, Cedar" on the live site | **`voice = 'cedar'`, `rubric_id` null** |
+| **2** | The RPC `create_assignment_with_rubric`, line 230, used when a rubric IS attached | Created "T1 check 6: rubric path, Marin" with a real `.xlsx` | **`voice = 'marin'`, rubric attached** |
+| **3** | `edit-assignment-form.tsx` line 174, which writes **direct from the browser** with no API route | Edited cedar to Marin, saved, reloaded, then back to Cedar | **Both directions stored and read back** |
+
+**PATH 2 IS ALSO THE PROOF THE SIGNATURE CHANGE LANDED RATHER THAN OVERLOADED.** If the 13-argument function had survived, a call carrying `p_voice` would have failed or written null. It wrote `marin`.
+
+**PATH 3 IS THE ONE THE COLUMN-GRANT QUESTION WAS ABOUT.** It saved with no permission error, which is the grant measurement confirmed by behaviour rather than only by a catalogue read.
+
+### THE FUNCTION SIGNATURE, BEFORE AND AFTER, READ FROM THE DATABASE
+
+**Not from the file, and the COUNT is the check rather than the existence.**
+
+| | Signature | Args | `prosecdef` | Execute grants | **Count with this name** |
+| :-- | :-- | --: | :-- | :-- | --: |
+| **Before** | `...timestamptz, timestamptz, integer)` | **13** | false | `postgres=X`, `service_role=X` | **1** |
+| **After** | `...timestamptz, timestamptz, integer, text)` | **14** | false | `postgres=X`, `service_role=X` | **1** |
+
+==> **"THE NEW ONE EXISTS" WOULD NOT HAVE CAUGHT THE FAILURE. A SURVIVING OVERLOAD IS THE FAILURE MODE**, and only a count shows it. `anon` and `authenticated` appear in neither row, so the re-applied revokes landed: the drop took the old grants with it, and those statements are the only thing between the function and every browser. <==
+
+**THE BODY WAS REPRODUCED, NOT REWRITTEN, AND THAT IS MEASURED.** Diffed against Phase 2a's original: **two changed lines out of 23**, the insert column list and the values list, each gaining one token **at the same index** (position 9 in both). The third change is the parameter itself, outside the body.
+
+==> **WHY THAT POSITIONAL CHECK EXISTS, AND IT IS THE OWNER'S CATCH RATHER THAN THIS SESSION'S: A SIGNATURE CHECK CANNOT SEE A VOICE WRITTEN INTO THE WRONG COLUMN.** Had the two lists disagreed by one position, the function would have written the voice into `created_by` silently. Verified from the STORED body: `voice` at column-list position 9, `p_voice` at values-list position 9, `positions_match` **true**, both lists 12 long, and `created_by` at position 10 still receiving `p_created_by`. <==
+
+**AND THE STORED BODY IS BYTE-IDENTICAL TO THE FILE**, because a transcription into an MCP call is only trustworthy if it is hashed rather than read: **838 characters, md5 `4248c44400dbd69f2dbd8b5cef1773cb`, 24 lines**, matching `supabase/t1-persona-voice.sql` exactly.
+
+### THE COLUMN-GRANT QUESTION, ANSWERED BY MEASUREMENT
+
+==> **`public.assignments` NEEDS NO GRANT. It carries a TABLE-level grant and ZERO column-level grants.** `anon` and `authenticated` both hold `arwdDxtm` on the table, and no row in `pg_attribute.attacl` names any of its columns, so a new column is readable and writable automatically. <==
+
+**`public.scenarios` IS THE OPPOSITE CASE, WHICH IS WHY THE QUESTION HAD TO BE ASKED AT ALL.** Its table ACL is `awdDxtm` for those roles, **with no `r`**: Gate 2 revoked SELECT at table level and granted it back on **12 of 14 columns**, holding back `persona_system_prompt` and `scenario_context`. **A voice column on `scenarios` would have needed an explicit grant, and forgetting it would have failed the browser-side edit form on save, at the exact error whose Postgres hint Open Issues says never to follow.** This is an independent argument for the decision to put the voice on the assignment.
+
+==> **AND THE MEASUREMENT HAD TO BE TAKEN THE RIGHT WAY, WHICH IS A TRAP WORTH RECORDING. `information_schema.column_privileges` CANNOT ANSWER THIS QUESTION.** It expands a table-level grant across every column, so both tables come back looking identical, every column named for every privilege. The discriminating read is `pg_class.relacl` against `pg_attribute.attacl`, where `attacl` is null unless a column-level grant was actually made. **The first query run in this session was the useless one, and it looked like an answer.** <==
+
+### THE FIVE CHECK SCRIPTS, COUNTS READ FROM THE RUNS
+
+| Script | This run | Last recorded |
+| :-- | :-- | :-- |
+| `check-app-time` | **54 passed**, exit 0 | 54 |
+| `check-csv-ai-level` | **10 passed**, exit 0 | 10 |
+| `check-rubric-render` | **53 passed**, exit 0 | 53 |
+| `check-scorer` | **23 PASS lines, ALL CHECKS PASSED**, exit 0 | 23 |
+| `check-persona-list` | **45 passed**, exit 0 | 45 |
+
+**Not one count moved.** `check-persona-list` renders `components/chosen-persona-entry.tsx`, which this piece edited, so it exercised the third string rather than merely coexisting with it.
+
+### THE BUILD GATE
+
+| Step | Exit | Time (UTC) |
+| :-- | --: | :-- |
+| `rm -rf .next` | n/a | 15:43:34 |
+| `tsc --noEmit` | **0** | 15:43:34 to 15:43:38 |
+| `eslint .` | **0** | 15:43:43 to 15:43:48 |
+| `npm run build` | **0** | 15:44:08 to 15:44:16 |
+
+==> **THE BUILD EMITS ONE TURBOPACK WARNING AND IT IS PRE-EXISTING, WHICH WAS PROVED RATHER THAN ASSUMED.** "Encountered unexpected file in NFT list", naming `./next.config.ts`, a file this piece did not touch and which contains no configuration at all. **Commit `bbe3a68` was checked out into a scratch worktree and built with none of these changes: it emits the identical warning.** <==
+
+**A FOOTGUN WORTH RECORDING: `${PIPESTATUS[0]}` IS BASH AND THIS SHELL IS ZSH.** The first build reported an EMPTY exit code, which reads like success at a glance. The build was re-run writing to a log with `$?` read directly. **An exit code that prints as nothing is worse than one that prints as 1.**
+
+### THE DEPLOY, CONFIRMED BY A REAL REQUEST
+
+| | etag | age |
+| :-- | :-- | --: |
+| Before the push | `7dc39e45a7f471d44df3cc40ee2948a0` | 0 |
+| **After, 15:50:32 UTC** | **`fc1db7e49c02dd2fdeccfc1b8a2dcf45`** | 0 |
+
+==> **`age` IS NOT A USABLE SIGNAL ON THIS PAGE AND THE STANDING NOTE SHOULD SAY SO.** `/login` sends `cache-control: public, max-age=0, must-revalidate`, so `age` reads 0 before the deploy as well as after. **The etag change is the whole signal here.** Waiting for "age to reset to 0" would have been satisfied instantly by a stale deploy. <==
+
+**AND THE DEPLOY WAS CONFIRMED TO BE THIS COMMIT RATHER THAN JUST A DEPLOY**, because the new Voice control renders on the live instructor page, which only this commit's code can produce.
+
+### CHECK 7, THE THREE STRINGS
+
+**STRING 3, ON THE DEPLOYED SITE**, `/instructor/scaffold` in B1:
+
+> Decision maker, **added** Sep 3, 2026, 6:36 PM
+
+**STRING 1, ON THE DEPLOYED SITE**, the compare page for B1's group `336650af`:
+
+> Alex is switched ON. Saved as Presentation-Close: Alex (regional manager), and now available in the create-assignment list. Attach a rubric when you create the assignment and it will be graded; leave the rubric off and the practice is conversation only.
+
+==> **STRING 2 WAS NOT READ OFF THE DEPLOYED SITE, AND THAT IS A REAL LIMIT RATHER THAN A ROUNDING.** It renders only in the `{!picked && (` branch, which needs an UNDECIDED generated pair. **B1's only generation group holds one scenario and it is already chosen, so that branch has no venue in B1.** It was instead extracted from the shipped source, its enclosing branch condition confirmed, the JSX text nodes resolved the way React concatenates them, and compared to the approved string: **identical, true**. <==
+
+**TWO UNDECIDED PAIRS DO EXIST** (groups `151d9443` and `a98c23dd`), but both are in "Relii Demo (Historical)", which `instructor@test.com` cannot reach because the compare page is class-scoped. **Viewing string 2 on screen would need either a different sign-in or a probe pair written into B1.** Neither was done, and the owner was offered the choice and did not take it.
+
+### WHAT THIS SESSION LEFT IN B1, DELIBERATELY
+
+**TWO TEST ASSIGNMENTS REMAIN IN B1 AND THEY ARE EVIDENCE, NOT CLUTTER.** They are named so a future session reads them as such:
+
+| Id | Title | `voice` | Rubric | What it proves |
+| :-- | :-- | :-- | :-- | :-- |
+| `8ba0b8b0-ded2-41d1-ab14-a8d9ce823811` | T1 check 2: plain insert, Cedar | `cedar` | none | Write path 1, and check 2's cedar half |
+| `57265ba6-0939-478b-8e6c-b11849f0f7ab` | T1 check 6: rubric path, Marin | `marin` | Blank Row Regression Rubric | Write path 2, the RPC |
+
+**B1's ORIGINAL ASSIGNMENT `f63ec110` STILL HAS `voice` NULL AND WAS DELIBERATELY LEFT THAT WAY**, so a null-voice row remains available in B1 for any future check.
+
+**THE FOUR PROBE SESSIONS ARE GONE.** `supabase/t1-session-probes.sql` created them and `supabase/t1-session-probes-restore.sql` removed them, each named by full id. **Confirmed after: 0 probe rows left, 25 real null-assignment sessions still there, 52 sessions in total, which is the pre-probe baseline exactly.**
+
+==> **WHY THE RESTORE NAMES FOUR LITERAL IDS AND NOT A SHAPE. "delete where assignment_id is null" WOULD HAVE TAKEN THE TWENTY-FIVE REAL PRE-STAGE-7 SESSIONS WITH IT**, and nothing anywhere would have reported it. "delete where status = 'in_progress'" would have taken any practice a student had open. Both read as reasonable. <==
+
+**AND THE PROBES WERE USED INSTEAD OF REAL PRACTICES FOR A SAFETY REASON AS WELL AS A PRACTICAL ONE.** A real voice and video practice turns on a **camera**, which would have meant relying on the fake-media flags being spelled correctly, and the cost of getting that wrong is opening the owner's real webcam. The token route needs no media at all.
+
+### TWO DEFECTS IN THE KICKOFF, FOUND AND FIXED
+
+==> **1. IT SAYS THE FUNCTION HAS TWELVE PARAMETERS. IT HAS THIRTEEN.** Read from `pg_proc` before any change: `pronargs` 13. A drop written against a twelve-type signature would simply not have matched, and `create or replace` would then have left the real function standing beside the new one, which is precisely the overload the kickoff's own warning exists to prevent. <==
+
+==> **2. IT NAMES THREE SIGNATURE-KEYED STATEMENTS TO RE-APPLY. THERE ARE FOUR.** `comment on function` at `supabase/phase-2a-rubric-intake.sql` line 276 is also keyed by the full signature and would have errored against the dropped function. All four are in the migration. <==
+
+**Recorded the way D3 recorded its kickoff's ordering defect: the kickoff was right about the hazard and wrong about two of its details, and both were caught by reading the database rather than the file.**
+
+### A FILE THE KICKOFF'S TABLE MISSED
+
+==> **`app/instructor/assignments/page.tsx` IS MODIFIED AND IS NOT IN THE KICKOFF'S FILE TABLE. Line 131 is the select that loads an assignment and line 235 is the object handed to the edit form.** Without both, the new control would have rendered on the edit form with nothing behind it: the form would have shown Cedar for every assignment regardless of what was stored, and check 5 would have failed with no obvious cause. **It is named here because a modified file with no entry reads as scope creep later.** <==
+
+**A SECOND OMISSION IN THE SAME TABLE, SMALLER:** `app/api/voice/token/route.ts` line 44 selected `"id, student_id, scenario_id, status, kind, created_at"` with **no `assignment_id`**. The kickoff said the voice was "one more read or one join away"; it was one more read away **plus** a column the session select did not have.
+
+### THE SCOPE CHANGED FROM THE PHASE 3c HANDOFF AND THE ROADMAP, AND WHY
+
+==> **BOTH OLDER DESCRIPTIONS ARE SUPERSEDED AND NEITHER IS A CONTRADICTION.** The Phase 3c handoff below, and the roadmap's T1 entry, describe a **voice picker per persona, stored on `public.scenarios`, controlled on the AI Persona Framework page**. **THE OWNER CHANGED THAT ON 2026-09-14.** <==
+
+**WHAT IT BECAME, AND THE ONE REASON THAT DECIDES IT.** Two fixed voices rather than a picker, stored on the **assignment**. `assignments.scenario_id` is a plain foreign key with an index and no uniqueness rule, so one scenario backs many assignments. **A control that sat on the assignment form but wrote to `scenarios` would mean an instructor creating a second assignment on Alex and picking the other voice silently changed the first assignment's voice too.** Storing the value where it is chosen makes that impossible.
+
+**HANDOFF ITEM 3 IS NO LONGER THE GOVERNING ARGUMENT.** It argued for a column over a `generation_fields` key because an imported persona carries null `generation_fields`. Correct for a persona-level voice, and now moot: an assignment always exists and needs no fallback. "Do not store the voice in `generation_fields`" remains true and is now trivially true.
+
+**HANDOFF ITEM 7'S COST HAZARD IS RETIRED.** It warned that a picker invites sampling and every sample is a billable realtime session. **There is no picker and no preview button**, so there is nothing to sample.
+
+**HANDOFF ITEM 5 WAS WRONG ABOUT THE ROUTE.** It named `app/api/voice/start/route.ts`. **`voice/start` mints nothing**; the mint is in `app/api/voice/token/route.ts`.
+
+### OWNER RULINGS THIS SESSION
+
+1. **2026-09-15: THE VOICE LABELS ARE `Cedar (M)` AND `Marin (F)`, male and female.** Proposed copy used the bare names, because this session has not heard either voice and would not invent a description of one. **The owner supplied the distinction from having listened**, which is the one thing he could contribute that no measurement here could.
+2. **2026-09-15: AN EMPTY VOICE MAY BECOME `cedar` ON SAVE.** The edit form's dropdown has no blank state, so saving an old assignment writes `cedar` where there was null. **Nothing audible changes, because null already meant cedar.** The alternative was a special case in the form existing only to keep a column empty.
+3. **2026-09-15: THE MIGRATION WAS APPROVED AFTER THE OWNER READ THE FILE RATHER THAN THE SUMMARY**, and he verified four things independently: the function body is faithful (his own diff, three changes across 42 lines, same position in both lists), the drop signature matches type for type, query 5a counting rather than asserting is the right shape, and the scope fence holds in `lib/realtime.ts`.
+
+### THE LIMITS, STATED AT THEIR REAL STRENGTH
+
+1. ==> **NOBODY HAS HEARD `marin`.** Every proof is a request body, a row, or a string. The API accepts it and echoes it back; that it sounds female, or good, rests on the owner's own listening before this session. <==
+2. **CHECK 2's REQUEST BODY WAS MEASURED OUTSIDE VERCEL.** The shipped route at the deployed commit was run against live rows with a spy. The live site separately proved all four sessions mint 200. **What was never observed is a body leaving Vercel itself**, and no available tool can observe that.
+3. **STRING 2 WAS PROVED FROM SOURCE, NOT ON SCREEN.** See check 7 above.
+4. **NO REAL VOICE CONVERSATION WAS HELD.** The four probe sessions were minted for and then deleted. The audio path beyond the mint is unchanged by this piece and was not exercised.
+5. **THE PROBES RAN IN B1, NOT IN TOM'S CLASS**, which was neither read nor written at any point.
+
+### WHAT THIS SESSION DID NOT TOUCH
+
+- **Nothing in Tom's class**, read or write. `Sales 300 Fall 2026` was excluded by name AND by id from every query that could have reached it.
+- **`turn_detection` and D3's `language: "en"`** are untouched, and both are visible unchanged in the captured request bodies.
+- **No persona text**, no `scenario_context`, no `persona_system_prompt`, in any row.
+- **No new dependency.** No voice picker, no preview button, no third voice, nothing on `public.scenarios`, nothing in `generation_fields`, no control on the AI Persona Framework page beyond the two strings.
+- **No transcription work.**
+
+### GIT STATE
+
+**`origin/main` EQUALS `main`.** **The Cowork kickoff commit `bbe3a68` was pushed FIRST, before any other work**, since that instruction was unconditional and a push is neither a migration, form work nor a string edit. Then `8416926`, this piece. No `HEAD.lock`, no `objects/maintenance.lock`, no `tmp_obj_*`, and the tree is clean.
+
+## Completed
+
+- ==> **D2, ALEX GAINS GEOGRAPHY AND RAPPORT, 2026-09-14. THE FULL RECORD IS KEPT VERBATIM BELOW**, moved down here unchanged when T1 took over Current Stage. <==
+
+<details>
+<summary>The D2 record, as it stood in Current Stage</summary>
+
+
 ==> **D2, ALEX GAINS GEOGRAPHY AND RAPPORT, IS DONE AND LIVE (2026-09-14).** One row, one column: `public.scenarios` `901058cf-bb33-4fc1-baab-fdaf86edb08e` in Tom's "Sales 300 Fall 2026". `persona_system_prompt` went from **7299 / `ae1688fd278242cc330a108861e4cd33`** to **10988 / `093025a77a1f39eb868141d6ac029b6f`**. **NO CODE CHANGE, NO MIGRATION, NO SCHEMA CHANGE, NO NEW DEPENDENCY, AND `scenario_context` NEVER MOVED.** <==
 
 ==> **THE CHANGE IS PURELY ADDITIVE AND THAT WAS PROVED RATHER THAN ASSERTED: 19 INSERTED LINES, 0 DELETED, 0 MODIFIED, ON TWO INDEPENDENT TOOLS, BEFORE ANY WRITE.** All 48 original lines survive untouched. <==
@@ -230,7 +494,7 @@ Session `8f56c518-c28e-48ad-baf9-3c96ccc8502c`.
 
 **`origin/main` EQUALS `main`, at `95e0aea`.** **TWO Cowork commits were pushed by this session, not one.** The first was `53c76d8`, the kickoff itself, **pushed before any other work began** since that instruction was unconditional. The second was `95e0aea`, the persona doc brought up to the live text, **handed over after the read-back confirmed and pushed at the end**. **Its two embedded blocks were md5-checked against the live row before it was pushed**, rather than taken on trust. No `HEAD.lock`, no `objects/maintenance.lock`, no `tmp_obj_*`, and the tree is clean.
 
-## Completed
+</details>
 
 - ==> **D3, ENGLISH-ONLY TRANSCRIPTION, 2026-09-14, commit `ba3e8db`. THE FULL RECORD IS KEPT VERBATIM BELOW**, moved down here unchanged when D2 took over Current Stage. <==
 
@@ -1861,6 +2125,8 @@ B3_STUDENT_PASSWORD=...
 
 ## Phase 3c (persona voice) handoff
 
+==> **SUPERSEDED AND CLOSED. DO NOT BUILD WHAT THIS DESCRIBES.** T1 shipped on 2026-09-15 (commit `8416926`) in a different shape, by owner ruling of 2026-09-14: **two fixed voices on the ASSIGNMENT**, not a picker on the persona, and no control on the AI Persona Framework page. **Item 1 (the control belongs in `chosen-persona-entry.tsx`), item 3 (the voice wants a column on `public.scenarios`), item 4 (copy the toggle routes) and item 7 (price the preview button) are all moot.** Item 5 was also simply wrong: it names `app/api/voice/start/route.ts`, which mints nothing. **Item 2 is still useful history and item 8's two wording fixes SHIPPED, along with a third.** Kept in full because Current Stage's account of what changed refers to it. <==
+
 Written on 2026-09-11 at the end of Phase 3b, while the reasons are still in view. **STILL OUTSTANDING IN PHASE 3 AFTER THIS: persona voice, and that is all.** The two renames, the on and off toggle, and gatekeeper pairing are closed.
 
 ==> **1. WHERE THE VOICE CONTROL BELONGS, WHICH THE KICKOFF ASKED THIS HANDOFF TO NAME.** `components/chosen-persona-entry.tsx`, beside `<PersonaToggle>`. That component is one list entry for one CHOSEN persona, it is rendered by `app/instructor/scaffold/page.tsx` and, separately, by `scripts/check-persona-list.mjs`, so anything added there is measurable without a browser. It is also the only surface in the app that lists EVERY chosen persona however old, which is the property a voice picker needs for the same reason the toggle needed it. <==
@@ -2051,7 +2317,7 @@ Written on 2026-09-09, at the end of 2a, while the reasons are still in view.
 **THE ORDER, BY OWNER RULING (2026-09-14):**
 
 1. ~~**D2, Alex geography plus rapport.**~~ **CLOSED 2026-09-14.** One row, one column, no migration. Full record in Current Stage. **T1 IS NOW NEXT.**
-2. **T1, Phase 3c: persona voice plus two wording fixes.** 6 to 9 h, one column. **Read the Phase 3c handoff below first, and read the roadmap beside it: the roadmap corrects that handoff on the voice constant and its single consumer, which makes T1 smaller than the handoff implies.**
+2. ~~**T1, Phase 3c: persona voice plus two wording fixes.**~~ **CLOSED 2026-09-15**, commit `8416926`, one additive column on `public.assignments`. Full record in Current Stage. **N1 PLUS T2 ARE NOW NEXT.** **THE SHAPE CHANGED FROM WHAT THIS LINE USED TO DESCRIBE: two fixed voices on the ASSIGNMENT, not a picker on the persona. The Phase 3c handoff below and the roadmap's T1 entry are both superseded, and Current Stage says why.** It shipped three wording fixes rather than two.
 3. **N1 plus T2, which ride together.** 7 to 12 h. N1 normalises rubric points at parse time (a code change, future uploads only, touches no data); T2 is the class-wide gradebook export.
 4. **V1, measure that the scorer is deterministic.** 1 to 2 h, folds into any session.
 
@@ -2059,7 +2325,7 @@ Written on 2026-09-09, at the end of 2a, while the reasons are still in view.
 
 ==> **THE ONLY REAL ORDERING CONSTRAINT IS A DEPENDENCY RATHER THAN A PREFERENCE. T3 (a student in up to two classes) REWRITES `public.handle_new_user()`, the function every one of Tom's roughly 64 students runs EXACTLY ONCE during registration, in the same transaction that writes their consent row. IT IS HARD-BLOCKED UNTIL REGISTRATION HAS VISIBLY SETTLED, roughly 2026-09-21.** Nothing else in the list touches the signup path, so nothing else is constrained by the date, and T4 and T5 can swap with T3 at no cost. <==
 
-==> **WHAT CLOSED, SO THIS SECTION STOPS LISTING IT AS OPEN.** **Phase 3b closed THE TWO RENAMES AND GATEKEEPER PAIRING on 2026-09-11** (commits `489efef`, `9a69ea3`, `863d878`, `cc43fa5`). **This section went on listing both as open until 2026-09-14 and was simply wrong to.** What actually remains of Phase 3 is **persona voice (now T1)** and **enable or disable ANY scenario (now T5)**, both in the order above under their roadmap names. Also closed: **D3**, English-only transcription, 2026-09-14 at `ba3e8db`, which shipped the SINGULAR `language: "en"` after the plural `languages` the kickoff specified came back HTTP 400 on this model; **T0**, Alex becoming the Wildcat Packers discovery persona, 2026-09-13; **D2**, Alex gaining geography and rapport, 2026-09-14, which added 19 lines to one column of one row and left `scenario_context` untouched; **D1**, the display bundle, 2026-09-14 at `cad67fa`; **Phase 4**, 2026-09-11 (`30d44d6`, `c1d8dc7`), which retired the rule that nobody reviews real student work; **the timezone session**, 2026-09-11 (`73185da`); and verification items **V2** and **V3**. Full records are in Current Stage and Completed. <==
+==> **WHAT CLOSED, SO THIS SECTION STOPS LISTING IT AS OPEN.** **Phase 3b closed THE TWO RENAMES AND GATEKEEPER PAIRING on 2026-09-11** (commits `489efef`, `9a69ea3`, `863d878`, `cc43fa5`). **This section went on listing both as open until 2026-09-14 and was simply wrong to.** What actually remains of Phase 3 is **enable or disable ANY scenario (now T5)**. **Persona voice, the last other item, closed on 2026-09-15**, so Phase 3 now has exactly one thing left in it. Also closed: **T1**, the persona voice on the assignment, 2026-09-15 at `8416926`, which added one column to `public.assignments`, replaced `create_assignment_with_rubric` by full signature to carry it, and shipped three wording fixes; **D3**, English-only transcription, 2026-09-14 at `ba3e8db`, which shipped the SINGULAR `language: "en"` after the plural `languages` the kickoff specified came back HTTP 400 on this model; **T0**, Alex becoming the Wildcat Packers discovery persona, 2026-09-13; **D2**, Alex gaining geography and rapport, 2026-09-14, which added 19 lines to one column of one row and left `scenario_context` untouched; **D1**, the display bundle, 2026-09-14 at `cad67fa`; **Phase 4**, 2026-09-11 (`30d44d6`, `c1d8dc7`), which retired the rule that nobody reviews real student work; **the timezone session**, 2026-09-11 (`73185da`); and verification items **V2** and **V3**. Full records are in Current Stage and Completed. <==
 
 **T2 NOW CARRIES THE DUST DECISION, WHICH IS A REAL DEPENDENCY IT DID NOT HAVE BEFORE.** The float dust in Tom's Discovery rubric is tolerated by owner ruling of 2026-09-13 **because it is INERT, not because it is hidden**: every consumer of a total is one we control and one that rounds on the way out. **A gradebook export is the trigger that ends that tolerance.** See Open Issues, and **do not build T2 and leave that entry standing.**
 
