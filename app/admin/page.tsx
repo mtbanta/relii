@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { AddInstructorForm } from "@/components/admin-add-instructor-form";
 import { RemoveInstructorButton } from "@/components/admin-remove-instructor-button";
 import { requireSuperAdmin } from "@/lib/super-admin";
+import type { AdminClient } from "@/lib/super-admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { displayName } from "@/lib/name";
 import { ServerTimingReport } from "@/components/server-timing-report";
@@ -34,6 +35,49 @@ type Klass = {
   name: string;
   instructor_id: string;
 };
+
+type ClassRow = { class_id: string | null; video_path?: string | null };
+
+// Supabase's default cap is 1000 rows per request, so at today's size each
+// table is one request. Nothing depends on the cap being exactly that: each
+// page starts where the rows in hand end, so a smaller cap only means more pages.
+const PAGE_SIZE = 1000;
+
+// Every row of one table, read in pages until the rows in hand match the exact
+// count the API reported. Ordered by the primary key so the pages cannot
+// overlap or skip. See section 3 below for why it throws.
+async function readAllRows(
+  admin: AdminClient,
+  table: string,
+  columns: string,
+  primaryKey: string,
+): Promise<ClassRow[]> {
+  const rows: ClassRow[] = [];
+  let total = 0;
+  do {
+    const { data, count, error } = await admin
+      .from(table)
+      .select(columns, { count: "exact" })
+      .order(primaryKey, { ascending: true })
+      .range(rows.length, rows.length + PAGE_SIZE - 1);
+    if (error || count == null) {
+      throw new Error(
+        `Could not read ${table} for the class counts: ${error?.message ?? "no count returned"}`,
+      );
+    }
+    total = count;
+    const page = (data ?? []) as unknown as ClassRow[];
+    if (page.length === 0) break;
+    rows.push(...page);
+  } while (rows.length < total);
+
+  if (rows.length < total) {
+    throw new Error(
+      `Read ${rows.length} of ${total} rows from ${table}, so the class counts would be wrong.`,
+    );
+  }
+  return rows;
+}
 
 export default async function AdminOverview() {
   // The layout already gated this page; this confirms it again for the page
@@ -75,38 +119,60 @@ export default async function AdminOverview() {
 
   // 3. What is in each class.
   //
-  //    Counted with head-only count queries, one per table per class, rather
-  //    than by reading the rows and tallying them here. That is not the cheaper
-  //    way, it is the CORRECT one: the API caps how many rows one request
-  //    returns and says nothing when it truncates, so a tally built from a
-  //    plain read would quietly under-report a busy class. Six small counts per
-  //    class is nothing at this scale (about five classes at most for a while).
-  const COUNTED = [
-    ["rubrics", "Rubrics"],
-    ["scenarios", "Personas"],
-    ["assignments", "Assignments"],
-    ["sessions", "Sessions"],
-    ["allowed_emails", "Invites"],
-  ] as const;
+  // ==> FIVE READS ACROSS EVERY CLASS, TALLIED HERE (page performance,
+  //     2026-09-16). This used to be six head-only counts PER CLASS, awaited one
+  //     after another: with 6 classes that was 36 round trips, measured at 7.8
+  //     seconds on its own, and it grew by six with every class added. It is now
+  //     five reads however many classes there are, sent together.
+  //
+  //     THE OLD COMMENT'S WARNING STILL HOLDS, AND THIS CODE IS BUILT AROUND
+  //     IT: the API caps how many rows one request returns and says nothing when
+  //     it truncates, so a plain read would quietly under-report a busy class.
+  //     readAllRows() therefore asks for the exact count in the same response
+  //     and keeps reading pages until it has that many rows. If it still comes
+  //     up short it THROWS, because a page that fails loudly is worth more than
+  //     one that is confidently wrong about how much work a class holds. The
+  //     old loop showed 0 for a failed count; this shows an error instead. <==
+  const [rubricRows, scenarioRows, assignmentRows, sessionRows, inviteRows] =
+    await Promise.all([
+      readAllRows(admin, "rubrics", "class_id", "id"),
+      readAllRows(admin, "scenarios", "class_id", "id"),
+      readAllRows(admin, "assignments", "class_id", "id"),
+      readAllRows(admin, "sessions", "class_id, video_path", "id"),
+      readAllRows(admin, "allowed_emails", "class_id", "email"),
+    ]);
 
+  // The labels are created in this order on purpose: the page prints them in
+  // insertion order, and this is the order the per-class loop printed them in.
   const countsByClass = new Map<string, Record<string, number>>();
   for (const cls of classes ?? []) {
-    const counts: Record<string, number> = {};
-    for (const [table, label] of COUNTED) {
-      const { count } = await admin
-        .from(table)
-        .select("class_id", { count: "exact", head: true })
-        .eq("class_id", cls.id as string);
-      counts[label] = count ?? 0;
-    }
-    const { count: recordings } = await admin
-      .from("sessions")
-      .select("class_id", { count: "exact", head: true })
-      .eq("class_id", cls.id as string)
-      .not("video_path", "is", null);
-    counts.Recordings = recordings ?? 0;
-    countsByClass.set(cls.id as string, counts);
+    countsByClass.set(cls.id as string, {
+      Rubrics: 0,
+      Personas: 0,
+      Assignments: 0,
+      Sessions: 0,
+      Invites: 0,
+      Recordings: 0,
+    });
   }
+
+  // A row with no class, or a class not in the list above, is skipped, which
+  // is exactly what the per-class ".eq(class_id)" counts did.
+  const tally = (rows: ClassRow[], label: string) => {
+    for (const row of rows) {
+      const counts = row.class_id ? countsByClass.get(row.class_id) : undefined;
+      if (counts) counts[label] += 1;
+    }
+  };
+  tally(rubricRows, "Rubrics");
+  tally(scenarioRows, "Personas");
+  tally(assignmentRows, "Assignments");
+  tally(sessionRows, "Sessions");
+  tally(inviteRows, "Invites");
+  tally(
+    sessionRows.filter((row) => row.video_path != null),
+    "Recordings",
+  );
 
   // 4. THE CANARY. Registered students who are in no class at all.
   //
