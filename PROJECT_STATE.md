@@ -14,7 +14,7 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ## Current Stage
 
-==> **PAGE PERFORMANCE, THE INSTRUCTOR AND ADMIN PAGES (2026-09-16). P1 WORK IS COMPLETE AND ACCEPTED BY THE OWNER: THE REGION PIN (`pdx1`), THE ADMIN COUNT COLLAPSE, AND THE ADMIN ERROR PAGE IN PLACE OF A SILENT 0. THE REGION PIN IS VERIFIED LIVE BY THE OWNER'S OWN STUDENT PRACTICE. PARALLELISING AND SPEEDUPS (a) AND (b) ARE DECLINED. FORMAL CLOSE IS PENDING, AND REMOVING `RELII_SERVER_TIMING` IS PART OF IT.** Commits: `73c0125` the region pin, alone; `7f08560` the admin count fix, alone, **and the last commit that changed code**; every commit after it changed only this file. The baseline gate that came before both is kept below, unchanged, under its own heading. <==
+==> **PAGE PERFORMANCE, THE INSTRUCTOR AND ADMIN PAGES (2026-09-16). P1 WORK IS COMPLETE AND ACCEPTED BY THE OWNER: THE REGION PIN (`pdx1`), THE ADMIN COUNT COLLAPSE, AND THE ADMIN ERROR PAGE IN PLACE OF A SILENT 0. THE REGION PIN IS VERIFIED LIVE BY THE OWNER'S OWN STUDENT PRACTICE. PARALLELISING AND SPEEDUPS (a) AND (b) ARE DECLINED. P1 CLOSED ON 2026-09-16 AT `ac17cf3`, AND `RELII_SERVER_TIMING` WAS REMOVED THE SAME DAY AND VERIFIED LIVE.** Commits: `73c0125` the region pin, alone; `7f08560` the admin count fix, alone, **and the last commit that changed code**; every commit after it changed only this file. The baseline gate that came before both is kept below, unchanged, under its own heading. <==
 
 **THE COMPLAINT, IN THE OWNER'S WORDS.** Every instructor page takes 2 to 6 seconds after clicking (Submissions, AI Persona Framework, Manage Assignments, Roster, Invite Users), reproduced on his admin account and on `instructor@test.com`. The Administration page takes 10 to 30 seconds.
 
@@ -30,7 +30,7 @@ This file is the running status of Relii. Read it at the start of every session.
 
 1. **ACCEPTED:** the region pin, the `/admin` count collapse, and the `/admin` error page in place of a silent 0.
 2. **DECLINED ON THE MEASURED NUMBERS:** parallelising the list pages and speedup (a), alongside speedup (b). **No further P1 work.**
-3. **`RELII_SERVER_TIMING` STAYS ON ONLY UNTIL P1 FORMALLY CLOSES, AND IS REMOVED WHEN IT DOES** (section below).
+3. **`RELII_SERVER_TIMING` STAYS ON ONLY UNTIL P1 FORMALLY CLOSES, AND IS REMOVED WHEN IT DOES.** ==> **DONE: removed 2026-09-16 when P1 closed, and verified live** (section below). <==
 
 ### THE REGION PIN, VERIFIED LIVE BY A STUDENT PRACTICE (owner, 2026-09-16)
 
@@ -77,11 +77,19 @@ This file is the running status of Relii. Read it at the start of every session.
 | **Server start-up on a cold load** | **About 2 seconds**: 1.6 to 2.3 s on every cold sample on the pin (1.7 to 1.9 s before it), the gap between the page's last trip ending and the page arriving, less the proxy's check | **Hobby-plan behaviour with no code lever** (owner ruling) |
 | **The proxy's login check** | **109 to 478 ms** on warm clicks on the pinned build; 0.66 to 0.76 s on a cold load, 1.2 s when the hourly session refresh lands on the same request | **It sits in auth verification, which this project does not open without its own piece** (owner ruling) |
 
-### `RELII_SERVER_TIMING`: ON UNTIL P1 FORMALLY CLOSES, THEN REMOVED (owner ruling, 2026-09-16)
+### `RELII_SERVER_TIMING`: REMOVED 2026-09-16, WHEN P1 CLOSED, AND VERIFIED LIVE
 
-==> **THE FLAG IS ON IN PRODUCTION NOW, AND IT STAYS ON ONLY UNTIL P1 FORMALLY CLOSES. WHEN P1 CLOSES, IT IS REMOVED. THE NEXT SESSION REMOVES IT; IT DOES NOT INHERIT IT.** <==
+==> **REMOVED ON 2026-09-16, WHEN P1 CLOSED AT `ac17cf3`. IT WAS NOT LEFT FOR A LATER SESSION TO INHERIT.** The owner deleted the variable from Production in the Vercel dashboard and redeployed the current commit. <==
 
-**How it comes off.** The variable is deleted from Production in the Vercel dashboard, which is the owner's action because the Vercel CLI is denied in this repo, and **the change reaches production only on the next deploy**, so a push must follow before it is actually off. With the variable gone, the instrument's code is inert, proved both ways on one build before it first shipped. **The session that closes P1 then confirms it is off by an observation, not by the dashboard:** `/login` must answer with **no** `server-timing` header, and an instructor page must render **no** `data-relii-timing` block.
+**Verified live at 21:21 UTC, by observation rather than by the dashboard, on that redeploy** (a new `/login` etag, `14541560fa1fcee37054e76e7dbc2f43`, whose first read was `x-vercel-cache: PRERENDER`):
+
+| Where | What had to be absent | Observed |
+| :-- | :-- | :-- |
+| `/login`, three requests | the `server-timing` header | **Absent on all three** |
+| A request that ran a function (`/?probe=...`) | the `server-timing` header | **Absent**, still served from `pdx1` |
+| All five instructor pages, signed in as `instructor@test.com` | any `data-relii-timing` block, the header, and any `serverTiming` entry in the browser's navigation timing | **0 blocks, no header and no entries on every page**, each rendering its own heading, so each was a real signed-in render and not a redirect |
+
+**The instrument's code is still in the repo and is inert without the variable**, as proved on one build run both ways before it first shipped.
 
 ### THE REGION PIN, ALONE
 
@@ -181,7 +189,7 @@ This file is the running status of Relii. Read it at the start of every session.
 ### THE LIMITS OF THIS HALF, STATED AT THEIR REAL STRENGTH
 
 1. ~~**NOTHING STUDENT-FACING WAS EXERCISED ON `pdx1`.**~~ ==> **CLOSED 2026-09-16 BY THE OWNER'S STUDENT PRACTICE IN B1: voice, video, scoring, transcript download and recording download, all correct. See the verification above.** <== What the limit said, kept because it is why the practice was run: The pin moves EVERY route in the app, in registration week, and every measurement here was the instructor and admin surface. **The voice token mint, the recording upload and signed-URL routes, the scorer and the student pages now run from Oregon and none of them was hit by this session.** Nothing about Oregon should break them (they reach the same Supabase and OpenAI), but that is reasoning, not evidence. **One real student practice, run by the owner, is the observation that closes it**, the same shape as T1's "nobody has heard `marin`". **If anything is wrong, the revert is deleting `vercel.json`: one commit, one deploy.**
-2. **THE INSTRUMENT IS LIVE FOR EVERY REQUEST, STUDENTS INCLUDED, UNTIL P1 FORMALLY CLOSES** (see the flag section above). With `RELII_SERVER_TIMING=1` set, every Supabase call goes through the pass-through fetch and every response carries the proxy's `Server-Timing` header (a duration, a trip count and a region; no names, ids or data). It is flag-gated exactly as the kickoff required, and it is on.
+2. ~~**THE INSTRUMENT IS LIVE FOR EVERY REQUEST, STUDENTS INCLUDED, UNTIL P1 FORMALLY CLOSES.**~~ ==> **CLOSED 2026-09-16: the variable was removed and the removal verified live** (see the flag section above). <== What the limit said: With `RELII_SERVER_TIMING=1` set, every Supabase call goes through the pass-through fetch and every response carries the proxy's `Server-Timing` header (a duration, a trip count and a region; no names, ids or data). It is flag-gated exactly as the kickoff required, and it is on.
 3. **`/admin` NOW FAILS LOUDLY WHERE IT USED TO PRINT 0. ACCEPTED BY THE OWNER, 2026-09-16.** A transient read failure shows an error page instead of a class with too few rubrics or sessions. This matches `loadClassStudents()` and `countScenarioUsage()`, and it is recorded here so the owner can object to it cheaply.
 4. **THE REGION'S TRIP TIMES WERE MEASURED FROM ONE MACHINE, IN ONE AFTERNOON, IN REGISTRATION WEEK.** The trip counts do not depend on any of that; the milliseconds do.
 
@@ -199,6 +207,8 @@ This file is the running status of Relii. Read it at the start of every session.
 **Check 4 is a regression check rather than a test of new code**: no class-scoping code changed, because (3) was not done.
 
 ### THE INSTRUMENT: STILL IN, STILL FLAGGED
+
+==> **SUPERSEDED 2026-09-16: the variable was removed when P1 closed, and verified live. See the `RELII_SERVER_TIMING` section above.** Kept as written, true when written. <==
 
 **`RELII_SERVER_TIMING=1` is still set in production and the instrument is live.** It stays until the owner decides (3), because any follow-up needs the same instrument for its before-and-after. **To turn it off: delete the variable in the Vercel dashboard; it takes effect on the next deploy.** With the variable gone the code is inert, which was proved on one build run both ways before it ever shipped. Stripping the code is a separate, later decision.
 
@@ -2782,7 +2792,7 @@ Written on 2026-09-09, at the end of 2a, while the reasons are still in view.
 
 ==> **THE ORDER LIVES IN `OS_Resources/Relii/Relii-Roadmap-and-Estimates.md`, AND THAT FILE IS THE AUTHORITY.** It was revised 2026-09-14 at 15:40 UTC against working tree `cad67fa`, clean, and it carries the hours, the migration flags and the reasoning for every piece. **THIS SECTION NAMES THE ORDER AND THE CONSTRAINTS ONLY**, so the two cannot drift into disagreeing about estimates. **If they ever disagree about ORDER, the roadmap wins and this section is the stale one.** <==
 
-==> **INTERJECTED 2026-09-16: P1, PAGE PERFORMANCE. WORK COMPLETE AND ACCEPTED; FORMAL CLOSE PENDING.** Not a roadmap piece; the owner raised it from use. Shipped: the region pin (`pdx1`) and the admin count collapse, verified live by the owner's student practice. Declined on measured numbers: list-page parallelising, speedups (a) and (b). Deferred as measured and not attempted: server start-up (about 2 s cold) and the proxy's login check (109 to 478 ms warm). **OPEN ITEM FOR THE NEXT SESSION: `RELII_SERVER_TIMING` IS STILL ON IN PRODUCTION AND IS REMOVED WHEN P1 CLOSES, NOT INHERITED.** See Current Stage. <==
+==> **INTERJECTED 2026-09-16: P1, PAGE PERFORMANCE. CLOSED 2026-09-16 AT `ac17cf3`.** Not a roadmap piece; the owner raised it from use. Shipped: the region pin (`pdx1`) and the admin count collapse, verified live by the owner's student practice. Declined on measured numbers: list-page parallelising, speedups (a) and (b). Deferred as measured and not attempted: server start-up (about 2 s cold) and the proxy's login check (109 to 478 ms warm). **`RELII_SERVER_TIMING` was removed from Production on 2026-09-16 when P1 closed, and the removal was verified live; there is nothing to inherit.** See Current Stage. <==
 
 **THE ORDER, BY OWNER RULING (2026-09-14):**
 
