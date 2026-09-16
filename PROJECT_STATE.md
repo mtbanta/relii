@@ -107,6 +107,27 @@ This file is the running status of Relii. Read it at the start of every session.
 
 **PROVED LIVE.** New etag `44bbe4e06d65ad6fa93bf1862350bec9` at 20:41:19 UTC; **the first `/admin` load after it counted 12 trips, which only the fix can produce.**
 
+### CHECKS 1 AND 3 ON THE BUILD THAT IS ACTUALLY LIVE
+
+**The pin numbers above for the five instructor pages were taken on `73c0125`, and the live build is `8a8960a`.** So the five pages were measured again on the live build, warm, at 20:48 to 20:49 UTC.
+
+| Page | Warm full loads, ms (counter) | One warm click, ms | Hash |
+| :-- | :-- | --: | :-- |
+| Submissions | 598, 793, 705 | 542 | identical, `9bad97ac39437d9f` |
+| Manage Assignments | 1,001 (one 530 ms consent read), 695, 732 | 760 | identical, `4b6c2570ef5d46cc` |
+| Roster | **567**; plus 744 and 668, both **set aside** as first renders on copies started 0.35 s and 1.4 s earlier | 740 | identical, `515ba6ae3546f8e9` |
+| Invite Users | 928, 453, 624 | 636 | identical, `64604646fb089ca0` |
+| AI Persona Framework | 1,281 (copy 0.7 s old), 483, 476 | 937 | identical, `a284ce5006e546b7` |
+
+**Same range as on the pin, and the same data.** **The cold column was NOT re-run on the live build, on purpose:** nothing an instructor page runs changed between `73c0125` and `8a8960a` (the two commits touched `app/admin/page.tsx` and this file), and five more 17-minute idle windows would measure a difference no source change can produce.
+
+### THE LIMITS OF THIS HALF, STATED AT THEIR REAL STRENGTH
+
+1. **NOTHING STUDENT-FACING WAS EXERCISED ON `pdx1`.** The pin moves EVERY route in the app, in registration week, and every measurement here was the instructor and admin surface. **The voice token mint, the recording upload and signed-URL routes, the scorer and the student pages now run from Oregon and none of them was hit by this session.** Nothing about Oregon should break them (they reach the same Supabase and OpenAI), but that is reasoning, not evidence. **One real student practice, run by the owner, is the observation that closes it**, the same shape as T1's "nobody has heard `marin`". **If anything is wrong, the revert is deleting `vercel.json`: one commit, one deploy.**
+2. **THE INSTRUMENT IS LIVE FOR EVERY REQUEST, STUDENTS INCLUDED.** With `RELII_SERVER_TIMING=1` set, every Supabase call goes through the pass-through fetch and every response carries the proxy's `Server-Timing` header (a duration, a trip count and a region; no names, ids or data). It is flag-gated exactly as the kickoff required, and it is on.
+3. **`/admin` NOW FAILS LOUDLY WHERE IT USED TO PRINT 0.** A transient read failure shows an error page instead of a class with too few rubrics or sessions. This matches `loadClassStudents()` and `countScenarioUsage()`, and it is recorded here so the owner can object to it cheaply.
+4. **THE REGION'S TRIP TIMES WERE MEASURED FROM ONE MACHINE, IN ONE AFTERNOON, IN REGISTRATION WEEK.** The trip counts do not depend on any of that; the milliseconds do.
+
 ### CHECKS 1 TO 6
 
 | # | Check | Result |
