@@ -105,9 +105,9 @@ The value begins with the region code, for example `iad1::` (Washington DC) or `
 
 **All of it in B1 and on the owner's own admin account, on `relii.vercel.app`, never localhost.**
 
-**THE OWNER SUPPLIES PASSWORDS BY THE FILE METHOD:** a `/tmp` file entered with `read -rs` in a separate Terminal, never pasted into chat, deleted at session end. **ASK WHICH ACCOUNTS.**
+==> **THE OWNER PASTES PASSWORDS DIRECTLY INTO THE CHAT. DO NOT ASK FOR A FILE.** The change brief specified a `/tmp` file entered with `read -rs`; **the owner overruled that on 2026-09-16 and the paste is what he wants.** He has weighed it: it is marginally less secure, and he clears these chats regularly. **Do not propose the file method, do not ask him to reconsider, and do not write credentials to disk. ASK WHICH ACCOUNTS.** <==
 
-**ONE RECORDED FACT SO YOU DO NOT LOSE A ROUND TRIP TO IT:** PROJECT_STATE records that a chat-pasted password was once replaced by the literal token `<password>` inside tool arguments, and ALSO that on three later occasions it arrived intact. **The redaction is intermittent. The durable rule is the measurement, not the route:** read `document.querySelector('input[type=password]').value.length` after filling, whichever way the password came.
+**ONE RECORDED FACT SO YOU DO NOT LOSE A ROUND TRIP TO IT:** PROJECT_STATE records that a chat-pasted password was once replaced by the literal token `<password>` inside tool arguments, and ALSO that on three later occasions it arrived intact. **The redaction is intermittent, so a paste failing is not a reason to ask for a file.** The durable rule is the measurement: read `document.querySelector('input[type=password]').value.length` after filling, and if it reads 10 with a first character code of 60, the redaction fired and the owner simply pastes again.
 
 ### 1. The region, first, because it is one command
 
