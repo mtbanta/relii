@@ -14,9 +14,129 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ## Current Stage
 
-==> **PAGE PERFORMANCE, THE INSTRUCTOR AND ADMIN PAGES. AT THE GATE (2026-09-16): THE BASELINE IS MEASURED AND IN THIS RECORD, AND NO FIX HAS BEEN WRITTEN.** Kickoff: `docs/Relii-PagePerformance-Kickoff-Prompt.md`, 225 lines. The instrument is commit `26c99c4`, pushed and live behind `RELII_SERVER_TIMING=1`. **The owner reads this table before any fix code exists.** <==
+==> **PAGE PERFORMANCE, THE INSTRUCTOR AND ADMIN PAGES (2026-09-16). THE REGION PIN AND THE ADMIN COUNT FIX ARE SHIPPED AND RE-MEASURED WITH THE SAME INSTRUMENT. LIST-PAGE PARALLELISING IS NOT DONE AND AWAITS THE OWNER, WITH A RECOMMENDATION BELOW. The owner has not yet read the re-measure.** Commits: `73c0125` the region pin, alone; `7f08560` the admin count fix, alone. The baseline gate that came before both is kept below, unchanged, under its own heading. <==
 
 **THE COMPLAINT, IN THE OWNER'S WORDS.** Every instructor page takes 2 to 6 seconds after clicking (Submissions, AI Persona Framework, Manage Assignments, Roster, Invite Users), reproduced on his admin account and on `instructor@test.com`. The Administration page takes 10 to 30 seconds.
+
+### AFTER THE GATE: THE ORDER THE OWNER SET, AND WHY (rulings, 2026-09-16)
+
+1. **REGION PIN: APPROVED, FIRST, AND ALONE. `pdx1`, NOT `sfo1`.** Supabase is `us-west-2`, which is Oregon, which is `pdx1`; `sfo1` is `us-west-1`, a different AWS region. **No code rode along, so the improvement can be attributed.**
+2. **THE ADMIN N+1: APPROVED REGARDLESS OF WHAT THE PIN SHOWED.** 36 sequential counts is an algorithmic defect, not a latency one: at 10 ms a trip it is still 360 ms, and it grows with every class.
+3. **PARALLELISING THE LIST PAGES: NOT YET. DECIDE AFTER THE REGION RE-MEASURE.** Its value is proportional to trip latency, and it edits the code that enforces class scoping, the riskiest code in this piece.
+4. **SPEEDUP (a), profile and class list together inside `requireInstructor()`: RE-ASSESS WITH (3), ONLY IF THE NUMBERS JUSTIFY IT.**
+5. **SPEEDUP (b), NOT RUNNING `requireInstructor()` TWICE ON A FULL LOAD: MEASURED AND DECLINED.** The duplicate trips run at the same moment as the originals (identical start and end offsets in every full-load trip list), so removing them saves Supabase calls but close to no waiting. **Recorded as declined, not left open.**
+
+### THE REGION PIN, ALONE
+
+**CONFIRMED FROM VERCEL'S DOCS BEFORE RELYING ON IT, QUOTED:**
+
+| Question | Vercel's words | Page |
+| :-- | :-- | :-- |
+| Does Hobby allow a region other than the default? | Plan table: **"Hobby: Single region"**; "Pro: 5 regions"; "Enterprise: All regions" | `vercel.com/docs/functions/configuring-functions/region` |
+| Is `pdx1` Oregon? | **"pdx1, us-west-2, Portland, USA"**; and "sfo1, us-west-1, San Francisco, USA" | `vercel.com/docs/regions` |
+| What was the app on? | "The default Function region is Washington, D.C., USA (`iad1`) for all new projects." | the region page |
+| The syntax | `"regions": ["sfo1"]` in `vercel.json` (the docs' own example) | the region page |
+| **Does the proxy follow it?** | **"Vercel deploys Routing Middleware to all regions by default, regardless of your region settings. On the Hobby plan, Routing Middleware runs in fewer regions."** | the region page |
+
+**THE CHANGE.** `vercel.json`, new, three keys: the schema and `"regions": ["pdx1"]`. Commit `73c0125`.
+
+==> **PROVED LIVE BY AN OBSERVATION ONLY THE PIN CAN PRODUCE.** The new etag `f00dcd182a0cd5f65aa5ff1fe979969a` appeared at 18:51:45 UTC, and the first page load after it answered **`x-vercel-id: cle1::pdx1::wwtdc-1789584715750-e0bb5f71aabb`** with the instrument reading **`region: pdx1`**. Every page load and click afterwards read `pdx1`. <==
+
+==> **AND THE PROXY DID NOT MOVE, EXACTLY AS THE DOCS WARNED: IT STILL REPORTS `region=iad1`.** So every request still starts with a login check made from Washington DC to Oregon, and is then handed across the country to the function. **That is now the largest single server-side cost on a warm click** (see below). <==
+
+### THE RE-MEASURE, SAME INSTRUMENT, THREE COLUMNS
+
+**Milliseconds. Same machine, same browser, same harness, same counter rules as the baseline.** "Before" is `iad1` with the original code; "pin" is `73c0125`; "fix" is `7f08560`, which changed `/admin` only. Cold means the per-copy counter read 0 renders on a copy started milliseconds earlier.
+
+| Page | Trips (load / click) | **Cold full load** before → pin → fix | **Warm full load, median** before → pin → fix | **Warm click, median** before → pin |
+| :-- | :-- | :-- | :-- | :-- |
+| Submissions | 13 / 9 | 5,184 → **3,468** | 1,514 → **722** (722, 553, 828) | 1,191 → **608** (579, 885, 608) |
+| Manage Assignments | 11 / 7 | 4,921 → **4,506**, and **this one includes the hourly session refresh** (proxy 2 trips, 1,224 ms) | 1,529 → **501** (512, 490) | 1,301 → **767** (767, 813, 555) |
+| Roster | 12 / 8 | 5,202 (**that one** included the refresh) → **3,487** | 1,377 → **779** (838, 779, 576) | 1,074 → **763** (763, 843, 751) |
+| Invite Users | 8 / 4 | 4,249 → **3,574** | 1,207 → **447** (471, 423) | 613 → **471** (430, 471, 588) |
+| AI Persona Framework | 12 / 8 | 4,822 → **3,757** | 1,325 → **627** (572, 926, 627) | 1,129 → **718** (1,317, 718, 632) |
+| **`/admin`** | **44 → 44 → 13** | 10,029 → **4,317** → **2,103** | 10,235 → **2,579** (2,579, 2,628, 2,511) → **701** (1,460, 648, 701) | not measured |
+
+**Every cold sample on the pin was certified by the counter** (0 renders; copy 6, 37, 6, 8 and 30 ms old; `/admin` 13 ms, with a second fresh copy at 2,985). **Two warm samples on the pin were set aside** as first renders on copies already running (Invite Users 754 ms, code loaded 33.8 s earlier; Manage Assignments 838 ms, 41.1 s), which is why those two medians are of two runs. **The fix's cold `/admin` was the first request after its deploy** (0 renders, 18 ms). The idle gap before each cold sample was about 17 minutes from the last request, and one timer stopped by the Mac for low memory was finished out with no request in between.
+
+**CHECK 3, EVERY PAGE STILL SHOWS EXACTLY THE SAME DATA, BY HASH.** On the pin: all five B1 pages identical to their baseline hashes, and `/admin` identical (`867ac044e379ce25`, 37 lines). On the fix: `/admin` identical again, in production and in a local render beforehand. **Nothing from Tom's class was captured: `/admin` was only ever hashed, whole page.**
+
+### WHAT THE RE-MEASURE SAYS
+
+1. **THE PIN CUT EVERY TRIP BY ROUGHLY TWO THIRDS OR MORE, BUT NOT TO SINGLE-DIGIT MILLISECONDS.** Warm trips from `pdx1` measure **about 25 to 95 ms**, with occasional outliers near 190 (the admin counts averaged 59 ms cold), against about 90 to 330 ms from `iad1`. **The expectation of single-digit ms was reasonable and the measurement did not bear it out.** Supabase sits behind Cloudflare, so a request still leaves AWS, reaches Cloudflare and comes back; that is the likeliest reason, and it is labelled as a likely reason rather than a measured one.
+2. **WARM FULL LOADS FELL BY 43 TO 67 PERCENT ON THE INSTRUCTOR PAGES (Roster least, Manage Assignments most) AND 75 PERCENT ON `/admin`; WARM CLICKS IMPROVED LESS, AND THE TRIP LISTS SAY WHY.** On a warm click the page's own trips now total only **83 to 511 ms**, while the proxy's login check from `iad1` takes **109 to 478 ms** on the same clicks. **The proxy is now the largest single server-side cost of a warm click.**
+3. **COLD LOADS FELL BY 0.7 TO 1.7 SECONDS ON THE THREE PAGES WHERE NEITHER SAMPLE CARRIED A SESSION REFRESH (Invite Users 0.68, AI Persona Framework 1.07, Submissions 1.72), NOT MORE, BECAUSE MOST OF A COLD LOAD WAS NEVER TRIPS.** Roster (refresh before) fell 1.72 and Manage Assignments (refresh after) 0.42, and neither is a clean comparison. On the pin, the gap between the last trip ending and the page arriving, less the proxy's check, is **1.6 to 2.3 seconds on every cold sample**: server start-up and first render, which the pin does not touch.
+4. **THE ADMIN FIX DID WHAT IT WAS FOR, INDEPENDENT OF THE PIN.** Trips counted **43 → 12** in the render (**44 → 13** with the proxy), and the count reads are now **5 whatever the number of classes**, sent together (they leave within 7 ms of each other in the trip list). Warm `/admin` went **2,579 → 701 ms** on top of the pin; cold **4,317 → 2,103**.
+
+### THE COLD-LOAD EXPECTATION, STATED PLAINLY SO NOBODY READS IT AS A FAILURE LATER (owner instruction)
+
+==> **ABOUT 1.6 TO 2.3 SECONDS OF EVERY COLD LOAD IS SERVER START-UP, AND NOTHING IN THIS SESSION TOUCHES IT.** <==
+
+**The owner's expectation was that a cold load would land near 2 seconds after all of this. The measurement says about 3.5 seconds on the instructor pages, and the record follows the measurement.** The split, read off the cold trip lists on the pin: roughly **2 seconds of start-up**, **0.66 to 0.76 seconds of the proxy's login check from `iad1`** (1.2 when the hourly session refresh lands on the same request), and **about 0.9 to 1.1 seconds of the page's own trips on a fresh copy**, whose first two trips are slow (the profile read 333 to 423 ms) while its connections are new. **Warm pages are now under a second. A cold instructor page is about 3.5 seconds, and that is the expected result of this work, not a shortfall of it.** Moving the remaining cold seconds would mean the start-up or the proxy, and neither is in scope.
+
+### RECOMMENDATION ON (3) AND (a), FROM THE NUMBERS
+
+==> **RECOMMENDATION: DO NOT PARALLELISE THE LIST PAGES, AND DECLINE (a). THE NUMBERS NO LONGER JUSTIFY TOUCHING THE CLASS-SCOPING CODE.** <==
+
+**What each would save on the pin, from the warm click trip lists (about 30 to 40 ms per trip step):**
+
+| Page | Serial steps after the guard today | Steps if parallelised | Saving, warm click | Warm click today |
+| :-- | :-- | :-- | :-- | :-- |
+| Roster | 4 (members, their profiles, invites, all emails) | 2 | about 60 to 80 ms | 763 |
+| Submissions | 5 (members, profiles, assignments, submissions, resets) | 3 | about 60 to 80 ms | 608 |
+| Manage Assignments | 3 (scenarios, assignments, tally) | 2 | about 35 to 60 ms | 767 |
+| AI Persona Framework | 3 (scenarios, usage, titles) | 2 | about 40 to 55 ms | 718 |
+| Invite Users | 0 | 0 | none | 471 |
+| **(a)**, every page | profile then class list | together | **one step, about 30 to 40 ms warm, about 70 to 90 ms cold** | |
+
+**That is about 5 to 13 percent of a warm click and about 2 to 4 percent of a cold load**, bought by editing the pages and the one function that decide which class an instructor sees. **The larger remaining costs are elsewhere: server start-up (about 2 s cold) and the proxy's login check from `iad1` (about 0.1 to 0.5 s warm, 0.7 cold).** Each of those is its own decision with its own risk, and neither is proposed here as work.
+
+### THE ADMIN COUNT FIX (`7f08560`)
+
+**WHAT CHANGED.** `app/admin/page.tsx` only. The per-class loop of six head-only counts is replaced by `readAllRows()`, which reads the `class_id` column of `rubrics`, `scenarios`, `assignments`, `sessions` (with `video_path`, for recordings) and `allowed_emails` once each, sent together, and a tally in code. **The labels are created in the same order the loop printed them in**, which the unchanged page hash confirms.
+
+**THE TRUNCATION GUARD, WHICH THE OLD COMMENT WAS RIGHT TO WORRY ABOUT.** Each read asks for the exact count in the same response, pages by primary key until it holds that many rows, and **throws if it comes up short or the read fails.** **One behaviour change, deliberate and stated:** the old loop rendered `0` for a failed count; the page now shows an error instead of a confidently wrong number.
+
+**VERIFIED BEFORE PUSHING, ON LIVE DATA, PRINTING ONLY BOOLEANS AND REQUEST COUNTS:**
+
+- **The shipped function, extracted from `page.tsx` verbatim and transpiled**, run at page size 1000 and at page size 2 on all five tables: **the same rows both ways, equal to the exact count on every table**, with 1 request at 1000 and 3 to 27 requests at 2, so the multi-page path really ran.
+- **Both refusal branches exercised**: a short read throws `Read 0 of 5 rows...`, and a read error throws `Could not read x for the class counts: boom`.
+- **The page built locally and rendered against live data: 12 trips, and byte-identical to the production baseline** (37 lines, `867ac044e379ce25`, zero differing lines).
+
+**`tsc` 0, `eslint .` 0, `npm run build` 0** after `rm -rf .next`, 20:21:10 to 20:21:27 UTC, on `8a8960a` (the fix plus one documentation commit). The one Turbopack warning is the pre-existing one naming `next.config.ts`. **Five check scripts: 54 / 10 / 53 / 23 / 45, all exit 0, not one count moved.**
+
+**PROVED LIVE.** New etag `44bbe4e06d65ad6fa93bf1862350bec9` at 20:41:19 UTC; **the first `/admin` load after it counted 12 trips, which only the fix can produce.**
+
+### CHECKS 1 TO 6
+
+| # | Check | Result |
+| --: | :-- | :-- |
+| 1 | The six pages, cold and warm, before and after, one table | **PASS.** Above, three columns |
+| 2 | The admin page's trip count falls from classes x 6 to a fixed small number, **counted** | **PASS.** 43 → 12 in the render, 44 → 13 with the proxy; count reads 36 → 5, independent of the number of classes |
+| 3 | Every page shows exactly the same data | **PASS.** Hash-identical on all six pages after the pin, and `/admin` after the fix |
+| 4 | `instructor@test.com` sees only B1, and a tampered working-class cookie falls back | **PASS, WITH ITS CONTROL.** Cookie set to the owner's Historical class id, to a random uuid, and to `not-a-uuid`: all three rendered B1's Roster, hash-identical to baseline (`515ba6ae3546f8e9`), picker on B1. **The control:** set to B2, which this account owns, it rendered B2's own two students under a different hash, so the cookie is really being read. Removed again: back to B1 |
+| 5 | The five check scripts | **PASS.** 54 / 10 / 53 / 23 / 45 |
+| 6 | `tsc`, `eslint`, `npm run build` after `rm -rf .next` | **PASS.** 0 / 0 / 0, times above |
+
+**Check 4 is a regression check rather than a test of new code**: no class-scoping code changed, because (3) was not done.
+
+### THE INSTRUMENT: STILL IN, STILL FLAGGED
+
+**`RELII_SERVER_TIMING=1` is still set in production and the instrument is live.** It stays until the owner decides (3), because any follow-up needs the same instrument for its before-and-after. **To turn it off: delete the variable in the Vercel dashboard; it takes effect on the next deploy.** With the variable gone the code is inert, which was proved on one build run both ways before it ever shipped. Stripping the code is a separate, later decision.
+
+### THE ADMIN-CREDENTIALS EXCEPTION, AFTER THE GATE
+
+**Used for `/admin` only, three more times, and nowhere else:** the post-pin cold and warm loads, the post-fix cold and warm loads, and **once against the LOCAL build of the fix** (`localhost:3457/admin`), to prove the page hash before pushing. **That local load is the same page reading the same data, and it is named here so it is not found later and read as a breach.** Every sign-in blocked `/` and `/instructor`. **The browser's cookies for the account were cleared from both `localhost` and the live site when the admin work ended. The exception closes with this session.**
+
+### GIT STATE
+
+**Pushed by this session after the gate, in order:** `73c0125` (the region pin, alone), `7f08560` (the admin count fix), `8a8960a` (the cite-by-text rule), and the commit carrying this entry. **`origin/main` is to equal `main` after that push, with no `HEAD.lock`, no `objects/maintenance.lock`, no `tmp_obj_*` and a clean tree, checked by read-only commands after the push rather than asserted here.**
+
+---
+
+### THE GATE, AS IT WAS RECORDED BEFORE ANY FIX
+
+==> **PAGE PERFORMANCE, THE INSTRUCTOR AND ADMIN PAGES. AT THE GATE (2026-09-16): THE BASELINE IS MEASURED AND IN THIS RECORD, AND NO FIX HAS BEEN WRITTEN.** Kickoff: `docs/Relii-PagePerformance-Kickoff-Prompt.md`, 225 lines. The instrument is commit `26c99c4`, pushed and live behind `RELII_SERVER_TIMING=1`. **The owner reads this table before any fix code exists.** <==
 
 ### THE BASELINE TABLE, WHICH IS THE GATE
 
@@ -2584,7 +2704,7 @@ Written on 2026-09-09, at the end of 2a, while the reasons are still in view.
 
 ==> **THE ORDER LIVES IN `OS_Resources/Relii/Relii-Roadmap-and-Estimates.md`, AND THAT FILE IS THE AUTHORITY.** It was revised 2026-09-14 at 15:40 UTC against working tree `cad67fa`, clean, and it carries the hours, the migration flags and the reasoning for every piece. **THIS SECTION NAMES THE ORDER AND THE CONSTRAINTS ONLY**, so the two cannot drift into disagreeing about estimates. **If they ever disagree about ORDER, the roadmap wins and this section is the stale one.** <==
 
-==> **INTERJECTED 2026-09-16: PAGE PERFORMANCE, NOW AT ITS GATE.** Not a roadmap piece; the owner raised it from use. **The baseline is in Current Stage and no fix is written until the owner has read it.** The fix that follows his read collapses the admin page's 36 counts and runs independent reads together; the three extra speedups, the region pin among them, are his decisions. <==
+==> **INTERJECTED 2026-09-16: PAGE PERFORMANCE.** Not a roadmap piece; the owner raised it from use. **The region pin (`pdx1`) and the admin count fix are shipped and re-measured; see Current Stage.** Still open and the owner's to decide: parallelising the list pages and speedup (a), both recommended AGAINST on the re-measured numbers; speedup (b) is measured and declined. Turning off `RELII_SERVER_TIMING` is his call once those are settled. <==
 
 **THE ORDER, BY OWNER RULING (2026-09-14):**
 
