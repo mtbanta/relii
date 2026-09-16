@@ -10,6 +10,192 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ## Current Stage
 
+==> **PAGE PERFORMANCE, THE INSTRUCTOR AND ADMIN PAGES. AT THE GATE (2026-09-16): THE BASELINE IS MEASURED AND IN THIS RECORD, AND NO FIX HAS BEEN WRITTEN.** Kickoff: `docs/Relii-PagePerformance-Kickoff-Prompt.md`, 225 lines. The instrument is commit `26c99c4`, pushed and live behind `RELII_SERVER_TIMING=1`. **The owner reads this table before any fix code exists.** <==
+
+**THE COMPLAINT, IN THE OWNER'S WORDS.** Every instructor page takes 2 to 6 seconds after clicking (Submissions, AI Persona Framework, Manage Assignments, Roster, Invite Users), reproduced on his admin account and on `instructor@test.com`. The Administration page takes 10 to 30 seconds.
+
+### THE BASELINE TABLE, WHICH IS THE GATE
+
+**WHAT THE NUMBERS ARE.** A full load is the browser's `responseEnd` from navigation timing: the moment the whole page had arrived. A click is from the click to the new page's report block appearing in the page, which is the moment its content is on screen. **Time to first byte is not used**, because Chrome reported `responseStart` at 50 to 260 ms on every load, earlier than the proxy's own login check had finished, so it marks something sent ahead of the page and measures nothing here. **All of it on `relii.vercel.app`, from the owner's Mac, in Chrome driven by Playwright, deploy `26c99c4`.** The bracket after a cold or repeat figure is what the per-copy counter said: renders this copy had served before, and how long before this render the copy loaded the code.
+
+| Page | Account | Round trips: full load / click | **Cold full load, ms** (counter) | Warm, the immediate repeat, ms (counter) | **Warm full load, ms**: median (runs) | **Warm click, ms**: median (runs) | Slowest single call, warm runs |
+| :-- | :-- | :-- | :-- | :-- | :-- | :-- | :-- |
+| `/instructor` (Submissions) | `instructor@test.com`, B1 | **13 / 9** | **5,184** (0, 35 ms). The repeat was ALSO cold: **5,593** (0, 35 ms), a second fresh copy | none: the repeat landed on a fresh copy | **1,514** (1,511, 1,517) | **1,191** (2,265, 1,191, 1,142) | 333 ms, `GET assignments` (the selector) |
+| `/instructor/assignments` | `instructor@test.com`, B1 | **11 / 7** | **4,921** (0, 5 ms) | 2,301 (1) | **1,529** (1,661, 1,529, 1,075) | **1,301** (1,301, 1,136, 1,407) | 322 ms, `GET auth/user` |
+| `/instructor/roster` | `instructor@test.com`, B1 | **12 / 8** | **5,202** (0, 8 ms). **Includes the hourly session refresh**: the proxy made 2 trips (1,106 ms), not 1 | 2,253 (1) | **1,377** (1,767, 1,354, 1,377) | **1,074** (996, 1,194, 1,074) | 325 ms, `GET class_members` |
+| `/instructor/invites` | `instructor@test.com`, B1 | **8 / 4** | **4,249** (0, 5 ms) | 1,901 (1) | **1,207** (1,284, 1,207, 1,187) | **613** (613, 1,020, 598) | 316 ms, `GET profiles` (the guard) |
+| `/instructor/scaffold` (AI Persona Framework) | `instructor@test.com`, B1 | **12 / 8** | **4,822** (0, 38 ms) | 2,443 (1) | **1,325** (1,325, 1,592, 994) | **1,129** (1,517, 951, 1,129) | 290 ms, `GET assignments` (the usage count) |
+| `/admin` | `michaeltbanta@gmail.com` (super admin) | **44 / 44** | **10,029** (0, 6 ms), the first request after the deploy. **18,636** (0, 6 ms), a fresh copy mid-run, with one count trip of 3,117 ms | 9,156 (1) | **10,235** (11,314, 16,402, 9,156, 8,835) | not measured: a click from the instructor nav does the same server work as a full load | 1,482 ms, `HEAD allowed_emails` (a count) |
+
+==> **FIVE SAMPLES WERE KEPT OUT OF BOTH COLUMNS, BECAUSE THE COUNTER SAID THEY WERE NEITHER CLEANLY COLD NOR CLEANLY WARM. THEY ARE LISTED, NOT AVERAGED IN** (owner instruction: a contaminated cold number is the one most likely to flatter the after-fix comparison). <==
+
+| Page | ms | Counter | Why it is out |
+| :-- | --: | :-- | :-- |
+| `/instructor/scaffold` | 3,069 | 3 before, copy 630 s old | Taken after only 10.5 idle minutes: **a warm copy**. Retried after 17 minutes, which gave the cold 4,822 |
+| `/instructor` | 4,322 | 1 before, copy 70 s old | After a 17-minute idle, but **someone else's request had started this copy and used it** (registration week). Retried, which gave the cold 5,184 |
+| `/instructor` | 2,335 | 0 before, but the code loaded 1,081 ms earlier | A fresh copy that appeared during the warm burst, started by another request; neither a cold start for this request nor warm |
+| `/admin` | 11,428 | 0 before, code loaded 17.9 s earlier | The first render on a copy that was already up |
+| `/admin` | 8,871 | 0 before, code loaded 40.7 s earlier | Same |
+
+**HOW COLD WAS PRODUCED, AND WHAT IT TOOK.** An idle gap of about 17 minutes with no request from this session, then one load; the counter decided. **10.5 minutes was not enough once**, and **a 17-minute gap was spoiled once by other traffic.** Two idle timers were stopped by the Mac for low memory and restarted with no request in between; each gap is recorded from the last request, not from the timer.
+
+**AND THE DATA CAPTURED FOR CHECK 3, BEFORE ANY FIX.** Every page's rendered text, line by line, hashed: `/instructor` 24 lines `9bad97ac39437d9f`; `/instructor/assignments` 41 lines `4b6c2570ef5d46cc`; `/instructor/roster` 33 lines `515ba6ae3546f8e9`; `/instructor/invites` 8 lines `64604646fb089ca0`; `/instructor/scaffold` 28 lines `a284ce5006e546b7`; **`/admin` 37 lines `867ac044e379ce25`, hashes only, identical at 16:25 and at 18:21**, so the page did not drift across the two hours. The B1 pages' text is kept in the session scratchpad; the `/admin` page's text was never captured.
+
+### THE REGION, VERBATIM, AND IT IS A MISMATCH
+
+| Request | `x-vercel-id` | What it shows |
+| :-- | :-- | :-- |
+| `curl -sI https://relii.vercel.app/login` (the kickoff's command), 15:36:57 UTC | `cle1::k85nj-1789573017512-3f7fe9c600b0` | **The edge server only.** `/login` is a static page served from Vercel's cache (`x-vercel-cache: HIT`), so no function ran and no function region appears |
+| `https://relii.vercel.app/?x=1`, a request that ran a function (`x-vercel-cache: MISS`) | `cle1::iad1::2n8xg-1789573030101-0483285cbb12` | **The function region: `iad1`, Washington DC** |
+| Every signed-in page load and click measured below | `cle1::iad1::...` on all of them | Confirmed on the pages themselves |
+| The instrument's own reading of `VERCEL_REGION`, in the proxy header and in every page report | **`iad1`** | The proxy runs there too, not at the edge |
+
+==> **SUPABASE IS `us-west-2`, OREGON. THE APP'S SERVER CODE RUNS IN WASHINGTON DC. EVERY ROUND TRIP BELOW CROSSES THE CONTINENT.** <==
+
+**NO REGION IS PINNED ANYWHERE IN THE REPO.** No `vercel.json`, no `.vercel` folder, an empty `next.config.ts`, and a search for `preferredRegion` or `regions` across `app`, `lib`, `components`, `next.config.ts`, `proxy.ts` and `package.json` returns nothing. **A Vercel dashboard setting cannot be read from here** (the CLI is denied in this repo), but the header shows the region actually in effect.
+
+### THE INSTRUMENT, AND WHAT PROVED IT LIVE
+
+**WHAT IT IS.** `lib/server-timing.ts` hands both Supabase clients a pass-through `fetch` that records every round trip to Supabase, database reads and login checks alike, with its start and end offset. `components/server-timing-report.tsx` writes those into each measured layout and page as a JSON block the browser never runs. The proxy reports its own login check as a real `Server-Timing` header. **Offsets rather than durations, because the layout and the page render at the same time and durations alone make parallel look serial.** Trip descriptions carry table names, selected columns and filter NAMES only, never a value.
+
+**A PER-COPY COUNTER DECIDES WHAT "COLD" MEANS.** Each report carries `storesBefore` (how many page renders this server copy had measured before this one) and `instanceAgeMs` (how long since this copy loaded the module). `storesBefore 0` with an age of a few milliseconds is a copy that started for this request. **A sample is labelled cold only when the counter says so, not because time passed.**
+
+**"END" MEANS THE RESPONSE HEADERS ARRIVED, NOT THE BODY.** Reading the body inside a pass-through would have meant rebuilding the response, which a pass-through must not do. These bodies are a few kilobytes.
+
+**PROVED INERT WITH THE FLAG OFF, BEFORE IT REACHED PRODUCTION.** The flag was already on in production when this was written, so a broken instrument would have broken the live site for Tom's students. **One local production build was run both ways**: flag on, the page carried its reports, a click navigation carried its report, and an API route that creates both clients outside a page render (`/api/instructor/class/select`) returned 200; flag off, the same build sent no `Server-Timing` header and rendered zero report blocks. `tsc` 0, `eslint .` 0, and the five check scripts 54 / 10 / 53 / 23 / 45 before the push.
+
+==> **THE FLAG TOOK EFFECT, PROVED BY TWO OBSERVATIONS ONLY THE NEW BUILD WITH THE FLAG ON CAN MAKE.** At **16:22:44 UTC**, `/login` returned a new etag `6a6243f12105df04ed3d2a13cc11c74d` (before the push: `4761bd902136828ab0a27ec7875a0119`) AND the header `server-timing: proxy-auth;dur=0.7;desc="trips=0 region=iad1"`, which no earlier build sends. **Every page load and click afterwards carried its report block**; a single load without one would have been reported. <==
+
+**ONE THING THE OWNER'S FLAG NOTE HAD SLIGHTLY DIFFERENT, RECORDED BECAUSE IT DECIDES HOW THE FLAG IS TURNED OFF.** The flag is read when each request runs, not when the app is built: the same local build rendered reports with it on and none with it off. **On Vercel that changes nothing practical**: a changed variable reaches production only on the next deploy either way.
+
+### THE ROUND TRIPS, AS COUNTED
+
+**Counted by the instrument on every run, not reasoned. The count never varied between runs of the same page.** A full load runs the layout AND the page; a click runs the page only, because Next.js keeps the shared layout on navigation. Both halves were measured.
+
+| Page | Full load: layout | Full load: page | Full load: proxy | **Full load total** | **Click total** (page + proxy) |
+| :-- | --: | --: | --: | --: | --: |
+| `/instructor/invites` | 4 | 3 | 1 | **8** | **4** |
+| `/instructor/scaffold` | 4 | 7 | 1 | **12** | **8** |
+| `/instructor/roster` | 4 | 7 | 1 | **12** | **8** |
+| `/instructor/assignments` | 4 | 6 | 1 | **11** | **7** |
+| `/instructor` | 4 | 8 | 1 | **13** | **9** |
+| `/admin` | 2 | 41 | 1 | **44** | 44 (a click from the instructor nav runs the admin layout too) |
+
+**What those trips are, from the instrument's own trip lists:**
+
+- **The proxy, every request:** 1 login check (`GET auth/user`).
+- **The instructor layout, full loads only:** login check, profile, class list, consent. Its first three are the SAME three `requireInstructor()` makes in the page, and the trip list shows them in **identical pairs at identical offsets**: they run at the same moment, so the duplicate costs Supabase calls but almost no waiting.
+- **`requireInstructor()` in every page:** login check, then profile, then class list. **Three trips, one after another, on every click.**
+- **Invite Users:** nothing beyond `requireInstructor()`. **The kickoff's "1 await" is 4 trips on a click and 8 on a full load.**
+- **AI Persona Framework:** + scenarios, then sessions and assignments usage together (the one existing `Promise.all`), then assignment titles.
+- **Roster:** + class members, then their profiles, then invites, then every profile's email.
+- **Manage Assignments:** + scenarios, then assignments, then the session tally.
+- **Submissions:** + class members, then their profiles, then assignments, then submissions, then reset history. (The stray-assignment check did not fire: no `?assignment=` was given.)
+
+==> **THE ADMIN ARITHMETIC, COUNTED: 6 CLASSES x 6 COUNT TRIPS = 36, PLUS 7 OTHERS = 43 IN THE RENDER, PLUS 1 IN THE PROXY = 44.** The 7 others are the admin layout's login check and profile, the page's own login check and profile (again in identical parallel pairs), then all profiles, all classes, all memberships. **All 36 counts run one after another**: in the cold run they span 1,511 ms to 9,324 ms, **7.8 seconds, 217 ms per count on average.** <==
+
+**NOTHING RUNS IN PARALLEL ON ANY OF THE SIX PAGES EXCEPT THE LAYOUT-AGAINST-PAGE OVERLAP AND THE ONE `Promise.all` INSIDE THE PERSONA LIST.** Every other trip starts within a few milliseconds of the previous one ending (the largest gap in any list is about 20 ms), in every trip list.
+
+### THE DATABASE SIDE: IT IS NOT THE CAUSE, AND THE NUMBERS SAY SO
+
+**`explain (analyze, buffers)` on all six admin counts for B1, as one statement:** **Execution 1.072 ms in total, planning 2.103 ms**, every buffer a cache hit, each count between 0.012 and 0.096 ms.
+
+**`pg_stat_statements`, accumulated since 2026-06-22 17:13 UTC:**
+
+| What | Calls | Mean execution |
+| :-- | --: | :-- |
+| PostgREST reads of the app's named tables, grouped by table and role | about 25,000 | **0.04 to 1.31 ms**, worst single run 36 ms |
+| PostgREST statements whose table cannot be read from the text (function calls, embedded joins) | about 2,400 | 2.1 to 19.6 ms |
+| The five statements Supabase Auth runs per login check (sessions, MFA claims, MFA factors, identities, users) | about 29,000 to 29,700 each | **0.02 to 0.08 ms** |
+| PostgREST's per-request setup (`set_config`) | 17,878 service role, 9,471 signed in | 0.03 to 0.08 ms |
+
+==> **SO THE EXPECTATION HELD EXACTLY: EXECUTION TIME IS TINY AND THE CALL COUNT IS LARGE.** A trip measured from Vercel takes about 90 to 330 ms warm and up to 1,213 ms at its worst; Postgres spends one or two of those milliseconds. <==
+
+**AND SUPABASE'S OWN GATEWAY SAYS THE SAME, MEASURED FROM THE OWNER'S MAC RATHER THAN FROM VERCEL, SO IT IS SUPPORTING EVIDENCE ONLY.** Twenty requests over one connection: **91 to 292 ms each, with `x-envoy-upstream-service-time` reading 1 or 2 ms on nineteen of them and 13 on one.** Supabase sits behind Cloudflare, so the request reaches a nearby edge quickly and then travels to Oregon. **About 99% of a trip is that journey.** The first request on a fresh connection took 1,013 ms.
+
+**ONE CURIOSITY, NOT A CAUSE.** PostgREST's schema reload (`SELECT name FROM pg_timezone_names`) averages 816 ms on this instance across 53 calls. It runs only when PostgREST reloads, so it could explain a rare slow request and cannot explain a steady one.
+
+==> **DOES THE DATA SUPPORT A COMPUTE UPGRADE? NO.** Database execution is one to two milliseconds per trip, CPU was 2% on the owner's dashboard, and the seconds are measured in the network and in the serial ordering. **A bigger instance would speed up the one percent. NO UPGRADE WAS MADE.** <==
+
+### WHAT THE MEASUREMENT SAYS, AND WHERE IT DIFFERS FROM THE READING
+
+1. **The kickoff's diagnosis held: the time is round trips, one at a time, across the continent.** Every page's total is close to the sum of its trips.
+2. **THE ADMIN PAGE'S COLD START IS NOT WHAT MAKES IT SLOW.** Cold 10,029 ms; the one certified warm run 11,314 ms. **The 43 serial trips are the cost, cold or warm.** The owner's 30 seconds would need slower trips than this session saw; a single login check took 2,248 ms on one run, so they happen.
+3. **ON THE INSTRUCTOR PAGES, A COLD COPY IS A REAL SHARE OF THE OWNER'S NUMBER.** **Cold full loads were 4.2 to 5.2 seconds on every instructor page, against 1.2 to 1.5 warm, so a fresh copy costs about 3 to 3.7 seconds more.** The trip lists show where it goes. **About 1.7 to 1.9 seconds belongs to no trip at all**: the gap between the last trip ending and the page arriving is 2.35 to 2.96 s cold against about 0.35 s warm, less the proxy's own check. That is the copy starting up and rendering for the first time, and **no fix in this piece touches it.** The rest is slower trips: **on every cold sample the slowest call was the page's profile read, 569 to 722 ms**, and the trips add up to 3.2 to 4.5 s against 1.3 to 2.1 warm. **That half does shrink with fewer and parallel trips.** Clicks were not measured cold.
+4. **"EVERY CALL SETS UP ITS OWN CONNECTION" IS NOT WHAT THE TRIPS LOOK LIKE ON A WARM COPY.** Warm trips of about 90 to 130 ms are faster than a fresh TLS handshake plus a request across the continent could be, so connections are being reused at least some of the time. **The first trips on a cold copy (300 to 720 ms) look like fresh connections.** The instrument cannot see connection reuse directly, so this is an inference from timing, labelled as one.
+5. **THE CLICK AND THE FULL LOAD ARE DIFFERENT COSTS, AND THE OWNER'S COMPLAINT IS THE CLICK.** A click skips the layout's 4 trips. Browser navigation timing sees only full loads, so clicks were measured separately (click to the new page's report block appearing).
+
+### THE THREE EXTRA SPEEDUPS, NOW WITH NUMBERS (OWNER'S DECISION, NOT ACTED ON)
+
+| | What | What the measurement says it is worth |
+| :-- | :-- | :-- |
+| **(a)** | Read the profile and the class list together inside `requireInstructor()` | **One trip's wait (typically 100 to 300 ms) off every click and every load on all five instructor pages.** It touches the most security-sensitive file, and by owner ruling it gets its own look and its own approval |
+| **(b)** | Stop a full load running `requireInstructor()` twice | **Close to nothing in time.** The duplicate trips run at the same moment as the originals (identical offsets). It would halve those Supabase calls, not the wait |
+| **(c)** | Pin the function region to Oregon (`pdx1`) | **The largest single lever, and not measured, because it cannot be without deploying there.** Every trip carries roughly 100 ms of cross-country travel against 1 to 2 ms of Supabase work. The owner's call |
+
+### KICKOFF DEFECTS, FOUND AND FIXED
+
+**Three the owner named as corrections to his own kickoff (ruling, 2026-09-16), and recorded here the way the earlier kickoffs' defects were:**
+
+1. **THE `/login` HEADER DOES NOT SHOW THE FUNCTION REGION.** It shows the edge server, because `/login` is a cached static page and no function runs. The region came from a request that ran one.
+2. **A PAGE CANNOT SET A `Server-Timing` HEADER.** `headers()` is read-only in a Server Component (the Next.js API reference shipped with the app, `headers.md` lines 34 and 47). The substitute writes the same numbers into the page; the proxy, which CAN set headers, sends a real one.
+3. **THE AWAIT TABLES MISSED MOST OF THE TRIPS.** `proxy.ts` makes a login check on every request, the layout re-runs `requireInstructor()` plus a consent read on every full load, and `requireInstructor()` is itself three trips. **Invite Users, "1 await", is 4 trips on a click and 8 on a full load. That is the finding that explains the complaint.**
+
+**Four more, accepted by the owner:**
+
+4. **B1 BELONGS TO `instructor@test.com`, NOT TO THE OWNER'S ADMIN ACCOUNT.** The admin account owns "Relii Demo (Historical)" and "Pro Selling test". So the instructor pages were measured on `instructor@test.com` in B1, and `/admin` on the admin account.
+5. **A GROUPED COUNT IS NOT AVAILABLE THROUGH THE API.** `GET /rest/v1/classes?select=instructor_id,count()` answered `{"code":"PGRST123","message":"Use of aggregate functions is not allowed"}`, and the same request without `count()` answered `[]`, so the refusal is about the aggregate and not the query. A true grouped count would need a database function, which is a migration.
+6. **NAVIGATION TIMING SEES ONLY FULL LOADS**, and the complaint is about clicks.
+7. **"EACH ROUND TRIP HAS ITS OWN CONNECTION SETUP" WAS UNPROVEN**, and the warm timings argue against it (item 4 above).
+
+**AND THE ONE CORRECTION THE KICKOFF ASKED TO BE RECORDED:** the change brief said `Promise.all` appears in three API routes. **At `26c99c4` it appears in TWO** (`assignment/[id]/delete` and `submission/[id]/reset`), plus `app/instructor/submission/[id]/page.tsx` and three libraries. None of the six measured pages.
+
+### OWNER RULINGS THIS SESSION (2026-09-16)
+
+1. **ACCOUNTS.** `instructor@test.com` in B1 for the five instructor pages and the cookie-tamper test, using the owner's Historical class id for the tamper attempt rather than Tom's. **The owner's admin account loads `/admin` only.**
+2. **TOM'S CLASS ON `/admin`: LOAD IT, RECORD NOTHING FROM IT.** No student names, no emails, no screenshots of that section, nothing from his class in this record or in a scratch file. **The before-and-after comparison of `/admin` uses line hashes only**, and the whole page was hashed rather than just his section, so nothing readable from it was ever captured.
+3. **THE FLAG.** `RELII_SERVER_TIMING=1` set by the owner under Production in the Vercel dashboard before the instrument was pushed.
+4. **THE THREE EXTRA SPEEDUPS: MEASURE FIRST, DECIDE AFTER THE BASELINE.** (a) in particular gets its own careful look and its own approval rather than riding along with the page-level work.
+5. **THE ADMIN CREDENTIALS: A NARROW EXCEPTION, SEE BELOW.**
+
+### THE NARROW EXCEPTION FOR THE OWNER'S ADMIN ACCOUNT, OPEN FOR THIS SESSION ONLY
+
+==> **AUTHORISED BY THE OWNER ON 2026-09-16, DELIBERATELY AND "WITH MY EYES OPEN": THIS SESSION MAY HOLD AND USE THE CREDENTIALS FOR `michaeltbanta@gmail.com`, THE SUPER ADMIN ACCOUNT, TO LOAD `/admin` AND NOTHING ELSE.** <==
+
+**What it does NOT authorise:** loading any instructor page as that account (its Historical or Pro Selling test class included); `/admin/class/[id]` for any class; any write, invite, removal, export or delete from the admin surface; reading or recording anything from Tom's class beyond what `/admin` renders on its own; and any use in any later session.
+
+**How it was held to that.** The app's sign-in sends every instructor to `/` and then `/instructor`, so the sign-in was run with those two addresses **blocked in the browser**. The account reached `/login` and then `/admin` and nothing else.
+
+==> **IT CLOSES WHEN THIS SESSION ENDS.** A later session that finds these credentials anywhere in a transcript is not authorised by this entry to use them. <==
+
+**IT MAKES THREE OLDER LINES FALSE, AND THEY ARE MARKED SUPERSEDED IN PLACE RATHER THAN DELETED:** the T1 entry's statement that no Claude Code session has ever held these credentials (Current Stage as it stood, and its limit 6), and Phase 3b's note that the owner's instruction was not to sign in as his own account. **The owner cited them as lines 1043 and 1153; in the file as committed they were lines 19, 318 and 1102.** Each was true when written, which is the same shape as the stale `assignment_deletes` number: a line true on its date, read later as current.
+
+### THE LIMITS, STATED AT THEIR REAL STRENGTH
+
+1. **Measured from one machine** (the owner's Mac, reaching Vercel through Cleveland). The owner's own network and Safari will add or subtract; the server-side trip counts and trip times do not depend on the browser.
+2. **Three warm runs per page is a small sample**, and trip times vary three- to tenfold between runs. Medians are reported with the runs beside them.
+3. **The `/admin` warm column is thin.** Four warm runs (8,835 to 16,402 ms) after the counter set aside two first-renders; two cold. The spread is single slow trips (1,482 and 3,117 ms), not the count, which was 43 every time.
+4. **Trip end times are header arrival, not body completion.**
+5. **The region estimate in (c) is an estimate.** Nothing here measured a trip from Oregon.
+
+### WHAT THIS SESSION HAS NOT TOUCHED
+
+- **No fix code.** No schema change, no migration, no policy change, no new dependency, no compute change, no region change.
+- **Nothing in Tom's class** was read by query or recorded. `/admin` rendered his class's row as it always does, and only hashes of the page were taken.
+- **No app row written anywhere.** The four sign-ins (three on the live site, one against the local build) created ordinary Supabase Auth sessions, which is Supabase's own bookkeeping. The one API call made, `/api/instructor/class/select`, ran against the LOCAL build during the instrument check, selecting B1, the class `instructor@test.com` already works in; it sets a browser cookie and writes no row.
+
+### GIT STATE AT THE GATE
+
+**Pushed by this session, in order:** `2434017` and `de0407e`, the two Cowork kickoff commits, **pushed first, before any other work**; `26c99c4`, the instrument; and the commit carrying this entry. **`origin/main` is to equal `main` after that push, with no `HEAD.lock`, no `objects/maintenance.lock`, no `tmp_obj_*` and a clean tree, and it is checked by read-only commands after the push rather than asserted here.**
+
+## Completed
+
+- ==> **T1, THE PERSONA VOICE ON THE ASSIGNMENT, 2026-09-15, commit `8416926`. THE FULL RECORD IS KEPT VERBATIM BELOW**, moved down here unchanged when page performance took over Current Stage on 2026-09-16. The only additions are the dated SUPERSEDED notes on the two credential lines. <==
+
+<details>
+<summary>The T1 record, as it stood in Current Stage</summary>
+
+
 ==> **T1, THE PERSONA VOICE ON THE ASSIGNMENT, IS DONE, DEPLOYED AND PROVED (2026-09-15). Commit `8416926`, pushed and live.** One additive column on `public.assignments`, two fixed voices, one form control in two places, and the three approved wording fixes. **`origin/main` EQUALS `main`, AND THE COWORK KICKOFF COMMIT `bbe3a68` WAS PUSHED FIRST, BEFORE ANY OTHER WORK.** <==
 
 ==> **CHECK 2 IS THE ONE THAT DECIDES WHETHER THIS SHIPS, AND IT PASSED ON BOTH HALVES. THE VOICE TRAVELS FROM THE FORM TO OPENAI, AND THE TWO REQUEST BODIES ARE BYTE-IDENTICAL APART FROM THE ONE FIELD.** Measured server-side, with the bodies quoted below, because a voice change cannot be proved by reading a screen and the fake-media rig cannot hear. <==
@@ -17,6 +203,8 @@ This file is the running status of Relii. Read it at the start of every session.
 ==> **ALL EIGHT CHECKS NOW PASS CLEANLY. CHECK 7 WAS A PARTIAL FOR PART OF THIS SESSION AND WAS THEN CLOSED PROPERLY RATHER THAN ARGUED AWAY.** Check 7 asks that all three strings read correctly **ON SCREEN**. Strings 1 and 3 had live venues in B1; string 2 renders only in the undecided-pair branch, and B1's one generation group held a single already-chosen scenario, so that branch had nowhere to appear. **It was recorded as a partial, and then the venue was created rather than the standard lowered**: a real candidate pair was generated in B1, string 2 was read off the deployed compare page, and the pair was discarded. <==
 
 ==> **THE OWNER REFUSED THE CHEAPER ROUTE AND WAS RIGHT ON A GROUND THAT HAD NOTHING TO DO WITH CAUTION.** The alternative was signing in to the super-admin account to reach an undecided pair in the Historical class. **His decisive argument was that the payoff was UNVERIFIED: PROJECT_STATE describes an unchosen candidate there but never establishes a PAIR, and string 2 needs two candidates with neither chosen.** That would have spent the risk on a venue nobody had confirmed exists. A B1 generation was guaranteed to produce it. **He also recorded that no Claude Code session has ever held those credentials, and that the Tom-class guard has held for four sessions precisely because of that.** <==
+
+==> **SUPERSEDED 2026-09-16, BY OWNER RULING, AND KEPT RATHER THAN DELETED BECAUSE IT WAS TRUE WHEN WRITTEN.** The page performance session was given the super-admin credentials and used them, under a narrow exception that authorised loading `/admin` and nothing else and closed when that session ended. See Current Stage (or, later, that session's record under Completed). <==
 
 ~~**NOBODY HAS HEARD `marin` YET.**~~ ==> **CLOSED BY THE OWNER ON 2026-09-15, AFTER T1 SHIPPED. HE HAS NOW HEARD BOTH VOICES IN THE APP AND BOTH ARE ACCEPTED, DEMEANOUR INCLUDED.** He ran it himself as a student against a real assignment rather than as a sample pass: **Cedar and Marin both sound appropriate and correct, and both carry Alex's demeanour.** He also confirmed grading, the downloads and the transcript work end to end, which this session had tested and which he wanted to see for himself. **THIS IS THE ONE PIECE OF EVIDENCE IN T1 THAT NO HARNESS COULD HAVE PRODUCED**, and it is second-party: every other proof in this section is a request body, a database row or a rendered string. <==
 
@@ -316,6 +504,7 @@ The `marin` body is the same JSON with `"voice": "marin"`. **The harness asserte
 4. ~~**NO REAL VOICE CONVERSATION WAS HELD.**~~ **CLOSED 2026-09-15 BY THE OWNER**, who held real voice conversations on both voices and then confirmed the grading, download and transcript surfaces that follow one. The four probe sessions THIS SESSION minted were deleted; the audio path was exercised afterwards by a person rather than by the harness.
 5. **THE PROBES RAN IN B1, NOT IN TOM'S CLASS**, which was neither read nor written at any point.
 6. **THE SUPER-ADMIN ACCOUNT WAS NOT SIGNED IN TO, AND NO CLAUDE CODE SESSION HAS EVER HELD THOSE CREDENTIALS.** It was considered as a way to reach an undecided pair and the owner refused it. **The Tom-class guard has held for five sessions now partly because that line has never been crossed.**
+   ==> **SUPERSEDED 2026-09-16, BY OWNER RULING, AND KEPT RATHER THAN DELETED BECAUSE IT WAS TRUE WHEN WRITTEN.** The page performance session was given the super-admin credentials and used them, under a narrow exception that authorised loading `/admin` and nothing else and closed when that session ended. See Current Stage (or, later, that session's record under Completed). <==
 
 ### WHAT THIS SESSION DID NOT TOUCH
 
@@ -329,7 +518,7 @@ The `marin` body is the same JSON with `"voice": "marin"`. **The harness asserte
 
 **`origin/main` EQUALS `main`.** **The Cowork kickoff commit `bbe3a68` was pushed FIRST, before any other work**, since that instruction was unconditional and a push is neither a migration, form work nor a string edit. Then `8416926`, this piece. No `HEAD.lock`, no `objects/maintenance.lock`, no `tmp_obj_*`, and the tree is clean.
 
-## Completed
+</details>
 
 - ==> **D2, ALEX GAINS GEOGRAPHY AND RAPPORT, 2026-09-14. THE FULL RECORD IS KEPT VERBATIM BELOW**, moved down here unchanged when T1 took over Current Stage. <==
 
@@ -1100,6 +1289,8 @@ B3_STUDENT_PASSWORD=...
 7. **A CLEAN `tsc`, `eslint` AND `npm run build` after deleting `.next`, all exit 0, at 2026-09-11 15:23:50 CDT**, with `/api/instructor/scaffold/enable` in the route list. All five check scripts pass, counts read from the runs: **persona-list 45, app-time 43 (0 skipped), csv-ai-level 10, rubric-render 45, scorer ALL CHECKS PASSED**.
 
 ==> **THE ONE SURFACE NOT OBSERVED, NAMED RATHER THAN GLOSSED.** The ninth rename string, `components/class-manager.tsx` line 94, **`Created "{name}". It is now the selected class.`** It only appears after a class is successfully created, and there is no way to trigger it without leaving a permanent class behind: **an instructor cannot delete their own class**, only a super admin can, and the owner's instruction was not to sign in as his own account. Observing it would have traded the zero-litter result above for one undeletable row. The string is in the shipped build and the other eight were verified on screen; to see it, create a throwaway class and delete it from /admin, or say the word and it can be created and left. <==
+
+==> **SUPERSEDED 2026-09-16, BY OWNER RULING, AND KEPT RATHER THAN DELETED BECAUSE IT WAS TRUE WHEN WRITTEN.** The page performance session was given the super-admin credentials and used them, under a narrow exception that authorised loading `/admin` and nothing else and closed when that session ended. See Current Stage (or, later, that session's record under Completed). <==
 
 **ONE THING DELIBERATELY LEFT ALONE, so it is not read as a miss.** The compare page still offers "Customise" and "Choose this one" on a chosen persona that has been switched off, because its `decided` test is still "is a row switched on" (`app/instructor/scaffold/compare/[groupId]/page.tsx` line 414). That was true before this session and is unchanged by it, and it is now harmless: pressing Choose again simply re-stamps `chosen_at`, and the list no longer depends on the title, so a Customise that rewrites the title back to a candidate shape cannot hide the persona. Moving that page onto `chosenRowOf` is a two-line change and was NOT in the approved plan.
 
@@ -2382,6 +2573,8 @@ Written on 2026-09-09, at the end of 2a, while the reasons are still in view.
 ## Next Steps
 
 ==> **THE ORDER LIVES IN `OS_Resources/Relii/Relii-Roadmap-and-Estimates.md`, AND THAT FILE IS THE AUTHORITY.** It was revised 2026-09-14 at 15:40 UTC against working tree `cad67fa`, clean, and it carries the hours, the migration flags and the reasoning for every piece. **THIS SECTION NAMES THE ORDER AND THE CONSTRAINTS ONLY**, so the two cannot drift into disagreeing about estimates. **If they ever disagree about ORDER, the roadmap wins and this section is the stale one.** <==
+
+==> **INTERJECTED 2026-09-16: PAGE PERFORMANCE, NOW AT ITS GATE.** Not a roadmap piece; the owner raised it from use. **The baseline is in Current Stage and no fix is written until the owner has read it.** The fix that follows his read collapses the admin page's 36 counts and runs independent reads together; the three extra speedups, the region pin among them, are his decisions. <==
 
 **THE ORDER, BY OWNER RULING (2026-09-14):**
 
