@@ -5,6 +5,7 @@
 // into a Client Component or sent to the browser. Only route handlers and other
 // server code may use it.
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { timedFetch } from "@/lib/server-timing";
 
 export function createAdminClient() {
   // Strip any stray whitespace or line breaks that can sneak in when these are
@@ -18,8 +19,14 @@ export function createAdminClient() {
     );
   }
 
+  // PAGE PERFORMANCE INSTRUMENT: a pass-through fetch that times each round
+  // trip, present ONLY when RELII_SERVER_TIMING=1. With the flag off there is no
+  // `global` option at all, which is the client exactly as it was before.
+  const fetch = timedFetch();
+
   return createSupabaseClient(url, serviceKey, {
     // This is a stateless server client; it never handles a user's login session.
     auth: { autoRefreshToken: false, persistSession: false },
+    ...(fetch ? { global: { fetch } } : {}),
   });
 }

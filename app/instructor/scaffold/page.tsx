@@ -33,6 +33,7 @@ import { PersonaPairing } from "@/components/persona-pairing";
 import { DiscardAllGenerations } from "@/components/discard-all-generations";
 import { loadPersonaList, chainRoleLabel } from "@/lib/scaffold-candidates";
 import { formatInstant } from "@/lib/app-time";
+import { ServerTimingReport } from "@/components/server-timing-report";
 
 export default async function ScaffoldPage() {
   // The shared instructor layout already gated this page (signed in, an
@@ -158,6 +159,8 @@ export default async function ScaffoldPage() {
         </p>
         <DiscardAllGenerations />
       </div>
+      {/* PAGE PERFORMANCE INSTRUMENT: renders nothing unless RELII_SERVER_TIMING=1. */}
+      <ServerTimingReport segment="page /instructor/scaffold" />
     </main>
   );
 }

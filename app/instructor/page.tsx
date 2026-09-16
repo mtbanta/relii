@@ -32,6 +32,7 @@ import type { SessionScore } from "@/lib/types";
 import { cardClasses } from "@/components/ui/card";
 import { ActionIcon, Icon, IconEye, IconInbox } from "@/components/ui/icon";
 import { SubmissionDownloads } from "@/components/submission-downloads";
+import { ServerTimingReport } from "@/components/server-timing-report";
 
 // Compact mode label for the submissions table (matches the mockup: "V+V").
 function modeShort(mode: string): string {
@@ -766,6 +767,8 @@ export default async function InstructorSubmissions({
           </>
         )}
       </section>
+      {/* PAGE PERFORMANCE INSTRUMENT: renders nothing unless RELII_SERVER_TIMING=1. */}
+      <ServerTimingReport segment="page /instructor" />
     </main>
   );
 }

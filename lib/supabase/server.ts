@@ -2,9 +2,14 @@
 // It connects the logged-in user's session to Supabase by reading and writing cookies.
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { timedFetch } from "@/lib/server-timing";
 
 export async function createClient() {
   const cookieStore = await cookies();
+
+  // PAGE PERFORMANCE INSTRUMENT: present ONLY when RELII_SERVER_TIMING=1. See
+  // lib/supabase/admin.ts.
+  const fetch = timedFetch();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,6 +30,7 @@ export async function createClient() {
           }
         },
       },
+      ...(fetch ? { global: { fetch } } : {}),
     },
   );
 }

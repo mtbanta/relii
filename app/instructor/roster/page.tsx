@@ -31,6 +31,7 @@ import { loadClassStudents } from "@/lib/class-scope";
 import { displayName, hasName } from "@/lib/name";
 import { ClassManager } from "@/components/class-manager";
 import { AddExistingStudentForm } from "@/components/add-existing-student-form";
+import { ServerTimingReport } from "@/components/server-timing-report";
 
 export default async function InstructorRoster() {
   // The layout already gated this page; this confirms it again for the page
@@ -226,6 +227,8 @@ export default async function InstructorRoster() {
       ) : (
         <p className="text-body text-content-secondary">No pending invites.</p>
       )}
+      {/* PAGE PERFORMANCE INSTRUMENT: renders nothing unless RELII_SERVER_TIMING=1. */}
+      <ServerTimingReport segment="page /instructor/roster" />
     </main>
   );
 }

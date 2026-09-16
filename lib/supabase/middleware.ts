@@ -29,6 +29,23 @@ function normalisePath(pathname: string): string {
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
+  // PAGE PERFORMANCE INSTRUMENT (2026-09-16), present ONLY when
+  // RELII_SERVER_TIMING=1. This proxy runs on every request, student pages
+  // included, so with the flag off it must be exactly the code it was: no fetch
+  // option is passed and no header is set. With the flag on it counts this
+  // proxy's own round trips and reports the login check as a Server-Timing
+  // header, which a proxy CAN set and a page cannot. It does not import
+  // lib/server-timing.ts, which is built around a page render this proxy is not
+  // part of.
+  const timing = process.env.RELII_SERVER_TIMING === "1";
+  let proxyTrips = 0;
+  const proxyFetch: typeof fetch | undefined = timing
+    ? (input, init) => {
+        proxyTrips += 1;
+        return fetch(input, init);
+      }
+    : undefined;
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -47,12 +64,15 @@ export async function updateSession(request: NextRequest) {
           );
         },
       },
+      ...(proxyFetch ? { global: { fetch: proxyFetch } } : {}),
     },
   );
 
+  const authStart = timing ? performance.now() : 0;
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const authMs = timing ? performance.now() - authStart : 0;
 
   const isPublic = PUBLIC_PATHS.includes(normalisePath(request.nextUrl.pathname));
 
@@ -60,6 +80,13 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
+  }
+
+  if (timing) {
+    supabaseResponse.headers.set(
+      "Server-Timing",
+      `proxy-auth;dur=${authMs.toFixed(1)};desc="trips=${proxyTrips} region=${process.env.VERCEL_REGION ?? "unknown"}"`,
+    );
   }
 
   return supabaseResponse;

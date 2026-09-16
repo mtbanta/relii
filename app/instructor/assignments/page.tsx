@@ -26,6 +26,7 @@ import {
   EMPTY_TALLY,
   type SessionTally,
 } from "@/lib/assignment-sessions";
+import { ServerTimingReport } from "@/components/server-timing-report";
 
 // One assignment as read for the management list (the working class's).
 type AssignmentRow = {
@@ -269,6 +270,8 @@ export default async function InstructorAssignments() {
           </p>
         )}
       </div>
+      {/* PAGE PERFORMANCE INSTRUMENT: renders nothing unless RELII_SERVER_TIMING=1. */}
+      <ServerTimingReport segment="page /instructor/assignments" />
     </main>
   );
 }

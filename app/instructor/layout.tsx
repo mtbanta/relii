@@ -23,6 +23,7 @@ import { ConsentGate } from "@/components/consent-gate";
 import { requireInstructor } from "@/lib/instructor-auth";
 import { hasConsented } from "@/lib/consent";
 import { displayName, hasName } from "@/lib/name";
+import { ServerTimingReport } from "@/components/server-timing-report";
 
 export default async function InstructorLayout({
   children,
@@ -70,6 +71,9 @@ export default async function InstructorLayout({
             remembered selection against it, so this costs no query. */}
         <ClassPicker classes={classes} currentClassId={classId} />
       </div>
+
+      {/* PAGE PERFORMANCE INSTRUMENT: renders nothing unless RELII_SERVER_TIMING=1. */}
+      <ServerTimingReport segment="layout /instructor" />
 
       {children}
     </>

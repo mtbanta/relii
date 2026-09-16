@@ -20,6 +20,7 @@ import Link from "next/link";
 import { AddEmailForm } from "@/components/add-email-form";
 import { BulkInviteForm } from "@/components/bulk-invite-form";
 import { requireInstructor } from "@/lib/instructor-auth";
+import { ServerTimingReport } from "@/components/server-timing-report";
 
 export default async function InstructorInvites() {
   // The layout already gated this page; this confirms it again for the page
@@ -53,6 +54,8 @@ export default async function InstructorInvites() {
 
       <AddEmailForm isSuperAdmin={profile.is_super_admin} />
       <BulkInviteForm isSuperAdmin={profile.is_super_admin} />
+      {/* PAGE PERFORMANCE INSTRUMENT: renders nothing unless RELII_SERVER_TIMING=1. */}
+      <ServerTimingReport segment="page /instructor/invites" />
     </main>
   );
 }

@@ -18,6 +18,7 @@ import { RemoveInstructorButton } from "@/components/admin-remove-instructor-but
 import { requireSuperAdmin } from "@/lib/super-admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { displayName } from "@/lib/name";
+import { ServerTimingReport } from "@/components/server-timing-report";
 
 export const dynamic = "force-dynamic";
 
@@ -273,6 +274,8 @@ export default async function AdminOverview() {
           );
         })}
       </ul>
+      {/* PAGE PERFORMANCE INSTRUMENT: renders nothing unless RELII_SERVER_TIMING=1. */}
+      <ServerTimingReport segment="page /admin" />
     </main>
   );
 }

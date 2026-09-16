@@ -20,6 +20,7 @@ import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { requireSuperAdmin } from "@/lib/super-admin";
 import { displayName } from "@/lib/name";
+import { ServerTimingReport } from "@/components/server-timing-report";
 
 export default async function AdminLayout({
   children,
@@ -55,6 +56,9 @@ export default async function AdminLayout({
           </Link>
         </nav>
       </div>
+
+      {/* PAGE PERFORMANCE INSTRUMENT: renders nothing unless RELII_SERVER_TIMING=1. */}
+      <ServerTimingReport segment="layout /admin" />
 
       {children}
     </>
