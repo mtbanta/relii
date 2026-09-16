@@ -14,7 +14,7 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ## Current Stage
 
-==> **PAGE PERFORMANCE, THE INSTRUCTOR AND ADMIN PAGES (2026-09-16). THE REGION PIN AND THE ADMIN COUNT FIX ARE SHIPPED AND RE-MEASURED WITH THE SAME INSTRUMENT. LIST-PAGE PARALLELISING IS NOT DONE AND AWAITS THE OWNER, WITH A RECOMMENDATION BELOW. The owner has not yet read the re-measure.** Commits: `73c0125` the region pin, alone; `7f08560` the admin count fix, alone. The baseline gate that came before both is kept below, unchanged, under its own heading. <==
+==> **PAGE PERFORMANCE, THE INSTRUCTOR AND ADMIN PAGES (2026-09-16). P1 WORK IS COMPLETE AND ACCEPTED BY THE OWNER: THE REGION PIN (`pdx1`), THE ADMIN COUNT COLLAPSE, AND THE ADMIN ERROR PAGE IN PLACE OF A SILENT 0. THE REGION PIN IS VERIFIED LIVE BY THE OWNER'S OWN STUDENT PRACTICE. PARALLELISING AND SPEEDUPS (a) AND (b) ARE DECLINED. FORMAL CLOSE IS PENDING, AND REMOVING `RELII_SERVER_TIMING` IS PART OF IT.** Commits: `73c0125` the region pin, alone; `7f08560` the admin count fix, alone, **and the last commit that changed code**; every commit after it changed only this file. The baseline gate that came before both is kept below, unchanged, under its own heading. <==
 
 **THE COMPLAINT, IN THE OWNER'S WORDS.** Every instructor page takes 2 to 6 seconds after clicking (Submissions, AI Persona Framework, Manage Assignments, Roster, Invite Users), reproduced on his admin account and on `instructor@test.com`. The Administration page takes 10 to 30 seconds.
 
@@ -25,6 +25,63 @@ This file is the running status of Relii. Read it at the start of every session.
 3. **PARALLELISING THE LIST PAGES: NOT YET. DECIDE AFTER THE REGION RE-MEASURE.** Its value is proportional to trip latency, and it edits the code that enforces class scoping, the riskiest code in this piece.
 4. **SPEEDUP (a), profile and class list together inside `requireInstructor()`: RE-ASSESS WITH (3), ONLY IF THE NUMBERS JUSTIFY IT.**
 5. **SPEEDUP (b), NOT RUNNING `requireInstructor()` TWICE ON A FULL LOAD: MEASURED AND DECLINED.** The duplicate trips run at the same moment as the originals (identical start and end offsets in every full-load trip list), so removing them saves Supabase calls but close to no waiting. **Recorded as declined, not left open.**
+
+### THE OWNER'S CLOSE-OUT (rulings, 2026-09-16)
+
+1. **ACCEPTED:** the region pin, the `/admin` count collapse, and the `/admin` error page in place of a silent 0.
+2. **DECLINED ON THE MEASURED NUMBERS:** parallelising the list pages and speedup (a), alongside speedup (b). **No further P1 work.**
+3. **`RELII_SERVER_TIMING` STAYS ON ONLY UNTIL P1 FORMALLY CLOSES, AND IS REMOVED WHEN IT DOES** (section below).
+
+### THE REGION PIN, VERIFIED LIVE BY A STUDENT PRACTICE (owner, 2026-09-16)
+
+==> **PASS. THE OWNER SIGNED IN AS `1studentb1@gmail.com` IN B1 AND RAN A FULL VOICE AND VIDEO PRACTICE END TO END ON THE PINNED BUILD.** <==
+
+| Exercised on `pdx1` | Result, as the owner observed it |
+| :-- | :-- |
+| **Voice** (the realtime session) | Worked end to end |
+| **Video** (the webcam recording and its upload) | Worked end to end |
+| **Scoring** | The transcript came with its scored rubric |
+| **Transcript download** | Downloaded, and correct |
+| **Recording download** | Downloaded, and correct |
+| Buttons and navigation | Behaved as expected |
+
+**This closes the limit recorded below that nothing student-facing had been exercised on `pdx1`.** It is second-party evidence, the one kind no harness in this session could produce, and it covers the routes the pin moved that the instructor and admin measurements never reached. **Nothing in Tom's classes was touched.** **B1 now holds that practice and its recording**; a later baseline must re-measure rather than read them as litter.
+
+### WAS THE PROXY'S LOGIN CHECK ALREADY CROSSING FROM DC TO OREGON BEFORE THE PIN? YES. PRE-EXISTING, EXPOSED BY THE PIN, NOT CAUSED BY IT.
+
+**Answered from this session's own measurements, with no auth code changed. The deployment logs were not read**: the Vercel CLI is denied in this repo, and the measurements answered it without them.
+
+**THE REGION.** The proxy reports `VERCEL_REGION` in its own header, and **every sample from the first one at 16:22:44 UTC, two and a half hours before the pin, read `region=iad1`.** Supabase has been in Oregon throughout. **So the login check crossed the continent before the pin exactly as it does after it.** The pin moved the functions, and the docs say Routing Middleware does not follow the region setting, which the unchanged header confirms.
+
+**ITS DURATION, THE SAME CALL ON THE SAME PATH, BEFORE AND AFTER:**
+
+| Samples | n | Median | Range |
+| :-- | --: | --: | :-- |
+| Warm full loads, before the pin | 15 | **130 ms** | 106 to 423 |
+| Warm full loads, on the pinned build | 15 | 163 ms | 105 to 347 |
+| **Warm full loads, on the live build, after the pin** | 15 | **126 ms** | 92 to 320 |
+| Warm clicks, before the pin | 15 | 120 ms | 92 to 349 |
+| Warm clicks, on the pinned build | 15 | 272 ms | 109 to 478 |
+| Warm clicks, on the live build | 5 | 335 ms | 108 to 355 |
+
+**The full-load medians before and after are the same (130 and 126 ms), so the pin did not make the login check itself slower.** The click medians after the pin are higher, and nothing in the pin touches that call's path, so **that difference is recorded as unexplained variation between runs taken hours apart, not attributed to the pin.** No interleaved before-and-after exists, because the pin cannot be switched per request.
+
+==> **THE ONE COST THE PIN DID ADD IS SMALL, AND IT IS NOT THE LOGIN CHECK.** Before the pin the proxy in DC handed each request to a function also in DC; now it hands it across the country to Oregon. On clicks, the time that is neither the proxy's login check nor the page's own trips (the whole response, less those two) **rose from a median of 140 ms (126 to 223, n 15) to 181 ms on the pinned build (157 to 249, n 15) and 171 ms on the live build (161 to 223, n 5): about 30 to 40 ms.** That is consistent with the new DC to Oregon hop. **It is an estimate: the instrument cannot separate that hop from rendering and serialisation.** Against it, the pin typically took about 60 to 240 ms off each of the page's own trips. <==
+
+### TWO REMAINING COSTS, MEASURED AND DEFERRED (owner ruling, 2026-09-16)
+
+**Both were measured in this session and neither was attempted.** Recorded so a later session reads them as known and deliberately left, not as missed.
+
+| Cost | Measured | Why it was not attempted |
+| :-- | :-- | :-- |
+| **Server start-up on a cold load** | **About 2 seconds**: 1.6 to 2.3 s on every cold sample on the pin (1.7 to 1.9 s before it), the gap between the page's last trip ending and the page arriving, less the proxy's check | **Hobby-plan behaviour with no code lever** (owner ruling) |
+| **The proxy's login check** | **109 to 478 ms** on warm clicks on the pinned build; 0.66 to 0.76 s on a cold load, 1.2 s when the hourly session refresh lands on the same request | **It sits in auth verification, which this project does not open without its own piece** (owner ruling) |
+
+### `RELII_SERVER_TIMING`: ON UNTIL P1 FORMALLY CLOSES, THEN REMOVED (owner ruling, 2026-09-16)
+
+==> **THE FLAG IS ON IN PRODUCTION NOW, AND IT STAYS ON ONLY UNTIL P1 FORMALLY CLOSES. WHEN P1 CLOSES, IT IS REMOVED. THE NEXT SESSION REMOVES IT; IT DOES NOT INHERIT IT.** <==
+
+**How it comes off.** The variable is deleted from Production in the Vercel dashboard, which is the owner's action because the Vercel CLI is denied in this repo, and **the change reaches production only on the next deploy**, so a push must follow before it is actually off. With the variable gone, the instrument's code is inert, proved both ways on one build before it first shipped. **The session that closes P1 then confirms it is off by an observation, not by the dashboard:** `/login` must answer with **no** `server-timing` header, and an instructor page must render **no** `data-relii-timing` block.
 
 ### THE REGION PIN, ALONE
 
@@ -103,13 +160,13 @@ This file is the running status of Relii. Read it at the start of every session.
 - **Both refusal branches exercised**: a short read throws `Read 0 of 5 rows...`, and a read error throws `Could not read x for the class counts: boom`.
 - **The page built locally and rendered against live data: 12 trips, and byte-identical to the production baseline** (37 lines, `867ac044e379ce25`, zero differing lines).
 
-**`tsc` 0, `eslint .` 0, `npm run build` 0** after `rm -rf .next`, 20:21:10 to 20:21:27 UTC, on `8a8960a` (the fix plus one documentation commit). The one Turbopack warning is the pre-existing one naming `next.config.ts`. **Five check scripts: 54 / 10 / 53 / 23 / 45, all exit 0, not one count moved.**
+**`tsc` 0, `eslint .` 0, `npm run build` 0** after `rm -rf .next`, 20:21:10 to 20:21:27 UTC, on the tree at `8a8960a`, whose only code change over the pin is `7f08560`. The one Turbopack warning is the pre-existing one naming `next.config.ts`. **Five check scripts: 54 / 10 / 53 / 23 / 45, all exit 0, not one count moved.**
 
 **PROVED LIVE.** New etag `44bbe4e06d65ad6fa93bf1862350bec9` at 20:41:19 UTC; **the first `/admin` load after it counted 12 trips, which only the fix can produce.**
 
 ### CHECKS 1 AND 3 ON THE BUILD THAT IS ACTUALLY LIVE
 
-**The pin numbers above for the five instructor pages were taken on `73c0125`, and the live build is `8a8960a`.** So the five pages were measured again on the live build, warm, at 20:48 to 20:49 UTC.
+**The pin numbers above for the five instructor pages were taken on `73c0125`. The code serving now is `7f08560`, the last commit that changed code; every commit after it changed only this file.** So the five pages were measured again on the live build, warm, at 20:48 to 20:49 UTC.
 
 | Page | Warm full loads, ms (counter) | One warm click, ms | Hash |
 | :-- | :-- | --: | :-- |
@@ -119,13 +176,13 @@ This file is the running status of Relii. Read it at the start of every session.
 | Invite Users | 928, 453, 624 | 636 | identical, `64604646fb089ca0` |
 | AI Persona Framework | 1,281 (copy 0.7 s old), 483, 476 | 937 | identical, `a284ce5006e546b7` |
 
-**Same range as on the pin, and the same data.** **The cold column was NOT re-run on the live build, on purpose:** nothing an instructor page runs changed between `73c0125` and `8a8960a` (the two commits touched `app/admin/page.tsx` and this file), and five more 17-minute idle windows would measure a difference no source change can produce.
+**Same range as on the pin, and the same data.** **The cold column was NOT re-run on the live build, on purpose:** nothing an instructor page runs changed between `73c0125` and `7f08560`, the only code commit after the pin, which touched `app/admin/page.tsx` alone, and five more 17-minute idle windows would measure a difference no source change can produce.
 
 ### THE LIMITS OF THIS HALF, STATED AT THEIR REAL STRENGTH
 
-1. **NOTHING STUDENT-FACING WAS EXERCISED ON `pdx1`.** The pin moves EVERY route in the app, in registration week, and every measurement here was the instructor and admin surface. **The voice token mint, the recording upload and signed-URL routes, the scorer and the student pages now run from Oregon and none of them was hit by this session.** Nothing about Oregon should break them (they reach the same Supabase and OpenAI), but that is reasoning, not evidence. **One real student practice, run by the owner, is the observation that closes it**, the same shape as T1's "nobody has heard `marin`". **If anything is wrong, the revert is deleting `vercel.json`: one commit, one deploy.**
-2. **THE INSTRUMENT IS LIVE FOR EVERY REQUEST, STUDENTS INCLUDED.** With `RELII_SERVER_TIMING=1` set, every Supabase call goes through the pass-through fetch and every response carries the proxy's `Server-Timing` header (a duration, a trip count and a region; no names, ids or data). It is flag-gated exactly as the kickoff required, and it is on.
-3. **`/admin` NOW FAILS LOUDLY WHERE IT USED TO PRINT 0.** A transient read failure shows an error page instead of a class with too few rubrics or sessions. This matches `loadClassStudents()` and `countScenarioUsage()`, and it is recorded here so the owner can object to it cheaply.
+1. ~~**NOTHING STUDENT-FACING WAS EXERCISED ON `pdx1`.**~~ ==> **CLOSED 2026-09-16 BY THE OWNER'S STUDENT PRACTICE IN B1: voice, video, scoring, transcript download and recording download, all correct. See the verification above.** <== What the limit said, kept because it is why the practice was run: The pin moves EVERY route in the app, in registration week, and every measurement here was the instructor and admin surface. **The voice token mint, the recording upload and signed-URL routes, the scorer and the student pages now run from Oregon and none of them was hit by this session.** Nothing about Oregon should break them (they reach the same Supabase and OpenAI), but that is reasoning, not evidence. **One real student practice, run by the owner, is the observation that closes it**, the same shape as T1's "nobody has heard `marin`". **If anything is wrong, the revert is deleting `vercel.json`: one commit, one deploy.**
+2. **THE INSTRUMENT IS LIVE FOR EVERY REQUEST, STUDENTS INCLUDED, UNTIL P1 FORMALLY CLOSES** (see the flag section above). With `RELII_SERVER_TIMING=1` set, every Supabase call goes through the pass-through fetch and every response carries the proxy's `Server-Timing` header (a duration, a trip count and a region; no names, ids or data). It is flag-gated exactly as the kickoff required, and it is on.
+3. **`/admin` NOW FAILS LOUDLY WHERE IT USED TO PRINT 0. ACCEPTED BY THE OWNER, 2026-09-16.** A transient read failure shows an error page instead of a class with too few rubrics or sessions. This matches `loadClassStudents()` and `countScenarioUsage()`, and it is recorded here so the owner can object to it cheaply.
 4. **THE REGION'S TRIP TIMES WERE MEASURED FROM ONE MACHINE, IN ONE AFTERNOON, IN REGISTRATION WEEK.** The trip counts do not depend on any of that; the milliseconds do.
 
 ### CHECKS 1 TO 6
@@ -147,11 +204,11 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ### THE ADMIN-CREDENTIALS EXCEPTION, AFTER THE GATE
 
-**Used for `/admin` only, three more times, and nowhere else:** the post-pin cold and warm loads, the post-fix cold and warm loads, and **once against the LOCAL build of the fix** (`localhost:3457/admin`), to prove the page hash before pushing. **That local load is the same page reading the same data, and it is named here so it is not found later and read as a breach.** Every sign-in blocked `/` and `/instructor`. **The browser's cookies for the account were cleared from both `localhost` and the live site when the admin work ended. The exception closes with this session.**
+**Used for `/admin` only, three more times, and nowhere else:** the post-pin cold and warm loads, the post-fix cold and warm loads, and **once against the LOCAL build of the fix** (`localhost:3457/admin`), to prove the page hash before pushing. **That local load is the same page reading the same data, and it is named here so it is not found later and read as a breach.** Every sign-in blocked `/` and `/instructor`. **The browser's cookies for the account were cleared from both `localhost` and the live site when the admin work ended.** ==> **CLOSED, AND CHECKED RATHER THAN ASSUMED (2026-09-16).** Before this entry was committed, every cookie left in the session's browser was listed and its login token decoded: **exactly one cookie remains in the whole browser, on `relii.vercel.app`, and it belongs to `instructor@test.com`. None belongs to the admin account, on the live site or on `localhost`.** The exception authorised nothing beyond this session, and this session is done using it. <==
 
 ### GIT STATE
 
-**Pushed by this session after the gate, in order:** `73c0125` (the region pin, alone), `7f08560` (the admin count fix), `8a8960a` (the cite-by-text rule), and the commit carrying this entry. **`origin/main` is to equal `main` after that push, with no `HEAD.lock`, no `objects/maintenance.lock`, no `tmp_obj_*` and a clean tree, checked by read-only commands after the push rather than asserted here.**
+**Pushed by this session after the gate, in order:** `73c0125` (the region pin, alone), `7f08560` (the admin count fix), `8a8960a` (the cite-by-text rule), `2c3179d` and `1342a88` (this record), and the commit carrying this close-out, **all of them after `7f08560` changing only this file.** **`origin/main` is to equal `main` after that push, with no `HEAD.lock`, no `objects/maintenance.lock`, no `tmp_obj_*` and a clean tree, checked by read-only commands after the push rather than asserted here.**
 
 ---
 
@@ -2725,7 +2782,7 @@ Written on 2026-09-09, at the end of 2a, while the reasons are still in view.
 
 ==> **THE ORDER LIVES IN `OS_Resources/Relii/Relii-Roadmap-and-Estimates.md`, AND THAT FILE IS THE AUTHORITY.** It was revised 2026-09-14 at 15:40 UTC against working tree `cad67fa`, clean, and it carries the hours, the migration flags and the reasoning for every piece. **THIS SECTION NAMES THE ORDER AND THE CONSTRAINTS ONLY**, so the two cannot drift into disagreeing about estimates. **If they ever disagree about ORDER, the roadmap wins and this section is the stale one.** <==
 
-==> **INTERJECTED 2026-09-16: PAGE PERFORMANCE.** Not a roadmap piece; the owner raised it from use. **The region pin (`pdx1`) and the admin count fix are shipped and re-measured; see Current Stage.** Still open and the owner's to decide: parallelising the list pages and speedup (a), both recommended AGAINST on the re-measured numbers; speedup (b) is measured and declined. Turning off `RELII_SERVER_TIMING` is his call once those are settled. <==
+==> **INTERJECTED 2026-09-16: P1, PAGE PERFORMANCE. WORK COMPLETE AND ACCEPTED; FORMAL CLOSE PENDING.** Not a roadmap piece; the owner raised it from use. Shipped: the region pin (`pdx1`) and the admin count collapse, verified live by the owner's student practice. Declined on measured numbers: list-page parallelising, speedups (a) and (b). Deferred as measured and not attempted: server start-up (about 2 s cold) and the proxy's login check (109 to 478 ms warm). **OPEN ITEM FOR THE NEXT SESSION: `RELII_SERVER_TIMING` IS STILL ON IN PRODUCTION AND IS REMOVED WHEN P1 CLOSES, NOT INHERITED.** See Current Stage. <==
 
 **THE ORDER, BY OWNER RULING (2026-09-14):**
 
