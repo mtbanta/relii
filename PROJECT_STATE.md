@@ -6,6 +6,10 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ==> **SO: MEASURE THE PRESENT VALUE. CITE THIS FILE FOR HISTORY AND REASONING.** Use it to learn what a thing is, why it was done, and what it cost. Do not use it as the source for what a count is right now. <==
 
+==> **AND CITE THIS FILE BY ITS TEXT, NEVER BY LINE NUMBER (owner ruling, 2026-09-16).** This file accretes at the TOP, in Current Stage, so every line below moves with every session that writes here. **A line number quoted from it is guaranteed to go stale.** Quote the words, or name the heading, and find them by search. <==
+
+**THE CASE THAT PRODUCED THAT ONE, 2026-09-16.** The owner cited two lines to be marked superseded as "line 1043" and "line 1153". When they were read, the statements were at three other positions entirely, and the entry recording that correction cited those three positions too, which went stale the moment the same session moved the T1 record into Completed. **The owner was diagnosing correctly; the addresses were what failed.**
+
 **THE CASE THAT PRODUCED THIS RULE, 2026-09-15.** The owner directed a cleanup using B1's `assignment_deletes` baseline of **1**, quoting the Phase 3a entry. **A Phase 3b entry a day later carries 2.** He quoted the older one as if it were current; the live value was measured and is **2**. He asked for the correction to be recorded as his own. **A session that had trusted the quoted number would have read the true value as damage**, which is precisely the misreading the Phase 3a entry was written to prevent, arriving by the opposite route.
 
 ## Current Stage
@@ -174,7 +178,7 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ==> **IT CLOSES WHEN THIS SESSION ENDS.** A later session that finds these credentials anywhere in a transcript is not authorised by this entry to use them. <==
 
-**IT MAKES THREE OLDER LINES FALSE, AND THEY ARE MARKED SUPERSEDED IN PLACE RATHER THAN DELETED:** the T1 entry's statement that no Claude Code session has ever held these credentials (Current Stage as it stood, and its limit 6), and Phase 3b's note that the owner's instruction was not to sign in as his own account. **The owner cited them as lines 1043 and 1153; in the file as committed they were lines 19, 318 and 1102.** Each was true when written, which is the same shape as the stale `assignment_deletes` number: a line true on its date, read later as current.
+**IT MAKES THREE OLDER LINES FALSE, AND THEY ARE MARKED SUPERSEDED IN PLACE RATHER THAN DELETED:** the T1 entry's statement that no Claude Code session has ever held these credentials (Current Stage as it stood, and its limit 6), and Phase 3b's note that the owner's instruction was not to sign in as his own account. **Found by their text, not their line numbers, which is now this file's own rule:** "He also recorded that no Claude Code session has ever held those credentials" and "THE SUPER-ADMIN ACCOUNT WAS NOT SIGNED IN TO, AND NO CLAUDE CODE SESSION HAS EVER HELD THOSE CREDENTIALS" (both in the T1 record under Completed), and "the owner's instruction was not to sign in as his own account" (Phase 3b, under Completed). Each was true when written, which is the same shape as the stale `assignment_deletes` number: a line true on its date, read later as current.
 
 ### THE LIMITS, STATED AT THEIR REAL STRENGTH
 
