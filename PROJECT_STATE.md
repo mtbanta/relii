@@ -14,7 +14,7 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ## Current Stage
 
-==> **THE ROSTER BOUNCE (2026-10-02). THE LOOP IS REPRODUCED AND ITS MECHANISM IS NAMED. THREE CHANGES ARE BUILT, VERIFIED ON A LOCAL PRODUCTION BUILD AND COMMITTED LOCALLY: THE LOOP FIX, THE SIGN OUT FIX, AND THE LOGIN MARKER. THE OWNER RULED SHIP ALL THREE, AND THEY ARE PUSHED WITH THE COMMIT CARRYING THIS LINE. AS OF THIS COMMIT THEY HAVE NOT YET BEEN RUN ON THE LIVE SITE; THE LIVE RESULTS ARE RECORDED UNDER "THE LIVE CONFIRMATION" ONCE THEY EXIST. WHAT SET THE FAULT OFF IN TOM'S BROWSER WAS NEVER OBSERVED.** Kickoff: `docs/Relii-RosterLoop-Kickoff-Prompt.md`, 270 lines, commit `1b0e120`. **The section below this heading was written at the hard stop, before any code; the sections headed "AFTER THE HARD STOP" were added the same day and supersede it where they differ.** <==
+==> **THE ROSTER BOUNCE (2026-10-02). THE LOOP IS REPRODUCED AND ITS MECHANISM IS NAMED. THREE CHANGES ARE BUILT, VERIFIED ON A LOCAL PRODUCTION BUILD AND COMMITTED LOCALLY: THE LOOP FIX, THE SIGN OUT FIX, AND THE LOGIN MARKER. THE OWNER RULED SHIP ALL THREE. THEY WERE PUSHED AT `12b6aa0` AND ARE LIVE, AND ALL FOUR LIVE RUNS HE ASKED FOR PASSED: SEE "THE LIVE CONFIRMATION" BELOW. THE FAULT IS NOT CLOSED: WHAT SET IT OFF IN TOM'S BROWSER WAS NEVER OBSERVED, AND THE OWNER HAS NOT YET CONFIRMED ANYTHING ON THE LIVE SITE HIMSELF.** Kickoff: `docs/Relii-RosterLoop-Kickoff-Prompt.md`, 270 lines, commit `1b0e120`. **The section below this heading was written at the hard stop, before any code; the sections headed "AFTER THE HARD STOP" were added the same day and supersede it where they differ.** <==
 
 ### THE SHIP RULING (owner, 2026-10-02), AND WHAT THE NEXT SESSION MUST NOT "FIX"
 
@@ -29,6 +29,23 @@ This file is the running status of Relii. Read it at the start of every session.
 **THE STANDING INSTRUCTION FOR TOM, AS GIVEN TO THE OWNER TO FORWARD:**
 
 > If Relii ever sends you to the login page when you were already signed in: being asked to sign in once, and getting straight through, is expected and you can ignore it. It is only worth reporting if it happens twice in a row, or if the time shown in the address bar is more than a minute old. If it is, copy the whole address from the address bar before you do anything else and send it to me, and tell me which tab you clicked and what you were doing in the few minutes before.
+
+### THE LIVE CONFIRMATION (2026-10-02, `relii.vercel.app`, `instructor@test.com`, B1, Chromium)
+
+**THE DEPLOY, CONFIRMED BY AN OBSERVATION ONLY THE NEW BUILD CAN MAKE.** Pushed `b49f4fb..12b6aa0`, eight commits. A signed-out request for `/instructor` was polled every 10 seconds; before the push it answered `location: /login`, and **at 20:54:01 UTC it answered `location: /login?why=proxy&at=20261002T205401Z`.** The `/login` etag moved from `4daed511c1e4797129a57efa7726cb96` to `3aadc07b0866c0713e041fa944a6ee0a`.
+
+| # | Run | Result |
+| :-- | :-- | :-- |
+| 1 | **THE BOLD ROW.** Signed in throughout. One background fetch of Roster fails its check at 20:54:37. Click Roster at 20:54:50, log in again in the same tab, click Roster | **PASS.** The click landed on `/login?why=proxy&at=20261002T205437Z`, the time of the failed fetch and 13 seconds old, so the marker also survived on the live build. The login was a full page load. **Roster then opened with a real request, 200, and opened again on a later click. No loop** |
+| 2 | **TWO-BROWSER SIGN OUT.** Two separate browsers signed in; A clicks Sign out | **PASS.** The click sent `POST /auth/v1/logout?scope=local`. Sessions on the account **3 to 2**. A was signed out (no cookie, and `/instructor` sent it to the marked `/login`). **B was still signed in and loaded Roster** |
+| 3 | **GATE 6 COOKIE-TAMPER MATRIX** | **PASS, WITH ITS CONTROL.** Working-class cookie set to the Historical class id, a random uuid and `not-a-uuid`: all three rendered B1's Roster, hash `c4350bd1fd8e3f0e`, identical to no cookie, picker on B1, 2 students. **Control:** set to B2 it rendered B2, hash `e0339c78066b58fa`, 1 student. Removed: back to B1 |
+| 4 | **FIVE-TAB HASHES AGAINST THE PRE-PUSH SET** | **PASS, ALL FIVE IDENTICAL.** Submissions `2e1989f6859798e2`, AI Persona Framework `33cb02c2e6aa6ef4`, Manage Assignments `fde916c273f674f4`, Roster `c4350bd1fd8e3f0e`, Invite Users `04bb2839ba61f1a4`, each with the same line count as before the push |
+
+**ONE THING IN RUN 1 THAT LOOKS LIKE A FAILURE IN THE RAW OUTPUT AND IS NOT.** After Roster opened, the script clicked Manage Assignments and read the page 2.5 seconds later, while it was still on Roster. **The request was not bounced: it was answered 200 after 3.7 seconds**, slower than the script waited, and the script had already clicked Roster again. Manage Assignments loaded normally in run 4. Recorded so nobody reads that line as a bounce.
+
+**CLEANUP, AND ONE CONSEQUENCE OF THE SIGN OUT FIX WORTH KNOWING.** The new Sign out ends one browser's session, so a test that signs in several times can no longer be cleaned up with one click. The leftover test sessions were ended with one explicit request for every session on the test account. **The test account holds 0 sessions, checked by count, and the whole system is back at 21, the number it held before the live runs.** One browser snapshot from the live runs had captured the test password; it was deleted and the folder recounted at 0.
+
+**WHAT THE LIVE RUNS DO NOT SHOW:** Chromium only, and Tom's browser and version have not come back. The failed check was again manufactured. No student account was used. The `why=page` marker branch has still never fired. **And none of this is the owner's own confirmation on the live site**, which is what closes a piece in this project.
 
 ### AFTER THE HARD STOP: TOM'S ANSWERS AND THE FENCE RULING (owner, 2026-10-02)
 
@@ -150,7 +167,7 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ### AFTER THE HARD STOP: WHAT IS STILL NOT PROVEN
 
-1. **NOTHING HERE HAS RUN ON THE LIVE SITE.** Every green run above is a local production build. The live checks are owed after the push.
+1. **NOTHING HERE HAS RUN ON THE LIVE SITE.** Every green run above is a local production build. The live checks are owed after the push. ==> **SUPERSEDED THE SAME DAY: pushed and run live, all four passed. See "THE LIVE CONFIRMATION" above.** <==
 2. **THE TRIGGER IS STILL UNOBSERVED.** Nothing built here makes a check less likely to fail. The marker is what would catch the next one.
 3. **Every failed check in these runs was manufactured** by withholding the cookie from one request.
 4. **Chromium only.** Tom's browser and version have not come back.
@@ -163,7 +180,7 @@ This file is the running status of Relii. Read it at the start of every session.
 - **Nothing in Tom's classes, and no sign-in as Tom.**
 - **`instructor@test.com`:** several dozen sign-ins through the login form across the live site and the local build, each an ordinary Supabase session. All of them were removed at the end; the account holds **0** sessions, checked by count. No app row was written.
 - **The test scripts that held the test account's password were deleted**, along with the one browser snapshot from today that captured it. `git grep` finds the password nowhere in the repo. **Thirty or so older snapshots from September in the git-ignored `.playwright-mcp` folder also contain it; they were left alone as earlier sessions' files, and the owner may want them cleared.** ==> **SUPERSEDED THE SAME DAY: deleted on the owner's instruction, 48 files, see "THE SHIP RULING" above.** <==
-- **GIT STATE:** `origin/main` is still at `b49f4fb`. Local and not pushed, in order: `1b0e120` the kickoff, `88c5415` the hard-stop record, `6df2cf2` (a), `80f9bf7` sign out, `873e428` the marker, `913b89a` this half of the record, and the commit correcting it. **Nothing is pushed until the owner says so.**
+- ==> **SUPERSEDED THE SAME DAY: everything below was pushed at `12b6aa0`, and `origin/main` equals `main`.** <== **GIT STATE:** `origin/main` is still at `b49f4fb`. Local and not pushed, in order: `1b0e120` the kickoff, `88c5415` the hard-stop record, `6df2cf2` (a), `80f9bf7` sign out, `873e428` the marker, `913b89a` this half of the record, and the commit correcting it. **Nothing is pushed until the owner says so.**
 
 ---
 
@@ -2630,6 +2647,10 @@ B3_STUDENT_PASSWORD=...
 
 
 ## Open Issues
+
+- ==> **THE ROSTER BOUNCE IS OPEN, AND THE LOGIN MARKER HAS A REMOVAL DATE: 2026-11-02, OR WHEN THE FAULT IS FORMALLY CLOSED, WHICHEVER COMES FIRST (owner ruling, 2026-10-02).** The loop is fixed and verified live; **what made a login check fail in Tom's browser was never observed.** `lib/login-marker.ts` writes `?why=proxy&at=...` or `?why=page&at=...` into the login address so the next occurrence leaves evidence. **A session on or after 2026-11-02 that finds that file still in the tree removes it (revert `873e428`) or asks the owner for a new date.** <==
+
+  **THREE THINGS A LATER SESSION WILL BE TEMPTED TO "FIX" AND MUST NOT, WITHOUT A NEW RULING:** (1) **Being shown the login page ONCE while signed in, and getting straight through, is the expected behaviour**, not a residual fault. (2) **The proxy change that would remove that one login, design (b), was measured and deferred on purpose**, because it runs on every request and buys only that. (3) **Telling a failed call apart from "not signed in" in the proxy targets the trigger, which is unobserved, and stays out.** All three are written out under "THE ROSTER BOUNCE" in Current Stage. **What reopens this:** a report of two bounces in a row, or a login address whose `at=` time is more than a minute old.
 
 - ==> **THE EMPTY AND DROPPED STUDENT TURNS ARE STILL OPEN, AND AS OF 2026-09-14 THERE IS A NAMED HYPOTHESIS AND A CHEAP DECISIVE TEST FOR THEM. RAISED FROM D3.** Two of Tom's five September 11 failures were blank turns and one was truncated; **`language: "en"` addresses none of them.** <==
 
