@@ -14,7 +14,131 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ## Current Stage
 
-==> **THE ROSTER BOUNCE (2026-10-02). AT THE HARD STOP. THE LOOP IS REPRODUCED IN B1 AND ITS MECHANISM IS NAMED. WHAT SET IT OFF IN TOM'S BROWSER IS NOT KNOWN AND CANNOT NOW BE RECOVERED. NOTHING IS FIXED, NOTHING IS INSTRUMENTED, AND NOTHING HAS BEEN PUSHED.** Kickoff: `docs/Relii-RosterLoop-Kickoff-Prompt.md`, 270 lines, commit `1b0e120`, which is still local. **No code changed in this session.** <==
+==> **THE ROSTER BOUNCE (2026-10-02). THE LOOP IS REPRODUCED AND ITS MECHANISM IS NAMED. THREE CHANGES ARE BUILT, VERIFIED ON A LOCAL PRODUCTION BUILD AND COMMITTED LOCALLY: THE LOOP FIX, THE SIGN OUT FIX, AND THE LOGIN MARKER. NONE OF THEM IS PUSHED, SO NONE IS LIVE, AND NONE HAS BEEN RUN ON THE LIVE SITE. WHAT SET THE FAULT OFF IN TOM'S BROWSER WAS NEVER OBSERVED.** Kickoff: `docs/Relii-RosterLoop-Kickoff-Prompt.md`, 270 lines, commit `1b0e120`. **The section below this heading was written at the hard stop, before any code; the sections headed "AFTER THE HARD STOP" were added the same day and supersede it where they differ.** <==
+
+### AFTER THE HARD STOP: TOM'S ANSWERS AND THE FENCE RULING (owner, 2026-10-02)
+
+1. **Tom did NOT retry in the old tab after five minutes.** He tried, it failed, he took it to the owner, and he stopped trying until the afternoon.
+2. **The owner DID click Sign out after signing in as Tom.**
+3. **When Tom succeeded in the afternoon he was not asked to sign in again after clicking Roster.**
+
+==> **ANSWER 1 IS THE RESULT (owner). IT IS THE OBSERVATION THAT COULD HAVE FALSIFIED THE MODEL AND IT DID NOT. THERE WAS NEVER A FIVE-HOUR FAILURE, ONLY FIVE HOURS OF NOT RETRYING.** The measured life of a remembered redirect, still bouncing at 258 seconds and healed at 322, covers the whole episode. One failed background check explains it with nothing left over. **The new tab at 1:50pm was probably incidental:** by then the entry had expired hours earlier, and the old tab would have worked too. <==
+
+**THE FENCE RULING: MET FOR THE MECHANISM, NOT MET FOR THE TRIGGER.** A deterministic reproduction and an exact run a fix must turn green is what the fence was protecting.
+
+- **(a) APPROVED, ON A CONDITION:** sign in and sign out with a full page load. **The condition: it must clear the "signed in throughout" row, not only the session-gone row, and that run is reported specifically.**
+- **(b) APPROVED AS A DESIGN ONLY, NO CODE:** have the proxy answer a failed background fetch without a redirect.
+- **(c) STAYS OUT.** Telling a failed call apart from "not signed in" targets the trigger, which is unobserved. That is the fence.
+- **SIGN OUT IS A SEPARATE DEFECT, APPROVED AS ITS OWN COMMIT:** scope local, proved by session count before and after and by a second signed-in browser surviving.
+- **SECTION 5 STANDS:** mark the login address with which check sent the person there and when, and TEST that the marker survives in the remembered entry.
+- **THE PUSH ORDER IS UNCHANGED,** and the owner wants the student answer below before anything ships.
+
+### AFTER THE HARD STOP: CAN A STUDENT BE LOCKED OUT THE SAME WAY? STARTING A PRACTICE, NO. OPENING A RESULTS PAGE, YES.
+
+**From the code.** A student's screens hold two kinds of link to a protected page: links home to `/student` (the header in `components/app-header.tsx` on every student page, plus the results page, `components/scoring-not-finished.tsx` and `components/locked-submission.tsx`) and links to results pages (`app/student/page.tsx` and `components/practice-row-actions.tsx`). **Starting a practice is not a link.** `components/practice-button.tsx` and `components/start-assignment-button.tsx` call the server and then move to a session address that did not exist a second earlier. Finishing one moves to its results page the same way (`components/conversation.tsx`, `components/voice-conversation.tsx`), and only after the call that saves and scores it has answered.
+**From B1, on the instructor side, which runs on the same Next.js machinery. NO STUDENT ACCOUNT WAS USED, so each line below is an analogue, not a student run.**
+
+| Question | Run | Result |
+| :-- | :-- | :-- |
+| The HOME link is the one that fails its check | Live site. One background fetch of `/instructor` fails; click it | One bounce to `/login`. **Logging in lands on the home page normally. No loop**, because the login goes through `/`, which the server forwards with a real request |
+| Does a remembered redirect for one page spread to a NEW page of the same type? | Live site. Poison one submission's link, then move in-page to a different submission id | **No.** A real request was sent and answered 200. **So a brand new practice session is not caught by another page's remembered redirect** |
+| The failed check lands on an in-page move to a page with no link on screen (the shape of "finish a practice, go to results") | Live site and local. That one move fails its check | Bounce to `/login`. **After logging in, the link to that same page bounces again with zero requests, and again after a second login. The loop.** |
+
+==> **SO: A STUDENT IS NOT LOCKED OUT OF STARTING A PRACTICE. A STUDENT CAN BE LOCKED OUT OF ONE RESULTS PAGE FOR UP TO FIVE MINUTES, WITH A LOGIN THAT APPEARS NOT TO WORK, IF THE CHECK FAILS AT THE MOMENT THEY FINISH A PRACTICE OR A GRADED SUBMISSION, OR ON THE BACKGROUND FETCH OF A RESULTS LINK.** Their work is already saved by then. **(a) removes that loop too, and (b) would not:** in the third row the failed check is on a real page move, not a background fetch, so (b) never sees it. <==
+
+**One more student-side effect of a single failed check, read from the code and not run:** the Practice button's own call to the server passes through the proxy, so a failed check there gets a redirect in place of an answer and the button shows an error. The next click works. That is the trigger, not the remembered redirect, and nothing on the table changes it.
+
+### AFTER THE HARD STOP: (a), BUILT AND VERIFIED LOCALLY. COMMIT `6df2cf2`, NOT PUSHED.
+
+**The change.** `app/login/page.tsx` and `components/sign-out-button.tsx` now move on with `window.location.assign(...)`, a full page load, where they used `router.push()` then `router.refresh()`. A full page load throws away the page's memory, including the remembered redirect.
+
+**Tested red first, then green, on a local production build talking to the live database, `instructor@test.com`, Chromium.** Background fetches only run in a production build, so `next build` then `next start`, not the dev server. Each build was made after `rm -rf .next`, exited 0, and its build id was read back out of a served page before any run.
+
+| Run | Before (`88c5415`) | With (a) (`6df2cf2`) |
+| :-- | :-- | :-- |
+| **THE CONDITION. Signed in throughout, one background fetch of Roster fails its check, click Roster, log in again in the same tab, click Roster** | Bounces. Bounces again after a second login. Zero requests each time | **One bounce to `/login`. The login is a full page load. Roster then opens with a real request, 200, and opens again on a later click** |
+| Session gone, click Roster, log in again, same tab | (live site) Roster, Manage Assignments and Invite Users all bounce | All three open |
+| A failed check on an in-page move to a page with no link, log in again, click its link | Bounces twice | Opens |
+
+==> **WHAT (a) DOES NOT DO, STATED PLAINLY: IT DOES NOT STOP THE FIRST BOUNCE.** A person whose background fetch failed is still shown the login page once while signed in. What changes is that signing in then works. **(a) turns a loop into one unnecessary login.** Removing that one login is what (b) is for. <==
+
+### AFTER THE HARD STOP: SIGN OUT, BUILT AND VERIFIED LOCALLY. COMMIT `80f9bf7`, NOT PUSHED.
+
+**The change.** `components/sign-out-button.tsx` passes `{ scope: "local" }`. It is the only caller of `signOut` in the app.
+
+**The owner confirmed he clicked Sign out after signing in as Tom, so the reading above stands: that click ended every session on Tom's account, Tom's own included, and deleted the rows the auth-record question needed.**
+
+| Measure, on the test account, two separate browsers signed in | Old button (live site) | New button (local build) |
+| :-- | :-- | :-- |
+| The request the click sends | `POST /auth/v1/logout?scope=global` | `POST /auth/v1/logout?scope=local` |
+| Sessions on the account, before and after one click | 15 to **0** | 23 to **22** |
+| The browser that clicked | Signed out | Signed out: no cookie left, and `/instructor` sends it to `/login` |
+| **The OTHER signed-in browser** | Not run with a second browser; every session row was gone | **Still signed in: it loaded Roster** |
+
+### AFTER THE HARD STOP: THE LOGIN MARKER, BUILT AND VERIFIED LOCALLY. COMMIT `873e428`, NOT PUSHED.
+
+**What it is.** When server code sends somebody to the login page it now writes which check did it and when into the address: `/login?why=proxy&at=20261002T203035Z`. `why=proxy` is the proxy's check (`lib/supabase/middleware.ts`); `why=page` is `requireInstructor()` (`lib/instructor-auth.ts`). The helper is `lib/login-marker.ts`.
+
+**What it writes:** one of two fixed words and a UTC time to the second. **What it never writes:** an email, a name, a user id, a token, or the page the person was heading for. **Nothing is stored.** It exists only in the address bar, which is the one record that outlives Vercel's hour of logs, because the person can read it out. **It comes off by reverting that one commit.**
+
+**The test the owner asked for, run and not assumed:**
+
+| Case | Clock when it happened | Address bar |
+| :-- | :-- | :-- |
+| A visitor with no session opens `/instructor` | 20:30:26 UTC | `/login?why=proxy&at=20261002T203025Z`: **the time is now** |
+| One background fetch of Roster fails its check at 20:30:35; the click on Roster comes at 20:31:03 | 20:31:03 UTC | `/login?why=proxy&at=20261002T203035Z`: **the time is 28 seconds old, the moment of the failed fetch, not of the click** |
+
+==> **SO THE MARKER SURVIVES INSIDE THE REMEMBERED REDIRECT, AND AN OLD TIME IN THE ADDRESS IS THE SIGNATURE OF A REPLAYED ONE.** A time of "just now" means a check really failed on that request. <==
+
+**NOT RUN, AND WHY:** the `why=page` branch. It fires only when the proxy passes a request and the page's own check then fails inside the same request, which cannot be produced from a browser. It is one line and it type-checks; it has not been executed.
+
+**THE OTHER THREE PARTS OF SECTION 5, AS RECOMMENDATIONS, NOT YET RULED ON:**
+
+- **`RELII_SERVER_TIMING`: recommend it stays off.** It reports how long things took. This fault is a check that failed, not one that was slow, and its output goes to the browser and is kept nowhere.
+- **Can anything detect it without the person noticing? No.** The loop happens entirely inside one browser tab and sends nothing. Nothing on the server can see it, and this project has nowhere to keep a record if it could.
+- **What to ask Tom to do if it recurs:** copy the whole address from the address bar before doing anything else, say which tab he clicked and what he had been doing in the minutes before, and send it at once.
+
+### AFTER THE HARD STOP: (b), THE DESIGN. NO CODE WRITTEN.
+
+**The proposal.** In `lib/supabase/middleware.ts`, inside the branch that already handles a failed check on a protected page, and only there: if the request is one of Next.js's background fetches (it carries the header `next-router-prefetch`), answer with a plain 401 and no redirect. Every other request keeps today's redirect to `/login`.
+
+**Why that works, from the installed source:** `segment-cache/cache.js` treats any answer that is not OK as a miss and tries again after 10 seconds, so nothing is remembered. A redirect is the only answer that gets remembered.
+
+**Tested without writing it.** The browser test itself answered one Roster background fetch with a 401, standing in for the proxy. **The click on Roster then sent a real request, got 200, and opened Roster.** No bounce at all.
+
+**What it would add over (a):** it removes the one unnecessary login for the case that hit Tom. **What it would not do:** the third row of the student table, where the failed check is on a real page move. **Its risk:** the code runs on every request for every user. The passing path is untouched; the change sits inside the branch that already failed. **Its proof would be** the "signed in throughout" run with no bounce at all, and a signed-out visitor still being sent to `/login`.
+
+### AFTER THE HARD STOP: THE STANDING CHECKS, ON THE TREE AT `873e428`
+
+| Check | Result |
+| :-- | :-- |
+| `tsc --noEmit` | exit 0 |
+| `eslint .` | exit 0, no errors. The only warnings are in the git-ignored browser scratch folder |
+| `npm run build` after `rm -rf .next` | exit 0, three times (baseline, with (a), with all three) |
+| The five check scripts | **54 / 10 / 53 / 23 / 45**, all exit 0, not one count moved |
+| **Gate 6's cookie-tamper matrix**, run because `lib/instructor-auth.ts` and the proxy were touched. Local build, hashes and counts only | **PASS, WITH ITS CONTROL.** The working-class cookie set to the Historical class id, to a random uuid and to `not-a-uuid`: all three rendered B1's Roster, hash `c4350bd1fd8e3f0e`, identical to no cookie, picker on B1, 2 students. **The control:** set to B2, it rendered B2 under a different hash, 1 student. The server log shows "Gate 6 refused a stored class selection" for each of the three |
+| All five instructor tabs, clicked in turn on that build | Each opened its own page |
+
+### AFTER THE HARD STOP: WHAT IS STILL NOT PROVEN
+
+1. **NOTHING HERE HAS RUN ON THE LIVE SITE.** Every green run above is a local production build. The live checks are owed after the push.
+2. **THE TRIGGER IS STILL UNOBSERVED.** Nothing built here makes a check less likely to fail. The marker is what would catch the next one.
+3. **Every failed check in these runs was manufactured** by withholding the cookie from one request.
+4. **Chromium only.** Tom's browser and version have not come back.
+5. **No student account was used.** The student answer is from the code plus instructor-side analogues.
+6. **The fault is closed when** the changes are live, the "signed in throughout" run is repeated on the live site and does not loop, and a stated period passes with no report; or when a recurrence is caught with a marker and explained.
+
+### AFTER THE HARD STOP: WHAT THIS HALF TOUCHED
+
+- **Code:** `app/login/page.tsx`, `components/sign-out-button.tsx`, `lib/supabase/middleware.ts`, `lib/instructor-auth.ts`, and the new `lib/login-marker.ts`. No schema, no migration, no policy, no setting, no dependency.
+- **Nothing in Tom's classes, and no sign-in as Tom.**
+- **`instructor@test.com`:** several dozen sign-ins through the login form across the live site and the local build, each an ordinary Supabase session. All of them were removed at the end; the account holds **0** sessions, checked by count. No app row was written.
+- **The test scripts that held the test account's password were deleted**, along with the one browser snapshot from today that captured it. `git grep` finds the password nowhere in the repo. **Thirty or so older snapshots from September in the git-ignored `.playwright-mcp` folder also contain it; they were left alone as earlier sessions' files, and the owner may want them cleared.**
+- **GIT STATE:** `origin/main` is still at `b49f4fb`. Local and not pushed, in order: `1b0e120` the kickoff, `88c5415` the hard-stop record, `6df2cf2` (a), `80f9bf7` sign out, `873e428` the marker, and the commit carrying this half of the record. **Nothing is pushed until the owner says so.**
+
+---
+
+### THE RECORD AS WRITTEN AT THE HARD STOP, BEFORE ANY CODE
 
 ### THE SEQUENCE, AS IT HAPPENED (all times US Central, 2026-10-02)
 
