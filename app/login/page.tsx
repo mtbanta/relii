@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Input, Label } from "@/components/ui/field";
@@ -9,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -33,8 +31,17 @@ export default function LoginPage() {
     }
 
     // Success: the home page will route them to the right place.
-    router.push("/");
-    router.refresh();
+    //
+    // ==> THIS IS A FULL PAGE LOAD ON PURPOSE, NOT router.push(). <== Next.js
+    // keeps a list in the page's memory of where each link leads, and
+    // router.refresh() does not clear it. If one background fetch of a link was
+    // ever answered with "go to /login", that link kept leading to /login for
+    // five minutes, with no request to the server, and signing in again through
+    // router.push() left the list intact: the Roster bounce of 2026-10-02. A
+    // full page load throws that memory away, so whatever sent somebody to this
+    // page cannot follow them past it. The button stays on "Signing in..."
+    // until the new page arrives.
+    window.location.assign("/");
   }
 
   return (
