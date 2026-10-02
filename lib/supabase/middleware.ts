@@ -5,6 +5,7 @@
 //      either of the two policy pages).
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { bounceStamp, type BounceOrigin } from "@/lib/login-marker";
 
 // PHASE 5 added /privacy and /agreement. They MUST be reachable signed out: the
 // register page links to them, so they have to be readable before an account
@@ -79,6 +80,10 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    // Which check sent them here, and when. See lib/login-marker.ts.
+    const origin: BounceOrigin = "proxy";
+    url.searchParams.set("why", origin);
+    url.searchParams.set("at", bounceStamp());
     return NextResponse.redirect(url);
   }
 

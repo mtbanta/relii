@@ -17,6 +17,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { WORKING_CLASS_COOKIE } from "@/lib/working-class";
+import { bounceStamp, type BounceOrigin } from "@/lib/login-marker";
 
 export type InstructorProfile = {
   role: string;
@@ -169,7 +170,11 @@ export async function requireInstructor(): Promise<{
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    // Which check sent them here, and when. See lib/login-marker.ts. The proxy
+    // already passed this request, so reaching this line means the two checks
+    // disagreed within one request.
+    const origin: BounceOrigin = "page";
+    redirect(`/login?why=${origin}&at=${bounceStamp()}`);
   }
 
   // GATE 4b added is_super_admin to this select. It is not a new query, and the
