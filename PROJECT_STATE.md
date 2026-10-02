@@ -14,6 +14,124 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ## Current Stage
 
+==> **THE ROSTER BOUNCE (2026-10-02). AT THE HARD STOP. THE LOOP IS REPRODUCED IN B1 AND ITS MECHANISM IS NAMED. WHAT SET IT OFF IN TOM'S BROWSER IS NOT KNOWN AND CANNOT NOW BE RECOVERED. NOTHING IS FIXED, NOTHING IS INSTRUMENTED, AND NOTHING HAS BEEN PUSHED.** Kickoff: `docs/Relii-RosterLoop-Kickoff-Prompt.md`, 270 lines, commit `1b0e120`, which is still local. **No code changed in this session.** <==
+
+### THE SEQUENCE, AS IT HAPPENED (all times US Central, 2026-10-02)
+
+1. **About 8:30am.** Tom, signed in as `tbbanta@ksu.edu` on `relii.vercel.app`, clicked Roster from another tab and was shown the login page. He logged in and Roster bounced again. Submissions, AI Persona Framework, Manage Assignments and Invite Users all worked.
+2. **The owner could not reproduce it** on `instructor@test.com` or on his own admin account.
+3. **About 1:50pm.** The owner signed in as Tom from his own browser and reached Roster from every tab.
+4. **About 1:50pm, the same time.** Tom came back to THE SAME BROWSER and opened A NEW TAB, and Roster worked. He did nothing else: no reload of the old tab, no browser quit, no restart, no other device, no private window, no cookies cleared (Tom, relayed by the owner).
+5. **The timeline does not separate 3 from 4, and the mechanism does.** A new tab keeps the cookies and the login and throws away the in-page navigation cache, which is exactly the state the reproduction below shows is at fault. The owner's sign-in was a separate session in a separate browser.
+6. **NOT KNOWN: whether Tom tried Roster again in the OLD tab at any point between about 8:35am and 1:50pm.** It matters, see the limits below.
+
+**No deploy and no knowing data change happened between the failure and the recovery.** Vercel Hobby keeps about one hour of runtime logs, so no log of the failure exists. No plan upgrade was made. **Tom is on `relii.vercel.app`; the two-host question is closed.**
+
+### THE MECHANISM, REPRODUCED IN B1 ON THE LIVE SITE
+
+==> **ONE BACKGROUND FETCH OF THE ROSTER LINK THAT FAILS ITS LOGIN CHECK MAKES THE BROWSER REMEMBER "ROSTER GOES TO THE LOGIN PAGE" FOR FIVE MINUTES. EVERY CLICK ON ROSTER IN THAT TAB THEN GOES TO THE LOGIN PAGE WITHOUT ASKING THE SERVER, AND LOGGING IN AGAIN DOES NOT CLEAR IT.** <==
+
+**How it works, from the installed Next.js 16.2.7 source and then from the browser.** In production every link in the instructor nav is fetched ahead of time, and each of those fetches passes through the proxy's login check (`lib/supabase/middleware.ts`). If the check fails, the proxy answers with a redirect to `/login`, the browser follows it, and Next.js stores "this address leads to `/login`" in its route cache (`segment-cache/cache.js`, `fetchRouteOnCacheMiss`, which keeps the address after redirects as the route's canonical address). That entry is kept for the static stale time, five minutes by default, and `next.config.ts` sets no override. **`router.refresh()` does not clear it:** `refresh-reducer.js` says in its own words "During a refresh, we invalidate the segment cache but not the route cache." The login page signs in with `router.push("/")` then `router.refresh()`, which is not a page reload, so the entry survives a login. **The `staleTimes.dynamic = 0` default governs page data, not this route entry.**
+
+**The runs. `instructor@test.com`, B1, `relii.vercel.app`, Chromium driven by Playwright, about 19:45 to 19:57 UTC. Every bounce below was a click that sent NO request for the page at all.**
+
+| Run | What was done | Result |
+| :-- | :-- | :-- |
+| Control | Signed in, click Roster | Roster, one request, 200 |
+| **Dead session** | Cookies removed in that browser, click Roster, then log in again through the form in the same tab | Roster, Manage Assignments and Invite Users ALL bounce to `/login` with zero requests. AI Persona Framework and Submissions work. Run twice, same three both times |
+| Same tab, repeat logins | Log in a second and third time, click Roster | Still bounces, zero requests |
+| **New tab** | New tab in the same browser, same cookies, click Roster | **Works.** Back in the old tab seconds later: still bounces |
+| **Duration** | Same old tab, timed from the poisoning | Still bouncing at 258 s. At 322 s the three links were fetched again, got 200, and all three worked |
+| **One failed check on a Roster prefetch** | Signed in throughout. The cookie was withheld from exactly one background fetch of Roster and restored before any other request was let through. The run shows exactly one redirect, on that fetch, and 200 on everything else | **Click Roster: `/login`, zero requests. Log in again, same tab: Roster still bounces. Manage Assignments, Invite Users, AI Persona Framework and Submissions all work.** |
+| One failed check on the click itself | Signed in throughout. Only the click on Roster reached the server with no cookie | One bounce to `/login`. After logging in, Roster works. **No loop** |
+
+==> **THE "ONE FAILED CHECK ON A ROSTER PREFETCH" RUN MATCHES EVERY ONE OF TOM'S OBSERVATIONS: SIGNED IN AND WORKING, ROSTER ONLY, A FRESH LOGIN DOES NOT FIX IT, THE OTHER FOUR TABS WORK, A NEW TAB FIXES IT, AND NOBODY ELSE CAN REPRODUCE IT.** The dead-session run does not match, because it takes three tabs down, not one. <==
+
+**NOTHING HERE IS ABOUT ROSTER.** Which link is hit is whichever background fetch failed its check. It could be any instructor tab, and the same shape exists wherever a signed-in page links to another protected page.
+
+### THE LIMITS OF THAT, STATED AT THEIR REAL STRENGTH
+
+1. **THE FAILED CHECK IN THE MATCHING RUN WAS MANUFACTURED.** The test removed the cookie for one request. It proves one failed check on one prefetch is SUFFICIENT to produce what Tom saw. **It does not prove that is what happened in Tom's browser, and it says nothing about why a check would fail.**
+2. **WHAT MAKES A REAL CHECK FAIL WAS NOT OBSERVED.** From reading `@supabase/auth-js` 2.108.0, `getUser()` returns no user for any auth error, and the proxy does not look at the error, so "Supabase did not answer properly once" and "this person is not signed in" take the same branch. Candidates: a slow or failed call from the proxy (it runs in `iad1`, Supabase is in Oregon), or the hourly token refresh landing on several simultaneous prefetches. **Reasoned, not measured.**
+3. **ONE POISONING LASTS FIVE MINUTES.** If Tom tried the OLD tab again after about 8:35am and it still failed, a single failed check does not cover it and it must have been hit again. That question has not been asked.
+4. **Chromium only.** Tom's browser and version are being asked for. The route cache is Next.js code and should behave the same in any browser, but that is reasoning.
+
+### SECOND FINDING, MEASURED: THE SIGN OUT BUTTON ENDS EVERY SESSION ON THE ACCOUNT, EVERYWHERE, AND ERASES THE RECORD
+
+`components/sign-out-button.tsx` calls `supabase.auth.signOut()` with no argument, and in the installed library the default scope is global. **Measured in B1:** one click on Sign out sent `POST /auth/v1/logout?scope=global`, and the test account's sessions went **15 to 0** and its refresh-token rows to **0**.
+
+**What that means here.** At about 19:35 UTC, `tbbanta@ksu.edu` had **zero** rows in `auth.sessions` and **zero** in `auth.refresh_tokens`, and no session created on 2026-10-02 survived for any user. **The likeliest reason is that the owner clicked Sign out after signing in as Tom, which would also have ended Tom's own session in Tom's browser. To be confirmed with the owner. If so, Tom being asked to log in once on the afternoon of 2026-10-02 is that sign-out and NOT a recurrence.**
+
+### THE AUTH RECORDS: THEY CANNOT ANSWER THE QUESTION THEY WERE READ FOR
+
+**Asked:** was anything revoked, expired or refreshed on Tom's account between 8:30am and 1:50pm, and did the owner's sign-in create a new session without touching his. **Answer: unknown, and not recoverable FROM THE DATABASE.** `auth.audit_log_entries` holds **0 rows** (it is not being written on this project). `auth.sessions` and `auth.refresh_tokens` had **0 rows** for Tom's account, because a sign-out deletes them.
+
+==> **SUPABASE'S OWN LOGS HAVE NOT BEEN READ, AND THEY ARE THE ONE PLACE THE TRIGGER MIGHT STILL BE VISIBLE.** The Supabase dashboard keeps Auth and API gateway logs separately from these tables, for a short period that depends on the plan. No tool in this session can read them; the owner can. **What to look for:** requests to `/auth/v1/user` and `/auth/v1/token` that did not answer 200 at about 13:20 to 13:45 UTC (the trigger, if it was a failed check), and a `/auth/v1/logout` near 18:45 to 19:00 UTC (which would confirm the sign-out explanation below). **Those logs carry IP addresses**, which the database reads above deliberately avoided, so reading them is the owner's decision. <==
+
+**Exactly what was read, because the owner is telling Tom (owner ruling: named columns only, Tom's account only, read-only, no IP address, no user agent, no payload).** For Tom's account, selected by his own email address: `auth.sessions` `id`, `created_at`, `updated_at`, `refreshed_at`, `not_after`; `auth.refresh_tokens` `id`, `session_id`, `created_at`, `updated_at`, `revoked`, and whether `parent` was empty as a yes or no. **Both returned no rows.** Across all users, as counts and a newest timestamp only: 20 sessions, newest created 2026-09-30 13:39 UTC; 48 token rows, 4 created and 6 updated on 2026-10-02, across 2 users. **Never read:** `payload`, `ip_address`, `ip`, `user_agent`, `token`, the value of `parent`.
+
+### THE SHAPE QUERIES (counts only, no student name, email, transcript, recording or score)
+
+| What | Result |
+| :-- | :-- |
+| `profiles` rows, whole system | **27** |
+| Classes Tom owns | **2** (created 2026-09-11 and 2026-09-26) |
+| Class 1: members, student invites, instructor invites, pending | 13, 31, 0, 18 |
+| Class 2: members, student invites, instructor invites, pending | 1, 1, 0, 0 |
+| `allowed_emails` rows, whole system | 50 |
+| Null or empty `email` in `profiles` | **0**, and the column is NOT NULL in the schema |
+| Null or empty `email` in `allowed_emails` | **0**, and the column is NOT NULL |
+| Members with no `profiles` row | 0 |
+| Users in more than one class | 0 |
+| Non-students in Tom's class memberships | 0 |
+| Rows created 12:30 to 19:30 UTC in `profiles`, `allowed_emails`, `class_members`, `classes` | **0, 0, 0, 0** (newest of any: 2026-09-30 04:08 UTC) |
+
+**One limit:** these tables carry `created_at` and no `updated_at`, so an edit or a delete in the window would not show. A new row would, and there was none.
+
+### THE SECTION 3 CANDIDATES, EACH WITH ITS EVIDENCE
+
+| Candidate | Status | Evidence |
+| :-- | :-- | :-- |
+| A null or empty `email` throwing at `roster/page.tsx` line 97 | **RULED OUT** | 0 such rows and the column is NOT NULL. Also, there is no error page file anywhere under `app`, so a throw shows Next's error screen, never the login page |
+| Any other static data-shape defect | **RULED OUT** | Every shape check clean, and no row created in the window. The owner also loaded Tom's Roster on Tom's own account |
+| Scale, the unbounded line 94 read timing out | **RULED OUT AS A CAUSE OF THIS** | The read is 27 rows, 472 bytes of email, 0.114 ms in Postgres. Line 94 ignores its own error, so a failed read marks every invite pending and does not bounce. A timeout shows an error, not a login page |
+| Session refresh rotating the token mid request | **SURVIVES, AS ONE POSSIBLE TRIGGER** | It is one way a prefetch's login check could fail once. Not observed |
+| Stale client-side state in Tom's browser | **CONFIRMED AS THE MECHANISM OF THE LOOP** | The B1 runs above. Not a duplicated session: a remembered redirect in the page's route cache |
+
+### KICKOFF DEFECTS, FOUND BY READING
+
+1. **"The layout check is a free discriminator" does not hold on a click.** A click runs the page only; Next.js keeps the shared layout. The P1 record says the same: "A click skips the layout's 4 trips".
+2. **A crash or a timeout on Roster cannot show the login page.** Only the proxy and `requireInstructor()` send anyone to `/login`, and `git grep` finds no other route to it except the Sign out button.
+3. **"There are two possible origins" missed a third: the browser's own remembered redirect, which involves no server at all.** Every bounce in the reproduction sent zero requests.
+
+### THE LINE 94 READ, ON ITS OWN MERITS
+
+**The same read for every instructor:** it is global, so B1 and Tom's class pay the identical cost for it. 27 rows, 472 bytes, 0.114 ms execution, 0.247 ms planning. Whole warm clicks on Roster in B1 during this session: about 330 to 500 ms from click to response. **Cold was not measured:** `RELII_SERVER_TIMING` is off, so a cold sample cannot be certified, and the owner demoted this number from suspect to margin. **The margin that matters is correctness, not speed:** Supabase's API returns at most 1,000 rows by default, and line 94 asks for every profile with no paging, so past that count registered people would silently start showing as "Invited, pending". **The 1,000 is Supabase's documented default and was not read off this project** (the role settings show no override; the owner can read it under API settings). At 27 rows today and 270 at the design ceiling, it is not close.
+
+### OWNER RULINGS THIS SESSION (2026-10-02)
+
+1. **Plan approved, with the B1 reproduction moved ahead of the cost measurement.**
+2. **The auth records: YES, with limits.** Named columns only, Tom's account only, read-only, no payload, no IP address, no user agent, and the columns recorded.
+3. **THE PUSH WAITS UNTIL THE END OF THE SESSION.** A docs-only commit still triggers a production deployment, and "nothing was deployed between the failure and the recovery" stays true while it is being reasoned about.
+4. **Treat the 1:50 confound as probably closed** on mechanism, and let the auth records confirm or overturn it. **They could do neither: the rows are gone.**
+5. **The owner asks Tom which browser and version.**
+
+### WHAT THIS SESSION TOUCHED
+
+- **No code, no schema, no migration, no policy, no setting, no deploy.**
+- **Nothing in Tom's classes was written, and no sign-in as Tom was made.**
+- **`instructor@test.com`:** 15 sign-ins through the login form, each an ordinary Supabase session, and one Sign out, which removed all 15. The account is left with no session. No app row was written.
+
+### NOT PROVEN FIXED, AND WHAT WOULD CLOSE IT
+
+==> **NOTHING HAS BEEN CHANGED, SO THE FAULT IS EXACTLY AS LIKELY TO RECUR AS IT WAS.** It is recorded as open. It closes when a fix for the remembered redirect is approved, shipped, and the B1 runs above are repeated against it and no longer loop; or when a stated period passes with no recurrence. **Until then the workaround for anyone who hits it is: reload the page, or open the app in a new tab.** <==
+
+### GIT STATE
+
+`1b0e120` (the kickoff) and the commit carrying this entry are local commits, not pushed. **`origin/main` is at `b49f4fb` and stays there until the owner says push.**
+
+---
+
 ==> **PAGE PERFORMANCE, THE INSTRUCTOR AND ADMIN PAGES (2026-09-16). P1 WORK IS COMPLETE AND ACCEPTED BY THE OWNER: THE REGION PIN (`pdx1`), THE ADMIN COUNT COLLAPSE, AND THE ADMIN ERROR PAGE IN PLACE OF A SILENT 0. THE REGION PIN IS VERIFIED LIVE BY THE OWNER'S OWN STUDENT PRACTICE. PARALLELISING AND SPEEDUPS (a) AND (b) ARE DECLINED. P1 CLOSED ON 2026-09-16 AT `ac17cf3`, AND `RELII_SERVER_TIMING` WAS REMOVED THE SAME DAY AND VERIFIED LIVE.** Commits: `73c0125` the region pin, alone; `7f08560` the admin count fix, alone, **and the last commit that changed code**; every commit after it changed only this file. The baseline gate that came before both is kept below, unchanged, under its own heading. <==
 
 **THE COMPLAINT, IN THE OWNER'S WORDS.** Every instructor page takes 2 to 6 seconds after clicking (Submissions, AI Persona Framework, Manage Assignments, Roster, Invite Users), reproduced on his admin account and on `instructor@test.com`. The Administration page takes 10 to 30 seconds.
