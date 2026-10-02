@@ -44,7 +44,16 @@ This file is the running status of Relii. Read it at the start of every session.
 | Does a remembered redirect for one page spread to a NEW page of the same type? | Live site. Poison one submission's link, then move in-page to a different submission id | **No.** A real request was sent and answered 200. **So a brand new practice session is not caught by another page's remembered redirect** |
 | The failed check lands on an in-page move to a page with no link on screen (the shape of "finish a practice, go to results") | Live site and local. That one move fails its check | Bounce to `/login`. **After logging in, the link to that same page bounces again with zero requests, and again after a second login. The loop.** |
 
-==> **SO: A STUDENT IS NOT LOCKED OUT OF STARTING A PRACTICE. A STUDENT CAN BE LOCKED OUT OF ONE RESULTS PAGE FOR UP TO FIVE MINUTES, WITH A LOGIN THAT APPEARS NOT TO WORK, IF THE CHECK FAILS AT THE MOMENT THEY FINISH A PRACTICE OR A GRADED SUBMISSION, OR ON THE BACKGROUND FETCH OF A RESULTS LINK.** Their work is already saved by then. **(a) removes that loop too, and (b) would not:** in the third row the failed check is on a real page move, not a background fetch, so (b) never sees it. <==
+==> **SO: A STUDENT IS NOT LOCKED OUT OF STARTING A PRACTICE. A STUDENT CAN BE LOCKED OUT OF ONE RESULTS PAGE FOR UP TO FIVE MINUTES, WITH A LOGIN THAT APPEARS NOT TO WORK, IF THE CHECK FAILS AT THE MOMENT THEY FINISH A PRACTICE OR A GRADED SUBMISSION, OR ON THE BACKGROUND FETCH OF A RESULTS LINK.** Their work is already saved by then. <==
+
+**WHAT EACH CHANGE DOES FOR A STUDENT, BY PATH, BECAUSE THE OWNER TIED (b)'S PRIORITY TO THIS ANSWER:**
+
+| How the check fails | Today, live | With (a) | With (a) and (b) |
+| :-- | :-- | :-- | :-- |
+| On the BACKGROUND FETCH of a results link or the home link (the same shape as Tom's) | Bounce, and for a results link a loop for up to five minutes | One unnecessary login, then it works | **No bounce at all** |
+| On a REAL PAGE MOVE: finishing a practice or a submission, or moving into a new one | Bounce, then a loop on that page's address for up to five minutes | One unnecessary login, then it works | The same as (a) alone. (b) only sees background fetches |
+
+**THE GRADED SUBMISSION CASE, READ FROM THE CODE AND NOT RUN.** `components/start-assignment-button.tsx` calls `/api/assignment/start`, which creates the attempt, and then moves to its page. If the check fails on that move, the student is on the login page with a live attempt whose 30 minute window is already running. **Clicking Start again does resume it:** the route answers 409 with the existing attempt's id and the button goes to that same address. **On today's live build that address is the remembered one, so the student would loop for up to five minutes of the 30.** With (a) the login clears it and Start resumes the attempt. A plain practice is milder: Start makes a new session with a new address, so there is no loop even today, and the first one is left behind unfinished.
 
 **One more student-side effect of a single failed check, read from the code and not run:** the Practice button's own call to the server passes through the proxy, so a failed check there gets a redirect in place of an answer and the button shows an error. The next click works. That is the trigger, not the remembered redirect, and nothing on the table changes it.
 
@@ -90,6 +99,10 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ==> **SO THE MARKER SURVIVES INSIDE THE REMEMBERED REDIRECT, AND AN OLD TIME IN THE ADDRESS IS THE SIGNATURE OF A REPLAYED ONE.** A time of "just now" means a check really failed on that request. <==
 
+**WHAT A PLAIN `/login` WITH NO MARKER MEANS ON THE NEW BUILD. IT DOES NOT MEAN "OLD BUILD".** Only the two origins the kickoff named are marked. A plain `/login` means one of the five unmarked page checks sent the person there (`app/page.tsx`, the three student pages, `lib/super-admin.ts`), or they clicked Sign out, or they typed the address. **Marking the student pages too is a proposal for the owner, not built.**
+
+**TWO THINGS ABOUT THE MARKER THE OWNER HAS NOT YET RULED ON, AND THE PUSH WAITS FOR THEM:** (1) **when it comes off.** The kickoff requires that to be approved before any instrumentation goes on; "revert the commit" says how, not when. (2) **Everybody sees it.** The proxy runs for every visitor, so any signed-out person who opens a protected address, a student with a bookmark to `/student` included, will see `?why=proxy&at=...` in the address bar.
+
 **NOT RUN, AND WHY:** the `why=page` branch. It fires only when the proxy passes a request and the page's own check then fails inside the same request, which cannot be produced from a browser. It is one line and it type-checks; it has not been executed.
 
 **THE OTHER THREE PARTS OF SECTION 5, AS RECOMMENDATIONS, NOT YET RULED ON:**
@@ -104,7 +117,7 @@ This file is the running status of Relii. Read it at the start of every session.
 
 **Why that works, from the installed source:** `segment-cache/cache.js` treats any answer that is not OK as a miss and tries again after 10 seconds, so nothing is remembered. A redirect is the only answer that gets remembered.
 
-**Tested without writing it.** The browser test itself answered one Roster background fetch with a 401, standing in for the proxy. **The click on Roster then sent a real request, got 200, and opened Roster.** No bounce at all.
+**Tested without writing it.** The browser test itself answered one Roster background fetch with a 401, standing in for the proxy. **The click on Roster then sent a real request, got 200, and opened Roster.** No bounce at all. **One visible side effect:** the browser's developer console logs "Failed to load resource: the server responded with a status of 401" for that background fetch. Nothing appears on the page.
 
 **What it would add over (a):** it removes the one unnecessary login for the case that hit Tom. **What it would not do:** the third row of the student table, where the failed check is on a real page move. **Its risk:** the code runs on every request for every user. The passing path is untouched; the change sits inside the branch that already failed. **Its proof would be** the "signed in throughout" run with no bounce at all, and a signed-out visitor still being sent to `/login`.
 
@@ -118,6 +131,8 @@ This file is the running status of Relii. Read it at the start of every session.
 | The five check scripts | **54 / 10 / 53 / 23 / 45**, all exit 0, not one count moved |
 | **Gate 6's cookie-tamper matrix**, run because `lib/instructor-auth.ts` and the proxy were touched. Local build, hashes and counts only | **PASS, WITH ITS CONTROL.** The working-class cookie set to the Historical class id, to a random uuid and to `not-a-uuid`: all three rendered B1's Roster, hash `c4350bd1fd8e3f0e`, identical to no cookie, picker on B1, 2 students. **The control:** set to B2, it rendered B2 under a different hash, 1 student. The server log shows "Gate 6 refused a stored class selection" for each of the three |
 | All five instructor tabs, clicked in turn on that build | Each opened its own page |
+
+**THE "BEFORE" SET FOR THE LIVE CHECK, TAKEN ON THE LIVE SITE AT 20:41 UTC, BEFORE ANY PUSH, BECAUSE IT CANNOT BE TAKEN AFTERWARDS.** `instructor@test.com`, B1, each tab's main text hashed, hashes and line counts only: Submissions 43 lines `2e1989f6859798e2`; AI Persona Framework 37 lines `33cb02c2e6aa6ef4`; Manage Assignments 66 lines `fde916c273f674f4`; Roster 43 lines `c4350bd1fd8e3f0e`; Invite Users 14 lines `04bb2839ba61f1a4`. **The live Roster hash equals the local build's**, so the changed build shows the same Roster. Live `/login` etag `4daed511c1e4797129a57efa7726cb96`, and a signed-out request for `/instructor` is answered `location: /login`, with no marker. **After the push that same request answering `/login?why=proxy&at=...` is the observation only the new build can make.**
 
 ### AFTER THE HARD STOP: WHAT IS STILL NOT PROVEN
 
@@ -134,7 +149,7 @@ This file is the running status of Relii. Read it at the start of every session.
 - **Nothing in Tom's classes, and no sign-in as Tom.**
 - **`instructor@test.com`:** several dozen sign-ins through the login form across the live site and the local build, each an ordinary Supabase session. All of them were removed at the end; the account holds **0** sessions, checked by count. No app row was written.
 - **The test scripts that held the test account's password were deleted**, along with the one browser snapshot from today that captured it. `git grep` finds the password nowhere in the repo. **Thirty or so older snapshots from September in the git-ignored `.playwright-mcp` folder also contain it; they were left alone as earlier sessions' files, and the owner may want them cleared.**
-- **GIT STATE:** `origin/main` is still at `b49f4fb`. Local and not pushed, in order: `1b0e120` the kickoff, `88c5415` the hard-stop record, `6df2cf2` (a), `80f9bf7` sign out, `873e428` the marker, and the commit carrying this half of the record. **Nothing is pushed until the owner says so.**
+- **GIT STATE:** `origin/main` is still at `b49f4fb`. Local and not pushed, in order: `1b0e120` the kickoff, `88c5415` the hard-stop record, `6df2cf2` (a), `80f9bf7` sign out, `873e428` the marker, `913b89a` this half of the record, and the commit correcting it. **Nothing is pushed until the owner says so.**
 
 ---
 
@@ -147,7 +162,7 @@ This file is the running status of Relii. Read it at the start of every session.
 3. **About 1:50pm.** The owner signed in as Tom from his own browser and reached Roster from every tab.
 4. **About 1:50pm, the same time.** Tom came back to THE SAME BROWSER and opened A NEW TAB, and Roster worked. He did nothing else: no reload of the old tab, no browser quit, no restart, no other device, no private window, no cookies cleared (Tom, relayed by the owner).
 5. **The timeline does not separate 3 from 4, and the mechanism does.** A new tab keeps the cookies and the login and throws away the in-page navigation cache, which is exactly the state the reproduction below shows is at fault. The owner's sign-in was a separate session in a separate browser.
-6. **NOT KNOWN: whether Tom tried Roster again in the OLD tab at any point between about 8:35am and 1:50pm.** It matters, see the limits below.
+6. **NOT KNOWN: whether Tom tried Roster again in the OLD tab at any point between about 8:35am and 1:50pm.** It matters, see the limits below. ==> **SUPERSEDED THE SAME DAY: he did not. See "TOM'S ANSWERS" above.** <==
 
 **No deploy and no knowing data change happened between the failure and the recovery.** Vercel Hobby keeps about one hour of runtime logs, so no log of the failure exists. No plan upgrade was made. **Tom is on `relii.vercel.app`; the two-host question is closed.**
 
@@ -177,14 +192,14 @@ This file is the running status of Relii. Read it at the start of every session.
 
 1. **THE FAILED CHECK IN THE MATCHING RUN WAS MANUFACTURED.** The test removed the cookie for one request. It proves one failed check on one prefetch is SUFFICIENT to produce what Tom saw. **It does not prove that is what happened in Tom's browser, and it says nothing about why a check would fail.**
 2. **WHAT MAKES A REAL CHECK FAIL WAS NOT OBSERVED.** From reading `@supabase/auth-js` 2.108.0, `getUser()` returns no user for any auth error, and the proxy does not look at the error, so "Supabase did not answer properly once" and "this person is not signed in" take the same branch. Candidates: a slow or failed call from the proxy (it runs in `iad1`, Supabase is in Oregon), or the hourly token refresh landing on several simultaneous prefetches. **Reasoned, not measured.**
-3. **ONE POISONING LASTS FIVE MINUTES.** If Tom tried the OLD tab again after about 8:35am and it still failed, a single failed check does not cover it and it must have been hit again. That question has not been asked.
+3. **ONE POISONING LASTS FIVE MINUTES.** If Tom tried the OLD tab again after about 8:35am and it still failed, a single failed check does not cover it and it must have been hit again. That question has not been asked. ==> **SUPERSEDED THE SAME DAY: asked and answered. He did not retry, so one failed check covers the whole episode.** <==
 4. **Chromium only.** Tom's browser and version are being asked for. The route cache is Next.js code and should behave the same in any browser, but that is reasoning.
 
 ### SECOND FINDING, MEASURED: THE SIGN OUT BUTTON ENDS EVERY SESSION ON THE ACCOUNT, EVERYWHERE, AND ERASES THE RECORD
 
 `components/sign-out-button.tsx` calls `supabase.auth.signOut()` with no argument, and in the installed library the default scope is global. **Measured in B1:** one click on Sign out sent `POST /auth/v1/logout?scope=global`, and the test account's sessions went **15 to 0** and its refresh-token rows to **0**.
 
-**What that means here.** At about 19:35 UTC, `tbbanta@ksu.edu` had **zero** rows in `auth.sessions` and **zero** in `auth.refresh_tokens`, and no session created on 2026-10-02 survived for any user. **The likeliest reason is that the owner clicked Sign out after signing in as Tom, which would also have ended Tom's own session in Tom's browser. To be confirmed with the owner. If so, Tom being asked to log in once on the afternoon of 2026-10-02 is that sign-out and NOT a recurrence.**
+**What that means here.** At about 19:35 UTC, `tbbanta@ksu.edu` had **zero** rows in `auth.sessions` and **zero** in `auth.refresh_tokens`, and no session created on 2026-10-02 survived for any user. **The likeliest reason is that the owner clicked Sign out after signing in as Tom, which would also have ended Tom's own session in Tom's browser. To be confirmed with the owner. If so, Tom being asked to log in once on the afternoon of 2026-10-02 is that sign-out and NOT a recurrence.** ==> **CONFIRMED THE SAME DAY: the owner did click Sign out.** <==
 
 ### THE AUTH RECORDS: THEY CANNOT ANSWER THE QUESTION THEY WERE READ FOR
 
@@ -248,11 +263,13 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ### NOT PROVEN FIXED, AND WHAT WOULD CLOSE IT
 
+==> **SUPERSEDED THE SAME DAY IN ONE RESPECT: three changes now exist, built and verified locally and not pushed. Until they are live, the sentence that follows is still true of the live site.** <==
+
 ==> **NOTHING HAS BEEN CHANGED, SO THE FAULT IS EXACTLY AS LIKELY TO RECUR AS IT WAS.** It is recorded as open. It closes when a fix for the remembered redirect is approved, shipped, and the B1 runs above are repeated against it and no longer loop; or when a stated period passes with no recurrence. **Until then the workaround for anyone who hits it is: reload the page, or open the app in a new tab.** <==
 
 ### GIT STATE
 
-`1b0e120` (the kickoff) and the commit carrying this entry are local commits, not pushed. **`origin/main` is at `b49f4fb` and stays there until the owner says push.**
+`1b0e120` (the kickoff) and the commit carrying this entry are local commits, not pushed. **`origin/main` is at `b49f4fb` and stays there until the owner says push.** ==> **SUPERSEDED THE SAME DAY: more local commits followed. The current list is under "WHAT THIS HALF TOUCHED" above.** <==
 
 ---
 
