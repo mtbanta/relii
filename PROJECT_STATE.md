@@ -14,6 +14,151 @@ This file is the running status of Relii. Read it at the start of every session.
 
 ## Current Stage
 
+==> **V1, THE SCORER DETERMINISM MEASUREMENT (2026-10-15). A MEASUREMENT, NOT A FIX, AND THE SESSION ENDED AT THE REPORT. THE SCORER DOES NOT ALWAYS GIVE THE SAME GRADE TWICE.** Ten real scoring calls, five each on one Discovery and one Presentation submission from `instructor@test.com`'s test classes. **Discovery: one criterion moved one rung in 2 of 5 runs, totals 68 to 68.5 of 100. Presentation: five of seven criteria moved, one of them by two rungs, totals 120 to 128 of 200.** Every run on a transcript sent the identical request and got back the same `system_fingerprint` and the same model snapshot. No run refused to score. **NO SHIPPED FILE CHANGED AND NO ROW WAS WRITTEN.** It lands in **ROW 3** of the kickoff's section 8 table by that row's first clause (see "WHICH ROW" below). **Any fix is scoped afterwards, in the tracker chat, not here.** Kickoff: `docs/Relii-V1-ScorerDeterminism-Kickoff-Prompt.md`, 190 lines, commit `0b4bc74`. Script: `scripts/check-scorer-determinism.mjs`. <==
+
+### V1: THE GATE, THE MODEL CONFIRMED BEFORE ANY CALL (owner, 2026-10-15)
+
+- **`.env.local` holds `OPENAI_MODEL=` with nothing after it**: one definition, no other env file, and the shell exports none of the four variables the script reads. `getModel()` returns `process.env.OPENAI_MODEL?.trim() || "gpt-4o"`, so locally the scorer runs **`gpt-4o` by fallback**.
+- **THE OWNER'S CONFIRMATION, STATED AS EXACTLY WHAT HE SENT:** a screenshot of the Vercel project's Environment Variables page, Project tab, filters at All Types and All Environments, showing four variables (`OPENAI_API_KEY`, the service-role key, the Supabase URL, the anon key), all Production and Preview, and **no `OPENAI_MODEL`**. So production also runs `gpt-4o` by fallback. **The two match, and no scoring call was made before he sent it.**
+- **WHAT THE RUNS ACTUALLY USED, read off the requests and replies rather than the code:** every request sent `model: "gpt-4o"`, `temperature: 0`, `seed: 7`, and every reply reported **`gpt-4o-2024-08-06`**. `gpt-4o` is a name OpenAI can point at a newer snapshot; `gpt-4o-2024-08-06` is what it resolved to on 2026-10-15.
+
+### V1: THE INPUTS, SO THE MEASUREMENT CAN BE REPEATED ON THE SAME ROWS
+
+| | A, Discovery | B, Presentation |
+| :-- | :-- | :-- |
+| Session id | `4098e62d-f115-40c8-a25f-659e3cdfce77` | `61e5be48-c6f5-4f93-8b44-19380aad2c1e` |
+| Class | B3: The demo class, `98859b39-79a2-4fbc-b2c8-3a9de9e50223` | B1: A demo class, `196770e0-cdd5-4fe4-80e4-421ee6c7d13f` |
+| Class owner | `instructor@test.com` | `instructor@test.com` |
+| Student | `b3student@test.com` | `2studentb1@gmail.com`, the B1 test student |
+| Assignment, persona | "Discovery call with Miguel at ATX HVAC", Miguel | "HVAC - Alex", Alex |
+| Rubric | "Discovery Role-Play", 6 criteria, max 100, `9cf61bc8-c3f6-4b55-81d2-4e6b67180a29` | "Presentation Role-Play", 7 criteria, max 200, `bd153033-6b60-42bd-bf27-be07408e9b3a` |
+| Transcript | 9 turns | 7 turns |
+| Scored | 2026-09-10, 2:37 PM Central (19:37:48 UTC) | 2026-09-15, 3:01 PM Central (20:01:53 UTC) |
+| Reference score | `sessions.score`, 68.5 | the AI's original in `submission_ai_scores`, 120. An instructor has since reviewed it; the stored score reads 118 |
+
+**To repeat it:** `node scripts/check-scorer-determinism.mjs 4098e62d-f115-40c8-a25f-659e3cdfce77 61e5be48-c6f5-4f93-8b44-19380aad2c1e`, with `--dry-run` to stop short of OpenAI.
+
+==> **HOW THEY WERE CHOSEN, AND IT MATTERS FOR READING THE RESULT.** One read-only query through the Supabase MCP, scoped POSITIVELY to classes whose owner's email is `instructor@test.com`, for scored rows of kind `submission`. **IT RETURNED EXACTLY ONE OF EACH KIND, SO THE STATED PREFERENCE FOR MIDDLING TRANSCRIPTS DECIDED NOTHING: THESE ARE THE ONLY TWO THAT EXIST.** Neither student is a real student. No transcript text and no comment was read to choose them. <==
+
+**THE RUBRIC HAS NOT CHANGED SINCE EITHER SCORE, AS FAR AS THE DATABASE CAN SHOW (owner's addition 4).** `rubrics` carries no edit timestamp; its columns, read live, are id, name, description, items, created_by, created_at, class_id, max_total. Both rubrics were created 7 minutes before their score. Every reference item matches the current ladder on criterion id, level name, points and maximum: **6 of 6 and 7 of 7**. No app route edits a rubric after creation. **What this cannot detect** is a change to a description's wording that left names and points alone.
+
+**A's stored score sits close to the Phase 2c fix.** It was scored 80 minutes after `3a3ce30` was committed, during the owner's B3 click-through after 2c's run, so almost certainly on the fixed prompt; the deploy time itself is not recorded. Per the kickoff, a difference from a stored score is not a finding by itself, and here each reference was reproduced exactly by at least two runs.
+
+### V1: THE RESULT, AS PRINTED BY THE RUN (pasted, not retyped)
+
+Run on 2026-10-15 from 9:44:46 PM to 9:45:17 PM Central (2026-10-16, 02:44:46.954Z to 02:45:17.369Z UTC). Ten calls, interleaved A, B, A, B, and so on, strictly one at a time. The "reference" column is the AI's level from the stored score.
+
+```text
+A. 4098e62d-f115-40c8-a25f-659e3cdfce77
+   B3: The demo class, "Discovery call with Miguel at ATX HVAC", persona Miguel, 9 turns
+   rubric "Discovery Role-Play", 6 criteria, max 100
+    criterion              run 1           run 2           run 3           run 4           run 5           reference       all agree     rungs apart
+    Approach               Developing      Developing      Developing      Developing      Developing      Developing      yes           0
+    Discovery              Proficient      Proficient      Proficient      Proficient      Proficient      Proficient      yes           0
+    Close                  Unsatisfactory  Unsatisfactory  Unsatisfactory  Unsatisfactory  Unsatisfactory  Unsatisfactory  yes           0
+    Overcoming Objections  Unsatisfactory  Unsatisfactory  Unsatisfactory  Unsatisfactory  Unsatisfactory  Unsatisfactory  yes           0
+    Communication Skills   Developing      Proficient      Developing      Proficient      Proficient      Proficient      NO, 2 levels  1
+    Overall Impression     Developing      Developing      Developing      Developing      Developing      Developing      yes           0
+   totals, run by run: 68, 68.5, 68, 68.5, 68.5
+   lowest 68, highest 68.5, range 0.5 (of 100)
+   reference total 68.5, from sessions.score, scored 2026-09-10T19:37:48.672+00:00
+   system_fingerprint, run by run: fp_f0408a18fe, fp_f0408a18fe, fp_f0408a18fe, fp_f0408a18fe, fp_f0408a18fe
+   distinct fingerprints: 1
+   model reported back: gpt-4o-2024-08-06
+   distinct requests sent: 1, distinct replies received: 5 of 5 scored
+   raw level strings that were not the bare name: none
+   refused to score: 0
+   OpenAI errors: 0
+
+B. 61e5be48-c6f5-4f93-8b44-19380aad2c1e
+   B1: A demo class, "HVAC - Alex", persona Alex, 7 turns
+   rubric "Presentation Role-Play", 7 criteria, max 200
+    criterion              run 1           run 2           run 3           run 4           run 5           reference       all agree     rungs apart
+    Approach               Proficient      Proficient      Proficient      Limited         Limited         Limited         NO, 2 levels  2
+    Discovery              Developing      Developing      Developing      Limited         Limited         Limited         NO, 2 levels  1
+    Presentation           Limited         Limited         Limited         Developing      Developing      Developing      NO, 2 levels  1
+    Close                  Unsatisfactory  Unsatisfactory  Unsatisfactory  Unsatisfactory  Unsatisfactory  Unsatisfactory  yes           0
+    Overcoming Objections  Minimal         Minimal         Minimal         Unsatisfactory  Unsatisfactory  Unsatisfactory  NO, 2 levels  1
+    Communication Skills   Proficient      Proficient      Proficient      Developing      Developing      Developing      NO, 2 levels  1
+    Overall Impression     Developing      Developing      Developing      Developing      Developing      Developing      yes           0
+   totals, run by run: 128, 128, 128, 120, 120
+   lowest 120, highest 128, range 8 (of 200)
+   reference total 120, from the AI's original, from submission_ai_scores (an instructor has since reviewed it), scored 2026-09-15T20:01:53.724+00:00
+   system_fingerprint, run by run: fp_4a00dbbba9, fp_4a00dbbba9, fp_4a00dbbba9, fp_4a00dbbba9, fp_4a00dbbba9
+   distinct fingerprints: 1
+   model reported back: gpt-4o-2024-08-06
+   distinct requests sent: 1, distinct replies received: 5 of 5 scored
+   raw level strings that were not the bare name: none
+   refused to score: 0
+   OpenAI errors: 0
+
+Wall-clock span of the 10 calls: 2026-10-16T02:44:46.954Z to 2026-10-16T02:45:17.369Z, 30 s (Oct 15, 2026, 9:44:46 PM Central to Oct 15, 2026, 9:45:17 PM Central).
+Tokens: 17730 prompt (12800 of them cached), 2708 completion.
+Traffic: 16 Supabase reads, all GET; 10 OpenAI calls. Nothing was written.
+```
+
+### V1: WHAT THE NUMBERS SAY, AS VALUES
+
+- ==> **ONE REQUEST, ONE FINGERPRINT, ONE SNAPSHOT, AND THE LEVELS STILL MOVED.** On each transcript all five requests were byte-identical (one distinct sha256), all five replies carried the same `system_fingerprint` (`fp_f0408a18fe` on A, `fp_4a00dbbba9` on B), and all five reported `gpt-4o-2024-08-06`. **So "temperature 0 and a fixed seed give the same grade" did not hold on B with nothing on our side varying.** <==
+- **No two replies were byte-identical**: 5 of 5 distinct on each transcript, including A's runs whose levels agreed. The comment wording varies from run to run.
+- **B fell into exactly two whole patterns.** Runs 1 to 3 gave one set of seven levels (128); runs 4 and 5 gave another (120). **All five moving criteria switched together, at run 4**, and Presentation moved the opposite way to the other four. **Runs 4 and 5 reproduce B's stored AI score exactly**, all seven levels and the 120. On A, runs 2, 4 and 5 reproduce the reference exactly (68.5).
+- **A alternated on one criterion**, Communication Skills: Developing, Proficient, Developing, Proficient, Proficient. A half point of the total rides on it.
+- ==> **EVERY RAW LEVEL STRING WAS A BARE LEVEL NAME. THE PHASE 2c FORMAT DEFECT DID NOT RECUR.** No descriptor echoed, no `name:` label, nothing the lookup had to forgive. It is said here because "several criteria move together" is the shape a reader will otherwise blame on that defect. <==
+- **Refusals: 0 of 10. OpenAI errors: 0 of 10.**
+- **THE FINGERPRINTS ARE REPORTED, NOT EXPLAINED.** This project measured in Phase 2c that `system_fingerprint` tracked the PROMPT rather than the backend (`fp_ffd8308b42` and `fp_27008f43d1`, served concurrently for the old and new prompts). Here it was constant within each transcript and different between the two. This entry draws no cause from that.
+
+### V1: WHICH ROW OF THE SECTION 8 TABLE, STATED AND NOT ACTED ON
+
+==> **ROW 3, BY ITS FIRST CLAUSE: "Criteria move two or more rungs."** On B, Approach moved two rungs (Proficient in three runs, Limited in two). **Its second clause, "totals swing widely", is left to the reader with the numbers:** A ran 68 to 68.5 of 100; B ran 120 to 128 of 200. A on its own moved one criterion one rung in 2 of 5 runs, which sits between rows 1 and 2. <==
+
+==> **THREE CAVEATS SIT BESIDE THAT ROW, AND THEY PULL IN OPPOSITE DIRECTIONS, SO NONE OF THEM MAKES THE RESULT AN UPPER OR A LOWER BOUND.** <==
+
+1. **THE SELECTION LEANS HIGH (owner's addition 3, wording proposed at the gate).** These are the only two scored test submissions, not ones chosen for sensitivity. Both happen to sit mid-ladder with mixed levels and are short (9 and 7 turns), which is the sensitive kind, so read any disagreement rate as leaning high rather than typical.
+2. **THE TIMESCALE CANNOT SPEAK FOR DAYS (owner's addition 2).** All ten calls fell inside 30 seconds. That measures agreement within one burst. **It does not measure agreement across days, which is what Tom experiences as he grades over a week**, and a fingerprint or snapshot change between days could add variation this design cannot see. A limit of the design, not a defect in it.
+3. **TWO TRANSCRIPTS AND FIVE RUNS EACH IS NOT A RATE.** B's 3 to 2 split must not be read as "40 per cent of the time".
+
+**ONE FACT FOR THE TRACKER CHAT, ABOUT THE SHAPE AND NOT A DECISION.** Row 2's remedy (tighten one criterion's wording) assumes one criterion is at fault; on B, five moved. Row 3's remedy (score three times and keep the most common level per criterion) assumes each criterion varies on its own; on B they moved as a block.
+
+**THE SHIPPED COMMENTS NOW READ AGAINST THE MEASUREMENT, AND THE FENCE LEFT THEM ALONE.** `lib/scoring.ts` says the call is made "so that re-scoring the same transcript gives consistent results" (just above its import of `chatComplete`), and the comment above `SCORING_SEED` calls a scoring-twice check "a 2b-2 item". **Both are now contradicted or out of date, and any fix's scope includes them.** This session was forbidden to touch either.
+
+### V1: HOW THE SCRIPT WORKS, AND WHAT IT IS NOT
+
+- ==> **NOT ONE OF THE FIVE STANDING CHECKS.** It reads live rows with the service-role key and spends money. Its header says so. <==
+- **The `check-scorer.mjs` pattern**, with the real `lib/openai.ts` in place of the stub, and the compiled scorer loaded into the script's own process rather than a generated check file, so no row is ever written to disk.
+- ==> **KICKOFF DEFECT, FOUND BY THE FIRST DRY RUN: THE `@/lib/` REWRITE WAS A NO-OP FOR `lib/scoring.ts`'s IMPORTS BUT NOT FOR ITS BYTES.** The string appears inside the comment above `findLevel`, so the rewrite edited that comment and the dry run reported the copy as changed. **The script now copies all three files verbatim** and reports each byte-identical to what ships (sha256 starting `68fc5a6e76273af3` types, `6df3d1b0838f55f3` scoring, `af7a2176e98f225e` openai). An `@/lib/` import added later would fail the compile, loudly. <==
+- **The fingerprint capture uses `res.clone()`**, which the kickoff asked to have named: the gatekeeper reads the clone's text and hands the scorer the untouched original.
+- **One gatekeeper on every request, the scorer's included:** GET to Supabase's REST API, POST to OpenAI's chat endpoint (refused under `--dry-run`, capped at five per id), and nothing else. **The class guard** resolves session, assignment, class and owner's email for every id, prints the owner, and exits non-zero unless it is `instructor@test.com`, before any transcript is read.
+- **PROVED BY THE DRY RUN BEFORE THE LIVE ONE.** The scorer ran up to its OpenAI call and was refused there, having built `gpt-4o`, temperature 0, seed 7. A PATCH to a non-existent Supabase table was refused (no key sent, so harmless even with a broken guard). A request to another host was refused. The owner comparison refused six near-misses and allowed the one. A made-up id (`f7bdc9bc-8317-4df9-9590-49e816471988`) stopped the script with exit 1 at the class guard. **16 Supabase reads, all GET; 0 OpenAI calls.**
+- `max_total` arrived as a JavaScript **number** on both rows; `Number()` was applied anyway, as the route does.
+
+### V1: COST
+
+10 calls: 17,730 prompt tokens (12,800 of them cached) and 2,708 completion tokens, measured from the replies. **About 6 cents. That figure is an ESTIMATE from gpt-4o's list prices as last known ($2.50 per million input tokens, half that for cached input, $10 per million output), not read off a bill.**
+
+### V1: OTHER KICKOFF NOTES
+
+- **The Vercel location.** The kickoff said Settings, then Environments, then Production. The owner found the variables under an "Environment Variables" item in the project's main sidebar.
+- **The kickoff's dates are UTC.** It says 2026-10-16; in Central the session ran on the evening of 2026-10-15. This entry uses Central dates with UTC beside exact times.
+
+### V1: OWNER RULINGS THIS SESSION (2026-10-15)
+
+1. **Plan approved with four additions:** interleave the runs; record the wall-clock span and say what it cannot show; put the selection caveat beside the row; check whether the rubric changed since the stored score. All four are above.
+2. **Supersede, do not merely annotate, the lines this measurement makes false.** He named two. Four were found, all saying the same thing, and all four are marked with today's date: the Open Issues item, item 3 of the Phase 2c handoff, item 4 of Next Steps, and the first half of the "STILL OPEN AND UNCHANGED" line.
+3. **Commit and push without asking once the report is in.** The harness still prompts; he clicks.
+
+### V1: THE STANDING CHECKS, COUNTS READ FROM THE RUNS
+
+`tsc --noEmit` exit 0. `eslint .` exit 0 with 0 errors; its 13 warnings are all in gitignored `.playwright-mcp/*.js` files, none in tracked code. `npm run build` exit 0. The five check scripts all exit 0 with no failures: **check-app-time 54, check-csv-ai-level 10, check-rubric-render 53, check-scorer 23, check-persona-list 45.** These agree with the kickoff's cross-check (54 / 10 / 53 / 23 / 45), and they were counted, not quoted.
+
+### V1: WHAT THIS SESSION TOUCHED
+
+- **Added** `scripts/check-scorer-determinism.mjs`. **Edited** this file. **Nothing else.** No shipped file, no migration, no database write (every request counted by the gatekeeper was a GET), nothing in Tom's class or Ashley Ward's ICSC class, no new practice, `RELII_SERVER_TIMING` untouched, no Row Level Security policy or class guard changed.
+- Pushing a change under `scripts/` redeploys the site with no change to what it serves. Expected, not a finding.
+
+### V1: GIT STATE
+
+**Written before the commit.** The kickoff's commit `0b4bc74` was unpushed at the start and is pushed together with this entry's commit. The push is confirmed in a follow-up line below once it has happened, not before.
+
 ==> **THE ROSTER BOUNCE (2026-10-02). THE LOOP IS REPRODUCED AND ITS MECHANISM IS NAMED. THREE CHANGES ARE BUILT, VERIFIED ON A LOCAL PRODUCTION BUILD AND COMMITTED LOCALLY: THE LOOP FIX, THE SIGN OUT FIX, AND THE LOGIN MARKER. THE OWNER RULED SHIP ALL THREE. THEY WERE PUSHED AT `12b6aa0` AND ARE LIVE, AND ALL FOUR LIVE RUNS HE ASKED FOR PASSED: SEE "THE LIVE CONFIRMATION" BELOW. THE OWNER THEN CONFIRMED THE LIVE BUILD HIMSELF, ON TOM'S OWN ACCOUNT: SEE "THE OWNER'S LIVE CONFIRMATION". THE SESSION IS CLOSED OUT. THE FAULT ITSELF STAYS OPEN, BECAUSE WHAT SET IT OFF IN TOM'S BROWSER WAS NEVER OBSERVED; THE MARKER IS IN PLACE TO CATCH THE NEXT ONE AND COMES OFF BY 2026-11-02.** Kickoff: `docs/Relii-RosterLoop-Kickoff-Prompt.md`, 270 lines, commit `1b0e120`. **The section below this heading was written at the hard stop, before any code; the sections headed "AFTER THE HARD STOP" were added the same day and supersede it where they differ.** <==
 
 ### THE SHIP RULING (owner, 2026-10-02), AND WHAT THE NEXT SESSION MUST NOT "FIX"
@@ -2847,6 +2992,7 @@ B3_STUDENT_PASSWORD=...
 - ==> **TWENTY-FIVE SESSIONS HAVE NO `assignment_id`, AND THIS IS A FACT ABOUT THE DATA RATHER THAN A RULE ABOUT THE CODE.** Counted 2026-09-10. They are pre-Stage-7 test practices, from before a practice was always a practice FOR an assignment. **THEY ARE NOT CORRUPTION.** Every current start route sets an assignment, so no NEW row can be one, but the column is nullable and these are here. **THE RULE THAT GOVERNS THEM, WRITTEN INTO `app/api/session/end/route.ts`, `app/student/session/[id]/page.tsx` and `app/student/session/[id]/results/page.tsx`: A SESSION WITH NO ASSIGNMENT IS CONVERSATION-ONLY.** No assignment means no rubric means nothing to score. **THE COUNT IS RECORDED HERE, AND NOT JUST THE RULE, ON PURPOSE**: a rule on its own reads like a defensive branch against something theoretical, and the next session to meet these rows without this note will read them as damage and go looking for the bug that made them. The 2b-1 kickoff asserted no such row existed; it was written from the start routes rather than from the data. <==
 
 - ==> **NOTHING YET MEASURES THAT THE SCORER IS DETERMINISTIC, AND TOM'S FAIRNESS ARGUMENT RESTS ON IT.** The fixed seed (7) and zero temperature are the CLAIM. The MEASUREMENT is scoring one transcript twice and comparing the level names, and it has never been run against the new level-based scorer. Owner's ruling on 2026-09-10: it belongs to 2b-2 or 2c, not to 2b-1. It is the kind of property that is assumed right up until it is not, and a student disputing a grade is the worst moment to find out. Note the shape of the check has changed with the scorer: it used to be "within a few points", and with levels it is exact equality of the six chosen names, which is a stricter and much more legible test. <==
+  ==> **SUPERSEDED 2026-10-15: MEASURED BY V1, AND THE CLAIM DOES NOT FULLY HOLD.** Five runs each on two test transcripts, same request, same fingerprint, same snapshot: on Discovery one criterion moved one rung in 2 of 5 runs; on Presentation five of seven criteria moved, one of them by two rungs, and the total ran 120 to 128 of 200. **WHAT IS OPEN NOW IS THE VARIATION ITSELF, AND THE RESPONSE TO IT IS FOR THE TRACKER CHAT**, scoped against the kickoff's section 8 table. Full record under "V1, THE SCORER DETERMINISM MEASUREMENT" in Current Stage. Kept as written, true when written. <==
 
 - **THE DEPLOY ORDER FOR 2b-1 IS A RULE, NOT A PREFERENCE, AND IT IS RECORDED IN CASE ANY OF THIS IS EVER REPLAYED. THE MIGRATION MUST RUN BEFORE THE CODE IS PUSHED.** Migration first leaves the live site on the old code, which reads `scenarios.rubric_id`, a column the migration does not touch, so the window between the two is behaviour-neutral for a real user. Push first would hand the NEW scorer the legacy 29-item Great Northwoods rubric through `assignments.rubric_id`, the scorer would refuse it as "not a levels rubric", and **every session ending would fail to score**. The order was followed on 2026-09-10 and the deploy was confirmed by a real request (the prerendered `/login` etag changed and `age` reset to 0) rather than by elapsed time, which is the trap 2a hit when the proxy masked 404 as 401.
 
@@ -3033,7 +3179,7 @@ Written on 2026-09-10, at the end of 2b-2, while the reasons are still in view. 
 
 **2. THE TWO GATE ITEMS THAT WERE WAITING FOR A GRADED SUBMISSION CAN NOW RUN, AND ONE OF THEM IS CHEAPER THAN IT LOOKS.** Gate 4b's export-content check (export a class containing a SCORED submission and confirm the score, the transcript and any reset rows are in the CSV) and the Gate 5 item 12 leftover both needed a submission to exist. **2b-2 proved a submission can be made without a camera in the room**: see item 5 below. Neither needs new code.
 
-==> **3. NOTHING STILL MEASURES THAT THE SCORER IS DETERMINISTIC, AND TOM'S FAIRNESS ARGUMENT RESTS ON IT.** Deferred by 2b-1 to "2b-2 or 2c", and 2b-2 did not do it. The claim is a fixed seed (7) and zero temperature; the MEASUREMENT is scoring one transcript twice and comparing the six level NAMES for exact equality, which is stricter and more legible than the old "within a few points". **2b-2 leaves behind exactly the material to do it with**: a real scored transcript, and a fake-media rig that can produce another. A student disputing a grade is the worst possible moment to discover this was never checked. <==
+==> **3. NOTHING STILL MEASURES THAT THE SCORER IS DETERMINISTIC, AND TOM'S FAIRNESS ARGUMENT RESTS ON IT.** Deferred by 2b-1 to "2b-2 or 2c", and 2b-2 did not do it. The claim is a fixed seed (7) and zero temperature; the MEASUREMENT is scoring one transcript twice and comparing the six level NAMES for exact equality, which is stricter and more legible than the old "within a few points". **2b-2 leaves behind exactly the material to do it with**: a real scored transcript, and a fake-media rig that can produce another. A student disputing a grade is the worst possible moment to discover this was never checked. <== ==> **SUPERSEDED 2026-10-15: measured by V1, and it does not fully hold. See "V1, THE SCORER DETERMINISM MEASUREMENT" in Current Stage.** <==
 
 **4. TWO OPEN ISSUES FROM 2b-2'S CLEANUP ARE REAL AND BOTH ARE WRITTEN UP ABOVE.** An unfinished session is invisible and undeletable and holds its assignment hostage, which collides with the fact that a rubric can never be replaced on an existing assignment. And a graded practice whose scoring failed is a redirect loop, so the retry the student-facing note offers works only while they stay on the tab. **Neither is a 2c build item unless the owner moves it**: the first is filed for Phase 3, the second was explicitly out of scope by the 2b-2 kickoff's own words.
 
@@ -3109,7 +3255,7 @@ Written on 2026-09-09, at the end of 2a, while the reasons are still in view.
 1. ~~**D2, Alex geography plus rapport.**~~ **CLOSED 2026-09-14.** One row, one column, no migration. Full record in Current Stage. **T1 IS NOW NEXT.**
 2. ~~**T1, Phase 3c: persona voice plus two wording fixes.**~~ **CLOSED 2026-09-15**, commit `8416926`, one additive column on `public.assignments`. Full record in Current Stage. **N1 PLUS T2 ARE NOW NEXT.** **THE SHAPE CHANGED FROM WHAT THIS LINE USED TO DESCRIBE: two fixed voices on the ASSIGNMENT, not a picker on the persona. The Phase 3c handoff below and the roadmap's T1 entry are both superseded, and Current Stage says why.** It shipped three wording fixes rather than two.
 3. **N1 plus T2, which ride together.** 7 to 12 h. N1 normalises rubric points at parse time (a code change, future uploads only, touches no data); T2 is the class-wide gradebook export.
-4. **V1, measure that the scorer is deterministic.** 1 to 2 h, folds into any session.
+4. ~~**V1, measure that the scorer is deterministic.**~~ **MEASURED 2026-10-15**, `scripts/check-scorer-determinism.mjs`. It does not fully hold: row 3 of the kickoff's section 8 table by its first clause. Full record in Current Stage. **Any fix is a new piece, scoped in the tracker chat.**
 
 **Then the tail, all freely reorderable: T3, T4, D4, T5, V4.** **PHASE 6 (T6) IS LAST BY OWNER RULING and is deliberately not estimated.** T7, the PD-8h visual polish, is droppable.
 
@@ -3119,6 +3265,6 @@ Written on 2026-09-09, at the end of 2a, while the reasons are still in view.
 
 **T2 NOW CARRIES THE DUST DECISION, WHICH IS A REAL DEPENDENCY IT DID NOT HAVE BEFORE.** The float dust in Tom's Discovery rubric is tolerated by owner ruling of 2026-09-13 **because it is INERT, not because it is hidden**: every consumer of a total is one we control and one that rounds on the way out. **A gradebook export is the trigger that ends that tolerance.** See Open Issues, and **do not build T2 and leave that entry standing.**
 
-- **STILL OPEN AND UNCHANGED**: nothing measures that the scorer is deterministic (V1 above), and the bimodal-scale observation is still one for Tom to judge against real student work rather than one to tune the ladder from. Both are in Open Issues.
+- **STILL OPEN AND UNCHANGED**: nothing measures that the scorer is deterministic (V1 above), and the bimodal-scale observation is still one for Tom to judge against real student work rather than one to tune the ladder from. Both are in Open Issues. ==> **SUPERSEDED 2026-10-15 FOR ITS FIRST HALF: V1 has measured it, and it does not fully hold (see Current Stage). The bimodal-scale half stands.** <==
 
 - ==> **ONE SMALL THING LEFT FOR TOM RATHER THAN FOR CODE, AND REGISTRATION WEEK HAS NOW STARTED.** Any assignment created BEFORE 2026-09-11 whose Available Date has not yet passed unlocks **five hours later** than it used to (12:00 AM Central rather than 7pm Central the previous evening). **That is the timezone fix working as ruled, not a regression.** Nothing in the database needed it when it was written: B1's only assignment is dated Sep 1 and already open. Still worth a glance at Tom's assignment list. <==
