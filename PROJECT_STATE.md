@@ -159,6 +159,8 @@ Traffic: 16 Supabase reads, all GET; 10 OpenAI calls. Nothing was written.
 
 **Written before the commit.** The kickoff's commit `0b4bc74` was unpushed at the start and is pushed together with this entry's commit. The push is confirmed in a follow-up line below once it has happened, not before.
 
+==> **CONFIRMED THE SAME DAY: PUSHED.** `git push` reported `34cd075..dde8664  main -> main`, which carried both `0b4bc74` (the kickoff) and `dde8664` (the script and this entry). After a fetch, `git log --oneline origin/main..main` was empty and `main` and `origin/main` both read `dde8664788e9eec96f92d1bf1b5d894064a143e7`. This line is its own small commit on top, pushed the same way. <==
+
 ==> **THE ROSTER BOUNCE (2026-10-02). THE LOOP IS REPRODUCED AND ITS MECHANISM IS NAMED. THREE CHANGES ARE BUILT, VERIFIED ON A LOCAL PRODUCTION BUILD AND COMMITTED LOCALLY: THE LOOP FIX, THE SIGN OUT FIX, AND THE LOGIN MARKER. THE OWNER RULED SHIP ALL THREE. THEY WERE PUSHED AT `12b6aa0` AND ARE LIVE, AND ALL FOUR LIVE RUNS HE ASKED FOR PASSED: SEE "THE LIVE CONFIRMATION" BELOW. THE OWNER THEN CONFIRMED THE LIVE BUILD HIMSELF, ON TOM'S OWN ACCOUNT: SEE "THE OWNER'S LIVE CONFIRMATION". THE SESSION IS CLOSED OUT. THE FAULT ITSELF STAYS OPEN, BECAUSE WHAT SET IT OFF IN TOM'S BROWSER WAS NEVER OBSERVED; THE MARKER IS IN PLACE TO CATCH THE NEXT ONE AND COMES OFF BY 2026-11-02.** Kickoff: `docs/Relii-RosterLoop-Kickoff-Prompt.md`, 270 lines, commit `1b0e120`. **The section below this heading was written at the hard stop, before any code; the sections headed "AFTER THE HARD STOP" were added the same day and supersede it where they differ.** <==
 
 ### THE SHIP RULING (owner, 2026-10-02), AND WHAT THE NEXT SESSION MUST NOT "FIX"
